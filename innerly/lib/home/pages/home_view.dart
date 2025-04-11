@@ -1,14 +1,68 @@
-import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../widget/imageCard.dart';
+import '../../widget/innerly_theme.dart';
 
-class MentalHealthHome extends StatelessWidget {
+class MentalHealthHome extends StatefulWidget {
   const MentalHealthHome({super.key});
 
   @override
+  State<MentalHealthHome> createState() => _MentalHealthHomeState();
+}
+
+class _MentalHealthHomeState extends State<MentalHealthHome> {
+  bool _isInitializing = true;
+  final _storage = const FlutterSecureStorage();
+  final _uuid = const Uuid();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnonymousUser();
+  }
+
+  Future<void> _initializeAnonymousUser() async {
+    try {
+      // Check for existing user ID
+      String? userId = await _storage.read(key: 'anonymous_user_id');
+
+      // Create new user if doesn't exist
+      if (userId == null) {
+        userId = _uuid.v4();
+        await _storage.write(key: 'anonymous_user_id', value: userId);
+
+        // Insert new user into Supabase (corrected syntax)
+        final response = await Supabase.instance.client
+            .from('users')
+            .insert({
+          'id': userId,
+          'created_at': DateTime.now().toIso8601String(),
+          'is_anonymous': true,
+        });
+
+        if (response.error != null) {
+          throw Exception('Supabase error: ${response.error!.message}');
+        }
+      }
+
+      setState(() => _isInitializing = false);
+    } catch (e) {
+      print('Error initializing anonymous user: $e');
+      setState(() => _isInitializing = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isInitializing) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       drawer: const Drawer(),
       backgroundColor: InnerlyTheme.appBackground,
@@ -43,8 +97,6 @@ class MentalHealthHome extends StatelessWidget {
         child: ListView(
           children: [
             const SizedBox(height: 10),
-
-            // Centered texts
             Center(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -67,15 +119,14 @@ class MentalHealthHome extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
             SizedBox(
-              width: 108, // 2 * radius
+              width: 108,
               height: 108,
               child: ClipOval(
                 child: Image.asset(
                   'assets/user/user.png',
-                  fit: BoxFit.contain, // or try BoxFit.cover or BoxFit.scaleDown
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
@@ -86,8 +137,6 @@ class MentalHealthHome extends StatelessWidget {
               style: GoogleFonts.poppins(fontSize: 16),
             ),
             const SizedBox(height: 20),
-
-            // Row for first two cards
             Row(
               children: const [
                 Expanded(child: ShadowImageCard(imagePath: 'assets/images/explore.png')),
@@ -96,8 +145,6 @@ class MentalHealthHome extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 25),
-
-            // Full-width third image with custom height
             const ShadowImageCard(
               imagePath: 'assets/images/global_chat.png',
               height: 220,
@@ -105,8 +152,6 @@ class MentalHealthHome extends StatelessWidget {
           ],
         ),
       ),
-
     );
   }
 }
-

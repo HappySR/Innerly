@@ -1,3 +1,4 @@
+import 'package:Innerly/home/pages/profile_view.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -17,7 +18,7 @@ class BottomNav extends StatelessWidget {
 
         final List<Widget> pages = [
           MentalHealthHome(),
-
+          ProfileView(),
         ];
 
         return Scaffold(

@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:Innerly/started/splash_screen_view.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/foundation.dart';
@@ -10,9 +11,15 @@ import 'package:provider/provider.dart';
 
 
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: 'assets/.env');
+
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON']!,
+  );
 
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
@@ -25,7 +32,6 @@ void main() async {
   ));
 
   runApp(
-    /// ✅ Wrap the app in ChangeNotifierProvider
     ChangeNotifierProvider(
       create: (_) => BottomNavProvider(),
       child: const MyApp(),
@@ -33,25 +39,20 @@ void main() async {
   );
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-      return MaterialApp(
-        title: 'Innerly',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          textTheme: InnerlyTheme.textTheme,
-          platform: TargetPlatform.iOS,
-        ),
-        home: AnimatedSplashScreen(),
-      );
+    return MaterialApp(
+      title: 'Innerly',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        textTheme: InnerlyTheme.textTheme,
+        platform: TargetPlatform.iOS,
+      ),
+      home: const AnimatedSplashScreen(),
+    );
   }
 }
-
-
-
