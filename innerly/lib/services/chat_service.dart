@@ -24,11 +24,11 @@ class ChatService {
       final fileName = '${_uuid.v4()}.$fileExtension';
 
       await _storage
-          .from('chat_media')
+          .from('chat-media')
           .upload(fileName, file);
 
       return _storage
-          .from('chat_media')
+          .from('chat-media')
           .getPublicUrl(fileName);
     } on StorageException catch (e) {
       throw Exception('Upload failed: ${e.message}');
@@ -37,7 +37,7 @@ class ChatService {
     }
   }
 
-  Future<void> sendMessage(String message, {String? fileUrl}) async {
+  Future<void> sendMessage(String message, {String? fileUrl, String? fileType}) async {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
@@ -46,21 +46,14 @@ class ChatService {
         'user_id': user.id,
         'message': message,
         'display_name': 'Anonymous${user.id.substring(0, 4)}',
-        'message_type': fileUrl != null ? _getMessageType(fileUrl) : 'text',
         if (fileUrl != null) 'file_url': fileUrl,
+        if (fileType != null) 'file_type': fileType,
       };
 
       await _supabase.from('global_chat').insert(messageData);
     } catch (e) {
       throw Exception('Failed to send message: ${e.toString()}');
     }
-  }
-
-  String _getMessageType(String fileUrl) {
-    final ext = fileUrl.split('.').last.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif'].contains(ext)) return 'image';
-    if (['mp3', 'wav', 'aac'].contains(ext)) return 'audio';
-    return 'file';
   }
 
   Future<void> deleteMessage(String messageId) async {
@@ -78,7 +71,7 @@ class ChatService {
     try {
       final fileName = fileUrl.split('/').last;
       final Uint8List bytes = await _storage
-          .from('chat_media')
+          .from('chat-media')
           .download(fileName);
 
       final Directory appDocDir = await getApplicationDocumentsDirectory();
