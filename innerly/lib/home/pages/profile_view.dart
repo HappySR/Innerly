@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../started/welcome_page.dart';
 
 class ProfileView extends StatelessWidget {
@@ -40,7 +40,7 @@ class ProfileView extends StatelessWidget {
           Stack(
             alignment: Alignment.bottomRight,
             children: [
-              CircleAvatar(
+              const CircleAvatar(
                 radius: 50,
                 backgroundImage: AssetImage('assets/user/user.png'),
               ),
@@ -148,16 +148,28 @@ class ProfileButton extends StatelessWidget {
       ),
       onPressed: () async {
         if (text == 'Logout') {
-          const storage = FlutterSecureStorage();
-          await storage.delete(key: 'anonymous_user_id');
+          // Proper logout sequence
+          try {
+            // Sign out from Supabase
+            await Supabase.instance.client.auth.signOut();
 
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const WelcomePage()),
-                (route) => false,
-          );
+            // Clear any local storage
+            const storage = FlutterSecureStorage();
+            await storage.delete(key: 'anonymous_user_id');
+
+            // Navigate to welcome page and clear stack
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const WelcomePage()),
+                  (route) => false,
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Logout failed: ${e.toString()}')),
+            );
+          }
         } else {
-          // You can handle other actions here later
+          // Handle other actions
         }
       },
       icon: Icon(icon, size: 20),
