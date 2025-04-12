@@ -31,6 +31,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
   bool _isPlaying = false;
   Duration? _audioDuration;
   Duration? _audioPosition;
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -70,6 +71,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
     if (Supabase.instance.client.auth.currentUser == null) {
       await Supabase.instance.client.auth.signInAnonymously();
     }
+    _currentUserId = Supabase.instance.client.auth.currentUser?.id;
   }
 
   Future<void> _sendMessage() async {
@@ -292,36 +294,62 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
   Widget _buildMessageItem(Map<String, dynamic> message) {
     final timestamp = DateTime.parse(message['created_at']);
     final messageType = message['file_type'] ?? 'text';
+    final isCurrentUser = message['user_id'] == _currentUserId;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Align(
+      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        child: Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          color: isCurrentUser
+              ? Theme.of(context).primaryColor.withOpacity(0.1)
+              : Theme.of(context).cardColor,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: isCurrentUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
-                Text(
-                  message['display_name'] ?? 'Anonymous',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisAlignment: isCurrentUser
+                      ? MainAxisAlignment.end
+                      : MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      message['display_name'] ?? 'Anonymous',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _timeFormat.format(timestamp),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(_timeFormat.format(timestamp)),
+                const SizedBox(height: 4),
+                if (messageType == 'text')
+                  Text(message['message'] ?? ''),
+                if (messageType == 'image' && message['file_url'] != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(message['file_url'], height: 200),
+                  ),
+                if (messageType == 'audio' && message['file_url'] != null)
+                  _buildAudioPlayer(message['file_url']),
+                if (messageType == 'document' && message['file_url'] != null)
+                  _buildDocumentPreview(message['file_url']),
+                if (messageType == 'video' && message['file_url'] != null)
+                  VideoPlayerWidget(url: message['file_url']),
               ],
             ),
-            const SizedBox(height: 4),
-            if (messageType == 'text')
-              Text(message['message'] ?? ''),
-            if (messageType == 'image' && message['file_url'] != null)
-              Image.network(message['file_url'], height: 200),
-            if (messageType == 'audio' && message['file_url'] != null)
-              _buildAudioPlayer(message['file_url']),
-            if (messageType == 'document' && message['file_url'] != null)
-              _buildDocumentPreview(message['file_url']),
-            if (messageType == 'video' && message['file_url'] != null)
-              VideoPlayerWidget(url: message['file_url']),
-          ],
+          ),
         ),
       ),
     );
@@ -329,6 +357,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
 
   Widget _buildAudioPlayer(String url) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
