@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:Innerly/widget/innerly_theme.dart';
-import 'package:Innerly/started/welcome_page.dart';
-import 'package:Innerly/home/pages/home_view.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../home/pages/bottom_nav.dart';
+import 'welcome_page.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {
   const AnimatedSplashScreen({super.key});
@@ -16,8 +13,6 @@ class AnimatedSplashScreen extends StatefulWidget {
 class AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _opacity;
-  final _storage = const FlutterSecureStorage();
 
   @override
   void initState() {
@@ -27,27 +22,18 @@ class AnimatedSplashScreenState extends State<AnimatedSplashScreen>
       duration: const Duration(milliseconds: 2000),
     )..forward();
 
-    _opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0, 0.6, curve: Curves.easeIn),
-      ),
-    );
-
-    _checkUserAndNavigate();
+    _checkAuth();
   }
 
-  Future<void> _checkUserAndNavigate() async {
-    // Wait for both animation and storage check
+  Future<void> _checkAuth() async {
     await Future.delayed(const Duration(milliseconds: 2000));
-
     if (!mounted) return;
 
-    final userId = await _storage.read(key: 'anonymous_user_id');
-
-    Navigator.of(context).pushReplacement(
+    final user = Supabase.instance.client.auth.currentUser;
+    Navigator.pushReplacement(
+      context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => userId != null ? const BottomNav() : const WelcomePage(),
+        pageBuilder: (_, __, ___) => user != null ? const BottomNav() : const WelcomePage(),
         transitionDuration: const Duration(milliseconds: 500),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
@@ -59,14 +45,11 @@ class AnimatedSplashScreenState extends State<AnimatedSplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: InnerlyTheme.appBackground,
+      backgroundColor: Colors.white,
       body: Center(
-        child: FadeTransition(
-          opacity: _opacity,
-          child: Image.asset(
-            'assets/logo/app_logo.png',
-            height: 190,
-          ),
+        child: Image.asset(
+          'assets/logo/app_logo.png',
+          height: 190,
         ),
       ),
     );

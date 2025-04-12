@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
+import '../../started/welcome_page.dart';
 import '../../widget/imageCard.dart';
 import '../../widget/innerly_theme.dart';
+import 'global_chat_view.dart';
 
 class MentalHealthHome extends StatefulWidget {
   const MentalHealthHome({super.key});
@@ -15,42 +16,21 @@ class MentalHealthHome extends StatefulWidget {
 
 class _MentalHealthHomeState extends State<MentalHealthHome> {
   bool _isInitializing = true;
-  final _storage = const FlutterSecureStorage();
-  final _uuid = const Uuid();
 
   @override
   void initState() {
     super.initState();
-    _initializeAnonymousUser();
+    _checkAuth();
   }
 
-  Future<void> _initializeAnonymousUser() async {
-    try {
-      // Check for existing user ID
-      String? userId = await _storage.read(key: 'anonymous_user_id');
-
-      // Create new user if doesn't exist
-      if (userId == null) {
-        userId = _uuid.v4();
-        await _storage.write(key: 'anonymous_user_id', value: userId);
-
-        // Insert new user into Supabase (corrected syntax)
-        final response = await Supabase.instance.client
-            .from('users')
-            .insert({
-          'id': userId,
-          'created_at': DateTime.now().toIso8601String(),
-          'is_anonymous': true,
-        });
-
-        if (response.error != null) {
-          throw Exception('Supabase error: ${response.error!.message}');
-        }
-      }
-
-      setState(() => _isInitializing = false);
-    } catch (e) {
-      print('Error initializing anonymous user: $e');
+  Future<void> _checkAuth() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const WelcomePage()),
+      );
+    } else {
       setState(() => _isInitializing = false);
     }
   }
@@ -62,6 +42,8 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
+    final user = Supabase.instance.client.auth.currentUser!;
 
     return Scaffold(
       drawer: const Drawer(),
@@ -145,9 +127,17 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
               ],
             ),
             const SizedBox(height: 25),
-            const ShadowImageCard(
-              imagePath: 'assets/images/global_chat.png',
-              height: 220,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GlobalChatScreen()),
+                );
+              },
+              child: const ShadowImageCard(
+                imagePath: 'assets/images/global_chat.png',
+                height: 220,
+              ),
             ),
           ],
         ),

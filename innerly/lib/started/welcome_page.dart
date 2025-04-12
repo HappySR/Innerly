@@ -2,6 +2,7 @@ import 'package:Innerly/home/pages/home_view.dart';
 import 'package:flutter/material.dart';
 
 import '../home/pages/bottom_nav.dart';
+import '../services/auth_service.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({Key? key}) : super(key: key);
@@ -51,11 +52,19 @@ class WelcomePage extends StatelessWidget {
               // "Continue Anonymously..." button
               RoundedButton(
                 text: 'Continue Anonymously...',
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const BottomNav()),
-                  );
+                onPressed: () async {
+                  try {
+                    final authService = AuthService();
+                    await authService.handleAnonymousLogin();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const BottomNav()),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.toString()}')),
+                    );
+                  }
                 },
                 textStyle: const TextStyle(
                   fontSize: 16,
