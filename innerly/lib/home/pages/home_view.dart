@@ -38,9 +38,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final user = Supabase.instance.client.auth.currentUser!;
@@ -52,10 +50,14 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.filter_list_sharp, color: Colors.black87),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(
+                  Icons.filter_list_sharp,
+                  color: Colors.black87,
+                ),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
         ),
         title: SizedBox(
           height: 36,
@@ -74,73 +76,150 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ListView(
-          children: [
-            const SizedBox(height: 10),
-            Center(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'Hello, Julia',
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ListView(
+              children: [
+                const SizedBox(height: 10),
+                Center(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Hello, Julia',
+                        style: GoogleFonts.aclonica(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'HOW ARE YOU',
+                            style: GoogleFonts.aboreto(
+                              fontSize: 17,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'FEELING',
+                            style: GoogleFonts.aboreto(
+                              fontSize: 20,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'TODAY',
+                            style: GoogleFonts.aboreto(
+                              fontSize: 17,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 140,
+                      height: 120,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: AssetImage('assets/user/user.png'),
+                            fit: BoxFit.cover,
+                            alignment: Alignment(0.0, -0.1),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'HOW ARE YOU FEELING TODAY',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      color: Colors.grey.shade600,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '"Hey, are you feeling low. Talk to our\nexpert therapist for instant relaxation"',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.abyssinicaSil(fontSize: 18),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: const [
+                    Expanded(
+                      child: ShadowImageCard(
+                        imagePath: 'assets/images/explore.png',
+                      ),
                     ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: ShadowImageCard(
+                        imagePath: 'assets/images/interact.png',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GlobalChatScreen(),
+                      ),
+                    );
+                  },
+                  child: const ShadowImageCard(
+                    imagePath: 'assets/images/global_chat.png',
+                    height: 220,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: 108,
-              height: 108,
-              child: ClipOval(
+          ),
+          Positioned(
+            bottom: 4,
+            right: 5,
+            child: GestureDetector(
+              onTap: () {
+                debugPrint("Leaf icon clicked!");
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(2, 2),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(10),
                 child: Image.asset(
-                  'assets/user/user.png',
-                  fit: BoxFit.contain,
+                  'assets/chat/leaf.png',
+                  width: 45,
+                  height: 40,
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              '"Hey, are you feeling low. Talk to our\nexpert therapist for instant relaxation"',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: const [
-                Expanded(child: ShadowImageCard(imagePath: 'assets/images/explore.png')),
-                SizedBox(width: 12),
-                Expanded(child: ShadowImageCard(imagePath: 'assets/images/interact.png')),
-              ],
-            ),
-            const SizedBox(height: 25),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const GlobalChatScreen()),
-                );
-              },
-              child: const ShadowImageCard(
-                imagePath: 'assets/images/global_chat.png',
-                height: 220,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
