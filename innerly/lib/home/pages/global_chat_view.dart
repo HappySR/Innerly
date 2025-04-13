@@ -298,7 +298,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
 
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
+      child: Container(
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
@@ -313,15 +313,20 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
               crossAxisAlignment: isCurrentUser
                   ? CrossAxisAlignment.end
                   : CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: isCurrentUser
                       ? MainAxisAlignment.end
                       : MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      message['display_name'] ?? 'Anonymous',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    Flexible(
+                      child: Text(
+                        message['display_name'] ?? 'Anonymous',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -335,7 +340,10 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
                 ),
                 const SizedBox(height: 4),
                 if (messageType == 'text')
-                  Text(message['message'] ?? ''),
+                  Text(
+                    message['message'] ?? '',
+                    textAlign: isCurrentUser ? TextAlign.right : TextAlign.left,
+                  ),
                 if (messageType == 'image' && message['file_url'] != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
@@ -485,6 +493,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   late VideoPlayerController _videoPlayerController;
   ChewieController? _chewieController;
   bool _isInitialized = false;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -494,30 +503,40 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   Future<void> _initializeVideoPlayer() async {
     _videoPlayerController = VideoPlayerController.network(widget.url);
-    await _videoPlayerController.initialize();
 
-    _chewieController = ChewieController(
-      videoPlayerController: _videoPlayerController,
-      autoPlay: false,
-      looping: false,
-      showControls: true,
-      materialProgressColors: ChewieProgressColors(
-        playedColor: Colors.blue,
-        handleColor: Colors.blue,
-        backgroundColor: Colors.grey,
-        bufferedColor: Colors.grey.shade300,
-      ),
-    );
+    try {
+      await _videoPlayerController.initialize();
+      if (_isDisposed || !mounted) return;
 
-    if (mounted) {
-      setState(() => _isInitialized = true);
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController,
+        autoPlay: false,
+        looping: false,
+        showControls: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.blue,
+          handleColor: Colors.blue,
+          backgroundColor: Colors.grey,
+          bufferedColor: Colors.grey.shade300,
+        ),
+      );
+
+      if (mounted) {
+        setState(() => _isInitialized = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isInitialized = false);
+      }
     }
   }
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
+    _isDisposed = true;
+    _videoPlayerController.pause();
     _chewieController?.dispose();
+    _videoPlayerController.dispose();
     super.dispose();
   }
 
@@ -534,15 +553,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
     }
 
-    return GestureDetector(
-      onTap: () => _showFullScreenVideo(context),
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.black12,
-          borderRadius: BorderRadius.circular(8),
+    return AspectRatio(
+      aspectRatio: _videoPlayerController.value.aspectRatio,
+      child: GestureDetector(
+        onTap: () => _showFullScreenVideo(context),
+        child: Chewie(
+          controller: _chewieController!,
         ),
-        child: Chewie(controller: _chewieController!),
       ),
     );
   }
@@ -562,7 +579,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           body: Center(
             child: AspectRatio(
               aspectRatio: _videoPlayerController.value.aspectRatio,
-              child: Chewie(controller: _chewieController!),
+              child: Chewie(
+                controller: ChewieController(
+                  videoPlayerController: _videoPlayerController,
+                  autoPlay: true,
+                  looping: false,
+                  showControls: true,
+                ),
+              ),
             ),
           ),
         ),
