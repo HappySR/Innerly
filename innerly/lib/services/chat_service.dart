@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,14 +9,74 @@ class ChatService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final _storage = Supabase.instance.client.storage;
   final _uuid = Uuid();
+  late final RealtimeChannel _channel;
+  final StreamController<List<Map<String, dynamic>>> _controller =
+  StreamController.broadcast();
+  bool _isSubscribed = false;
+  bool _isDisposed = false;
 
-  Stream<List<Map<String, dynamic>>> getGlobalChatStream() {
-    return _supabase
+  ChatService() {
+    _channel = _supabase.channel('global_chat').onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'global_chat',
+      callback: _handleRealtimeUpdate,
+    );
+  }
+
+  Future<void> _handleRealtimeUpdate(PostgresChangePayload payload) async {
+    if (_isDisposed) return;
+    final updatedMessages = await _fetchMessages();
+    if (!_controller.isClosed) {
+      _controller.add(updatedMessages);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchMessages() async {
+    final response = await _supabase
         .from('global_chat')
-        .stream(primaryKey: ['id'])
+        .select()
         .order('created_at', ascending: false)
-        .limit(50)
-        .map((messages) => messages.where((m) => m['deleted'] == false).toList());
+        .limit(50);
+    return response.where((m) => m['deleted'] == false).toList();
+  }
+
+  Stream<List<Map<String, dynamic>>> getGlobalChatStream() async* {
+    if (_isDisposed) {
+      throw Exception('ChatService has been disposed');
+    }
+
+    // Yield initial data
+    yield await _fetchMessages();
+
+    // Subscribe only once
+    if (!_isSubscribed) {
+      _isSubscribed = true;
+      _channel.subscribe((status, [_]) {
+        if (status == RealtimeSubscribeStatus.subscribed) {
+          _fetchMessages().then((messages) {
+            if (!_controller.isClosed) {
+              _controller.add(messages);
+            }
+          });
+        }
+      });
+    }
+
+    yield* _controller.stream;
+  }
+
+  Future<void> unsubscribe() async {
+    if (!_isDisposed) {
+      _isDisposed = true;
+      if (_isSubscribed) {
+        await _channel.unsubscribe();
+        _isSubscribed = false;
+      }
+      if (!_controller.isClosed) {
+        await _controller.close();
+      }
+    }
   }
 
   Future<String> uploadFile(File file) async {
@@ -23,13 +84,8 @@ class ChatService {
       final fileExtension = file.path.split('.').last;
       final fileName = '${_uuid.v4()}.$fileExtension';
 
-      await _storage
-          .from('chat-media')
-          .upload(fileName, file);
-
-      return _storage
-          .from('chat-media')
-          .getPublicUrl(fileName);
+      await _storage.from('chat-media').upload(fileName, file);
+      return _storage.from('chat-media').getPublicUrl(fileName);
     } on StorageException catch (e) {
       throw Exception('Upload failed: ${e.message}');
     } catch (e) {
@@ -37,7 +93,8 @@ class ChatService {
     }
   }
 
-  Future<void> sendMessage(String message, {String? fileUrl, String? fileType}) async {
+  Future<void> sendMessage(String message,
+      {String? fileUrl, String? fileType}) async {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
@@ -46,6 +103,7 @@ class ChatService {
         'user_id': user.id,
         'message': message,
         'display_name': 'Anonymous${user.id.substring(0, 4)}',
+        'deleted': false,
         if (fileUrl != null) 'file_url': fileUrl,
         if (fileType != null) 'file_type': fileType,
       };
@@ -70,9 +128,8 @@ class ChatService {
   Future<String> downloadFile(String fileUrl) async {
     try {
       final fileName = fileUrl.split('/').last;
-      final Uint8List bytes = await _storage
-          .from('chat-media')
-          .download(fileName);
+      final Uint8List bytes =
+      await _storage.from('chat-media').download(fileName);
 
       final Directory appDocDir = await getApplicationDocumentsDirectory();
       final File localFile = File('${appDocDir.path}/$fileName');
