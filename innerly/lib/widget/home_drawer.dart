@@ -14,30 +14,55 @@ class HomeDrawer extends StatelessWidget {
           children: [
             // Header Section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 20,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Logo and App Name
+                  // Logo and App Name with vertical bar
                   Row(
                     children: [
                       Image.asset(
-                        'assets/icons/plant_logo.png', // Use the correct path
+                        'assets/logo/app_logo.png',
+                        height: 65, // Slightly smaller so it aligns better
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
                         height: 30,
+                        width: 1.5,
+                        color: Colors.black54, // Vertical bar
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'INNERLY',
                         style: GoogleFonts.playfairDisplay(
-                          fontSize: 22,
+                          fontSize: 24, // Adjusted for better visual balance
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
+
+                  // Back Button
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.black54, width: 2),
+                      color: Colors.transparent,
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      iconSize: 18,
+                      icon: const Icon(
+                        Icons.arrow_back_ios_rounded,
+                        color: Colors.black,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                   ),
                 ],
               ),
@@ -96,10 +121,7 @@ class _DrawerItem extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _DrawerItem({
-    required this.icon,
-    required this.label,
-  });
+  const _DrawerItem({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {

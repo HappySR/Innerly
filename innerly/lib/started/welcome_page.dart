@@ -1,7 +1,7 @@
 import 'package:Innerly/home/pages/home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:Innerly/started/signup_view.dart';
 import '../home/pages/bottom_nav.dart';
 import '../services/auth_service.dart';
 import '../services/role.dart';
@@ -20,30 +20,23 @@ class WelcomePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              Image.asset(
-                'assets/logo/app_logo.png',
-                height: 250,
-              ),
+              Image.asset('assets/logo/app_logo.png', height: 250),
               const SizedBox(height: 20),
 
               // "Are you a Therapist???" button
               RoundedButton(
                 text: 'Are you a Therapist???',
-                  onPressed: () async {
-                    UserRole.isTherapist = true;
-                    UserRole.saveRole(true);
-                    final authService = AuthService();
-                    await authService.handleAnonymousLogin();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => BottomNav()),
-                    );
-                  },
+                onPressed: () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SignUpPage()),
+                  );
+                },
                 textStyle: GoogleFonts.alegreyaSansSc(
                   fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 26
-                )
+                  fontWeight: FontWeight.w400,
+                  fontSize: 26,
+                ),
               ),
               const SizedBox(height: 50),
 
@@ -81,11 +74,11 @@ class WelcomePage extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.aboreto(
                     fontStyle: FontStyle.italic,
-                    fontSize: 25
-                  )
+                    fontSize: 25,
+                  ),
                 ),
               ),
-              SizedBox(height: 40,)
+              SizedBox(height: 40),
             ],
           ),
         ),
@@ -112,19 +105,16 @@ class RoundedButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFDDE0E6),
         foregroundColor: Colors.black87,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15), // Removed vertical padding
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50),
-        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 28,
+          vertical: 15,
+        ), // Removed vertical padding
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         elevation: 0,
       ),
       onPressed: onPressed,
       child: Center(
-        child: Text(
-          text,
-          style: textStyle,
-          textAlign: TextAlign.center,
-        ),
+        child: Text(text, style: textStyle, textAlign: TextAlign.center),
       ),
     );
   }

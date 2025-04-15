@@ -7,6 +7,7 @@ import '../../widget/imageCard.dart';
 import '../../widget/innerly_theme.dart';
 import 'global_chat_view.dart';
 import 'mind_games_view.dart';
+import 'package:Innerly/home/pages/therapist_page.dart';
 
 class MentalHealthHome extends StatefulWidget {
   const MentalHealthHome({super.key});
@@ -46,7 +47,6 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
 
     final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
     bool _isDrawerOpen = false;
-
 
     return Scaffold(
       drawer: const HomeDrawer(),
@@ -183,8 +183,26 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
 
                     SizedBox(width: 12),
                     Expanded(
-                      child: ShadowImageCard(
-                        imagePath: 'assets/images/interact.png',
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => TherapistPage(
+                                    therapists: [
+                                      {'name': 'Mr. Shubhajit', 'rating': 5},
+                                      {'name': 'Mr. Abhishek', 'rating': 4},
+                                      {'name': 'Miss Preeti', 'rating': 5},
+                                      {'name': 'Mr. Therapy', 'rating': 4},
+                                    ],
+                                  ),
+                            ),
+                          );
+                        },
+                        child: ShadowImageCard(
+                          imagePath: 'assets/images/interact.png',
+                        ),
                       ),
                     ),
                   ],
