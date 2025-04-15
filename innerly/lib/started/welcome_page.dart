@@ -1,8 +1,10 @@
 import 'package:Innerly/home/pages/home_view.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../home/pages/bottom_nav.dart';
 import '../services/auth_service.dart';
+import '../services/role.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({Key? key}) : super(key: key);
@@ -20,45 +22,43 @@ class WelcomePage extends StatelessWidget {
               const SizedBox(height: 40),
               Image.asset(
                 'assets/logo/app_logo.png',
-                height: 100,
+                height: 250,
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Innerly',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                  fontFamily: 'Serif', // You can use GoogleFonts if desired
-                ),
-              ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 20),
 
               // "Are you a Therapist???" button
               RoundedButton(
                 text: 'Are you a Therapist???',
-                onPressed: () {
-                  // TODO: navigate or handle action
-                },
-                textStyle: const TextStyle(
-                  fontSize: 16,
+                  onPressed: () async {
+                    UserRole.isTherapist = true;
+                    UserRole.saveRole(true);
+                    final authService = AuthService();
+                    await authService.handleAnonymousLogin();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => BottomNav()),
+                    );
+                  },
+                textStyle: GoogleFonts.alegreyaSansSc(
                   fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1,
-                ),
+                    fontWeight: FontWeight.w400,
+                    fontSize: 26
+                )
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 50),
 
               // "Continue Anonymously..." button
               RoundedButton(
                 text: 'Continue Anonymously...',
                 onPressed: () async {
                   try {
+                    UserRole.isTherapist = false;
+                    UserRole.saveRole(false);
                     final authService = AuthService();
                     await authService.handleAnonymousLogin();
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const BottomNav()),
+                      MaterialPageRoute(builder: (context) => BottomNav()),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -66,27 +66,26 @@ class WelcomePage extends StatelessWidget {
                     );
                   }
                 },
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1.2,
+                textStyle: GoogleFonts.alegreyaSansSc(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 5,
                 ),
               ),
 
               const Spacer(),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(bottom: 24.0),
                 child: Text(
                   '"Not all battles are visible and neither are the victories." — Brittany Burgunder',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: GoogleFonts.aboreto(
                     fontStyle: FontStyle.italic,
-                    fontSize: 14,
-                    color: Colors.black87,
-                    height: 1.4,
-                  ),
+                    fontSize: 25
+                  )
                 ),
               ),
+              SizedBox(height: 40,)
             ],
           ),
         ),
@@ -113,14 +112,20 @@ class RoundedButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFDDE0E6),
         foregroundColor: Colors.black87,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15), // Removed vertical padding
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(50),
         ),
         elevation: 0,
       ),
       onPressed: onPressed,
-      child: Text(text, style: textStyle),
+      child: Center(
+        child: Text(
+          text,
+          style: textStyle,
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }

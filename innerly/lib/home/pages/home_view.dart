@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../started/welcome_page.dart';
+import '../../widget/home_drawer.dart';
 import '../../widget/imageCard.dart';
 import '../../widget/innerly_theme.dart';
 import 'global_chat_view.dart';
+import 'mind_games_view.dart';
 
 class MentalHealthHome extends StatefulWidget {
   const MentalHealthHome({super.key});
@@ -43,8 +44,12 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
 
     final user = Supabase.instance.client.auth.currentUser!;
 
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+    bool _isDrawerOpen = false;
+
+
     return Scaffold(
-      drawer: const Drawer(),
+      drawer: const HomeDrawer(),
       backgroundColor: InnerlyTheme.appBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -159,12 +164,23 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
                 ),
                 const SizedBox(height: 20),
                 Row(
-                  children: const [
+                  children: [
                     Expanded(
-                      child: ShadowImageCard(
-                        imagePath: 'assets/images/explore.png',
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const GamesPage(),
+                            ),
+                          );
+                        },
+                        child: ShadowImageCard(
+                          imagePath: 'assets/images/explore.png',
+                        ),
                       ),
                     ),
+
                     SizedBox(width: 12),
                     Expanded(
                       child: ShadowImageCard(
@@ -199,22 +215,22 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
                 debugPrint("Leaf icon clicked!");
               },
               child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(2, 2),
-                    ),
-                  ],
-                ),
+                // decoration: BoxDecoration(
+                //   color: Colors.white,
+                //   shape: BoxShape.circle,
+                //   boxShadow: [
+                //     BoxShadow(
+                //       color: Colors.black12,
+                //       blurRadius: 4,
+                //       offset: Offset(2, 2),
+                //     ),
+                //   ],
+                // ),
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(
                   'assets/chat/leaf.png',
-                  width: 45,
-                  height: 40,
+                  width: 50,
+                  height: 50,
                 ),
               ),
             ),

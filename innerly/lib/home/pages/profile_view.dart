@@ -7,6 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../started/welcome_page.dart';
+import '../../widget/profile_button.dart';
+import 'edit_profile_view.dart';
+import 'mind_games_view.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -56,7 +59,12 @@ class ProfileView extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.black87, size: 25),
             onPressed: () {
-              // TODO: Handle edit profile
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const EditProfileScreen(),
+                ),
+              );
             },
           ),
         ],
@@ -77,7 +85,10 @@ class ProfileView extends StatelessWidget {
           SingleChildScrollView(
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 20,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -110,13 +121,28 @@ class ProfileView extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           bottom: 20,
                           right: 15,
-                          child: CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.white,
-                            child: Icon(Icons.edit, size: 14, color: Colors.grey),
+                          child: GestureDetector(
+                            onTap: () {
+                              // Your onTap functionality here
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const EditProfileScreen(),
+                                ),
+                              );
+                            },
+                            child: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.white,
+                              child: Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -124,15 +150,20 @@ class ProfileView extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text('Julia', style: GoogleFonts.aclonica(fontSize: 20)),
                     const SizedBox(height: 4),
-                    Text('abc@example.com',
-                        style: GoogleFonts.abyssinicaSil(fontSize: 20)),
+                    Text(
+                      'abc@example.com',
+                      style: GoogleFonts.abyssinicaSil(fontSize: 20),
+                    ),
                     const SizedBox(height: 90),
                     const SizedBox(height: 24),
                     const ProfileButton(icon: Icons.settings, text: 'Settings'),
                     const SizedBox(height: 18),
                     const ProfileButton(icon: Icons.language, text: 'Language'),
                     const SizedBox(height: 18),
-                    const ProfileButton(icon: Icons.info_outline, text: 'About'),
+                    const ProfileButton(
+                      icon: Icons.info_outline,
+                      text: 'About',
+                    ),
                     const SizedBox(height: 18),
                     const ProfileButton(icon: Icons.logout, text: 'Logout'),
                   ],
@@ -141,60 +172,6 @@ class ProfileView extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class ProfileButton extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const ProfileButton({super.key, required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity, // 🔹 Full width
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFAED9D3).withAlpha(150),
-          foregroundColor: Colors.black87,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20  ), // 🔹 Adjusted padding
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
-        onPressed: () async {
-          if (text == 'Logout') {
-            // Proper logout sequence
-            try {
-              // Sign out from Supabase
-              await Supabase.instance.client.auth.signOut();
-
-              // Clear any local storage
-              const storage = FlutterSecureStorage();
-              await storage.delete(key: 'anonymous_user_id');
-
-              // Navigate to welcome page and clear stack
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const WelcomePage()),
-                    (route) => false,
-              );
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Logout failed: ${e.toString()}')),
-              );
-            }
-          } else {
-            // Handle other actions
-          }
-        },
-        icon: Icon(icon, size: 20, color: Colors.black,),
-        label: Text(
-          text,
-          style: GoogleFonts.aclonica(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
       ),
     );
   }

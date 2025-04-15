@@ -1,10 +1,13 @@
 import 'package:Innerly/home/pages/profile_view.dart';
+import 'package:Innerly/home/pages/therapist_home.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../services/role.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'explore_view.dart';
 import 'home_view.dart';
-import 'package:provider/provider.dart';
 import 'notifications_view.dart';
 
 class BottomNav extends StatefulWidget {
@@ -26,8 +29,8 @@ class _BottomNavState extends State<BottomNav> {
         final int selectedIndex = bottomNavProvider.selectedIndex;
 
         final List<Widget> pages = [
-          MentalHealthHome(),
-          SearchPage(),
+          if (UserRole.isTherapist) const HomeTherapist() else MentalHealthHome(),
+          ExplorePage(),
           const SizedBox.shrink(), // Placeholder for notifications
           ProfileView(),
         ];
@@ -35,7 +38,7 @@ class _BottomNavState extends State<BottomNav> {
         return Scaffold(
           key: _scaffoldKey,
           body: IndexedStack(
-            index: selectedIndex, // Always show the selected screen in background
+            index: selectedIndex,
             children: pages,
           ),
           bottomNavigationBar: BottomNavigationBar(
@@ -76,12 +79,13 @@ class _BottomNavState extends State<BottomNav> {
             showSelectedLabels: false,
             backgroundColor: Colors.white,
             type: BottomNavigationBarType.fixed,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Courses'),
-              BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Community'),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-            ],
+            items: [
+              if (UserRole.isTherapist)
+                const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Therapist') else const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Courses'),
+              const BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Community'),
+              const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+              ],
           ),
         );
       },

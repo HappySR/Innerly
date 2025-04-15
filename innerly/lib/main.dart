@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:Innerly/services/role.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:Innerly/started/splash_screen_view.dart';
@@ -20,6 +21,12 @@ void main() async {
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON']!,
   );
+
+  try {
+    await UserRole.loadRole();
+  } catch (e) {
+    print("Error loading user role: $e");
+  }
 
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
