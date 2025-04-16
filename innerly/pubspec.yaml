@@ -46,6 +46,12 @@ dependencies:
   cached_network_image: ^3.4.1
   permission_handler: ^12.0.0+1
   record: ^6.0.0
+  url_launcher: ^6.3.1
+  flame: ^1.27.0
+  webview_flutter: ^4.10.0
+  lottie: ^3.3.1
+  confetti: ^0.8.0
+  sudoku_dart: ^1.2.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
