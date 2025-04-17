@@ -4,6 +4,7 @@ import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:Innerly/home/pages/therapist_patients.dart';
+import 'package:Innerly/home/pages/therapist_profile.dart';
 import '../../services/role.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'explore_view.dart';
@@ -35,7 +36,7 @@ class _BottomNavState extends State<BottomNav> {
             MentalHealthHome(),
           if (UserRole.isTherapist) const PatientsPage() else ExplorePage(),
           const SizedBox.shrink(), // Placeholder for notifications
-          ProfileView(),
+          if (UserRole.isTherapist) TherapistProfile() else ProfileView(),
         ];
 
         return Scaffold(

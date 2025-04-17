@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Innerly/home/pages/therapist_patients.dart';
 import 'package:Innerly/home/pages/therapist_requests.dart';
+import 'package:Innerly/home/pages/therapist_schedule.dart';
 
 class HomeTherapist extends StatelessWidget {
   const HomeTherapist({super.key});
@@ -152,7 +153,14 @@ class HomeTherapist extends StatelessWidget {
                     _buildHomeButton(
                       imagePath: 'assets/icons/schedule.png',
                       text: 'Today\'s Schedule',
-                      onTap: () {},
+                      onTap: () async {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ScheduleScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

@@ -14,31 +14,27 @@ class ProfileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: double.infinity, // 🔹 Full width
-      child: ElevatedButton.icon(
+      width: double.infinity, // Full width button
+      child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFAED9D3).withAlpha(150),
           foregroundColor: Colors.black87,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20  ), // 🔹 Adjusted padding
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
         ),
         onPressed: () async {
           if (text == 'Logout') {
-            // Proper logout sequence
             try {
-              // Sign out from Supabase
               await Supabase.instance.client.auth.signOut();
-
-              // Clear any local storage
               const storage = FlutterSecureStorage();
               await storage.delete(key: 'anonymous_user_id');
-
-              // Navigate to welcome page and clear stack
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const WelcomePage()),
-                    (route) => false,
+                (route) => false,
               );
             } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -46,13 +42,22 @@ class ProfileButton extends StatelessWidget {
               );
             }
           } else {
-            // Handle other actions
+            // Other button actions
           }
         },
-        icon: Icon(icon, size: 20, color: Colors.black,),
-        label: Text(
-          text,
-          style: GoogleFonts.aclonica(fontSize: 20, fontWeight: FontWeight.bold),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start, // Align to left
+          children: [
+            Icon(icon, size: 28, color: Colors.black),
+            const SizedBox(width: 36), // Space between icon and text
+            Text(
+              text,
+              style: GoogleFonts.aclonica(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );
