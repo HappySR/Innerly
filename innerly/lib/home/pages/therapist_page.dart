@@ -62,20 +62,6 @@ class TherapistPage extends StatelessWidget {
                                   style: const TextStyle(fontSize: 27),
                                 ),
                                 const SizedBox(height: 10),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: List.generate(
-                                    5,
-                                    (star) => Icon(
-                                      Icons.star,
-                                      color:
-                                          star < therapist['rating']
-                                              ? Colors.black
-                                              : Colors.grey,
-                                      size: 32,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),

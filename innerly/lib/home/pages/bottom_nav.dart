@@ -3,7 +3,7 @@ import 'package:Innerly/home/pages/therapist_home.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:Innerly/home/pages/therapist_patients.dart';
 import '../../services/role.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'explore_view.dart';
@@ -29,18 +29,18 @@ class _BottomNavState extends State<BottomNav> {
         final int selectedIndex = bottomNavProvider.selectedIndex;
 
         final List<Widget> pages = [
-          if (UserRole.isTherapist) const HomeTherapist() else MentalHealthHome(),
-          ExplorePage(),
+          if (UserRole.isTherapist)
+            const HomeTherapist()
+          else
+            MentalHealthHome(),
+          if (UserRole.isTherapist) const PatientsPage() else ExplorePage(),
           const SizedBox.shrink(), // Placeholder for notifications
           ProfileView(),
         ];
 
         return Scaffold(
           key: _scaffoldKey,
-          body: IndexedStack(
-            index: selectedIndex,
-            children: pages,
-          ),
+          body: IndexedStack(index: selectedIndex, children: pages),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _isNotificationSheetOpen ? 2 : selectedIndex,
             onTap: (index) {
@@ -49,10 +49,12 @@ class _BottomNavState extends State<BottomNav> {
                 if (!_isNotificationSheetOpen) {
                   setState(() => _isNotificationSheetOpen = true);
                   _controller = _scaffoldKey.currentState!.showBottomSheet(
-                        (context) => Container(
+                    (context) => Container(
                       decoration: const BoxDecoration(
                         color: Colors.transparent,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                       ),
                       child: const NotificationBottomSheet(),
                     ),
@@ -81,11 +83,36 @@ class _BottomNavState extends State<BottomNav> {
             type: BottomNavigationBarType.fixed,
             items: [
               if (UserRole.isTherapist)
-                const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Therapist') else const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Courses'),
-              const BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Community'),
-              const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-              ],
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Therapist',
+                )
+              else
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+
+              if (UserRole.isTherapist)
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.medical_services),
+                  label: 'Clients',
+                )
+              else
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.search),
+                  label: 'Explore',
+                ),
+
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.notifications),
+                label: 'Community',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
           ),
         );
       },
