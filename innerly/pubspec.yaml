@@ -93,8 +93,9 @@ flutter:
     - assets/chat/
     - assets/notification/
     - assets/icons/
-    - assets/audio/meditation_audio/morning_calm.mp3
-    - assets/audio/meditation_audio/deep_relaxation.mp3
+    - assets/audio/meditation_audio/
+    - assets/audio/mood_audio/
+    - assets/audio/sleep_audio/
 
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
