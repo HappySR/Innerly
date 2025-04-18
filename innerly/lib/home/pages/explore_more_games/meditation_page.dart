@@ -20,7 +20,7 @@ class _MeditationPageState extends State<MeditationPage> {
   bool _isPlaying = false;
   bool _showTimer = false;
   bool _isLooping = false;
-  int _selectedDuration = 10; // in minutes
+  int _selectedDuration = -1; // -1 represents infinite duration
   Duration _audioPosition = Duration.zero;
   Duration _audioDuration = Duration.zero;
 
@@ -30,9 +30,9 @@ class _MeditationPageState extends State<MeditationPage> {
   @override
   void initState() {
     super.initState();
-    _audioDuration = const Duration(milliseconds: 1);
     _setupAudioListeners();
     _loadAudioFiles();
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
   Future<void> _loadAudioFiles() async {
@@ -43,14 +43,14 @@ class _MeditationPageState extends State<MeditationPage> {
           .toList();
 
       _meditationTracks = audioPaths.map((fullPath) {
-        // Use direct path from manifest without modification
         final cleanPath = fullPath.replaceFirst('assets/', '');
+        final filename = cleanPath.split('/').last.replaceAll('.mp3', '');
 
         return {
-          'title': cleanPath.split('/').last.replaceAll('.mp3', ''),
-          'path': cleanPath, // Should be "audio/meditation_audio/..."
+          'title': filename.split('_').map((w) => w[0].toUpperCase() + w.substring(1)).join(' '),
+          'path': cleanPath,
           'duration': '10 min',
-          'description': 'Meditation Track',
+          'description': _getDescription(filename),
         };
       }).toList();
 
@@ -79,7 +79,7 @@ class _MeditationPageState extends State<MeditationPage> {
 
   String _getDescription(String filename) {
     switch (filename) {
-      case 'deep_relaxation': // Match exact filename with typo
+      case 'deep_relaxation':
         return 'Release tension and find peace';
       case 'morning_calm':
         return 'Gentle guidance for starting your day';
@@ -91,9 +91,8 @@ class _MeditationPageState extends State<MeditationPage> {
   void _setupAudioListeners() {
     _audioPlayer.onPlayerComplete.listen((_) async {
       if (_isLooping && mounted) {
-        // Reset position and restart playback
         await _audioPlayer.seek(Duration.zero);
-        await _audioPlayer.play(AssetSource(_meditationTracks[_selectedTrackIndex]['path']));
+        await _audioPlayer.resume();
       } else if (mounted) {
         setState(() {
           _isPlaying = false;
@@ -126,7 +125,7 @@ class _MeditationPageState extends State<MeditationPage> {
         final track = _meditationTracks[_selectedTrackIndex];
         await _audioPlayer.play(AssetSource(track['path']));
 
-        if (!_showTimer && mounted) {
+        if (_selectedDuration != -1 && !_showTimer && mounted) {
           setState(() => _showTimer = true);
           _timerController.start();
         }
@@ -149,8 +148,24 @@ class _MeditationPageState extends State<MeditationPage> {
     }
   }
 
-  void _toggleLoop() {
-    if (mounted) setState(() => _isLooping = !_isLooping);
+  void _completeMeditation() {
+    _audioPlayer.stop();
+    if (mounted) {
+      setState(() {
+        _isPlaying = false;
+        _showTimer = false;
+        _audioPosition = Duration.zero;
+      });
+    }
+  }
+
+  void _toggleLoop() async {
+    if (mounted) {
+      setState(() => _isLooping = !_isLooping);
+      await _audioPlayer.setReleaseMode(
+        _isLooping ? ReleaseMode.loop : ReleaseMode.stop,
+      );
+    }
   }
 
   String _formatDuration(Duration duration) {
@@ -208,7 +223,7 @@ class _MeditationPageState extends State<MeditationPage> {
                                   ),
                                 ),
                               ),
-                              if (_showTimer)
+                              if (_showTimer && _selectedDuration != -1)
                                 SizedBox(
                                   width: isSmallScreen ? 50 : 60,
                                   height: isSmallScreen ? 50 : 60,
@@ -229,6 +244,7 @@ class _MeditationPageState extends State<MeditationPage> {
                                     ),
                                     textFormat: CountdownTextFormat.MM_SS,
                                     isReverse: true,
+                                    onComplete: _completeMeditation,
                                   ),
                                 ),
                             ],
@@ -305,7 +321,7 @@ class _MeditationPageState extends State<MeditationPage> {
                                   },
                                   activeColor: Colors.tealAccent,
                                   inactiveColor: Colors.white24,
-                                )
+                                ),
                               ),
                               Padding(
                                 padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 10 : 20),
@@ -454,7 +470,7 @@ class _MeditationPageState extends State<MeditationPage> {
                               children: [
                                 SizedBox(height: isSmallScreen ? 10 : 20),
                                 Text(
-                                  'Duration: $_selectedDuration min',
+                                  'Duration: ${_selectedDuration == -1 ? 'Infinite' : '$_selectedDuration min'}',
                                   style: GoogleFonts.abel(
                                     fontSize: isSmallScreen ? 12 : 14,
                                     color: Colors.white70,
@@ -463,15 +479,17 @@ class _MeditationPageState extends State<MeditationPage> {
                                 Padding(
                                   padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 20 : 40),
                                   child: Slider(
-                                    value: _selectedDuration.toDouble(),
+                                    value: _selectedDuration == -1 ? 65 : _selectedDuration.toDouble(),
                                     min: 5,
-                                    max: 60,
-                                    divisions: 11,
-                                    label: '$_selectedDuration min',
+                                    max: 65,
+                                    divisions: 12,
+                                    label: _selectedDuration == -1 ? 'Infinite' : '$_selectedDuration min',
                                     activeColor: Colors.tealAccent,
                                     inactiveColor: Colors.white24,
                                     onChanged: (value) {
-                                      setState(() => _selectedDuration = value.toInt());
+                                      setState(() {
+                                        _selectedDuration = value == 65 ? -1 : value.toInt();
+                                      });
                                     },
                                   ),
                                 ),
