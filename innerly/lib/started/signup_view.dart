@@ -1,248 +1,243 @@
 import 'package:flutter/material.dart';
-import '../home/pages/bottom_nav.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../home/pages/pending_approval_screen.dart';
 import '../services/auth_service.dart';
 import '../services/role.dart';
+import 'login_view.dart';
 
-class SignUpPage extends StatefulWidget {
-  const SignUpPage({super.key});
+class TherapistSignUpPage extends StatefulWidget {
+  const TherapistSignUpPage({super.key});
 
   @override
-  State<SignUpPage> createState() => _SignUpPageState();
+  State<TherapistSignUpPage> createState() => _TherapistSignUpPageState();
 }
 
-class _SignUpPageState extends State<SignUpPage> {
+class _TherapistSignUpPageState extends State<TherapistSignUpPage> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _specializationController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
+  final TextEditingController _rateController = TextEditingController();
 
   String? _selectedDoc;
-  bool _isFormValid = false;
+  XFile? _selectedDocument;
+  bool _isLoading = false;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  @override
-  void initState() {
-    super.initState();
-    _nameController.addListener(_validateForm);
-    _emailController.addListener(_validateForm);
-    _passwordController.addListener(_validateForm);
+  Future<void> _pickDocument() async {
+    if (_selectedDoc == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select document type first')),
+      );
+      return;
+    }
+
+    try {
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        requestFullMetadata: false,
+      );
+
+      if (pickedFile != null) {
+        setState(() => _selectedDocument = pickedFile);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick document: ${e.toString()}')),
+      );
+    }
   }
 
-  void _validateForm() {
-    setState(() {
-      _isFormValid =
-          _nameController.text.isNotEmpty &&
-          _emailController.text.isNotEmpty &&
-          _passwordController.text.isNotEmpty;
-    });
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate() || _selectedDocument == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService();
+      final user = await authService.signUpTherapist(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        name: _nameController.text.trim(),
+        documentType: _selectedDoc!,
+        documentFile: _selectedDocument!,
+        specialization: _specializationController.text.trim(),
+        bio: _bioController.text.trim(),
+        hourlyRate: double.tryParse(_rateController.text) ?? 0,
+      );
+
+      if (user != null) {
+        UserRole.isTherapist = true;
+        UserRole.saveRole(true);
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const PendingApprovalScreen()),
+          );
+        }
+      }
+    } catch (e) {
+      String errorMessage = 'Registration failed: ${e.toString()}';
+
+      // Handle specific Supabase errors
+      if (e is PostgrestException) {
+        if (e.code == '23502') {
+          errorMessage = 'Missing required information';
+        } else if (e.code == '23505') {
+          errorMessage = 'Account already exists';
+        } else if (e.code == '42501') {
+          errorMessage = 'Permission denied - contact support';
+        }
+      } else if (e is StorageException) {
+        errorMessage = 'Document upload failed: ${e.message}';
+      } else if (e.toString().contains('violates foreign key constraint')) {
+        errorMessage = 'Registration failed: Invalid document type';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF5E6),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top banner
-            Container(
-              height: 180,
-              decoration: const BoxDecoration(color: Color(0xFFFDF5E6)),
-              alignment: Alignment.center,
-              child: Image.asset('assets/icons/leaf.png', height: 80),
-            ),
+    final screenSize = MediaQuery.of(context).size;
+    final theme = Theme.of(context);
 
-            // Form section
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD3D7DA),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(200),
-                    topRight: Radius.circular(200),
-                  ),
-                  border: Border(
-                    top: BorderSide(color: Colors.green, width: 3.0),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Therapist Registration')),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(screenSize.width * 0.05),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTextField(
+                controller: _nameController,
+                label: 'Full Name',
+                type: TextInputType.name,
+              ),
+              SizedBox(height: screenSize.height * 0.02),
+              _buildTextField(
+                controller: _emailController,
+                label: 'Email',
+                type: TextInputType.emailAddress,
+              ),
+              SizedBox(height: screenSize.height * 0.02),
+              _buildTextField(
+                controller: _passwordController,
+                label: 'Password',
+                type: TextInputType.text,
+                isPassword: true,
+              ),
+              SizedBox(height: screenSize.height * 0.02),
+              _buildTextField(
+                controller: _specializationController,
+                label: 'Specialization',
+                type: TextInputType.text,
+              ),
+              SizedBox(height: screenSize.height * 0.02),
+              _buildTextField(
+                controller: _bioController,
+                label: 'Bio',
+                type: TextInputType.multiline,
+                maxLines: 3,
+              ),
+              SizedBox(height: screenSize.height * 0.02),
+              _buildTextField(
+                controller: _rateController,
+                label: 'Hourly Rate',
+                type: TextInputType.number,
+              ),
+              SizedBox(height: screenSize.height * 0.02),
+
+              // Document Selection
+              DropdownButtonFormField<String>(
+                value: _selectedDoc,
+                decoration: InputDecoration(
+                  labelText: 'Verification Document Type',
+                  border: const OutlineInputBorder(),
+                  filled: true,
+                  fillColor: theme.colorScheme.surface,
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'aadhaar', child: Text('Aadhaar Card')),
+                  DropdownMenuItem(value: 'pan', child: Text('PAN Card')),
+                  DropdownMenuItem(value: 'license', child: Text('Professional License')),
+                ],
+                onChanged: (value) => setState(() => _selectedDoc = value),
+                validator: (value) => value == null ? 'Required' : null,
+              ),
+              SizedBox(height: screenSize.height * 0.02),
+
+              // Document Upload
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    vertical: screenSize.height * 0.02,
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(55, 100, 55, 30),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Center(
-                        child: Text(
-                          'Create an account',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
+                onPressed: _pickDocument,
+                icon: const Icon(Icons.upload),
+                label: Text(_selectedDocument?.name ?? 'Upload Document'),
+              ),
+              if (_selectedDocument != null)
+                Padding(
+                  padding: EdgeInsets.only(top: screenSize.height * 0.01),
+                  child: Text(
+                    'Selected: ${_selectedDocument!.name}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
 
-                      _buildLabel("Full Name"),
-                      _buildTextField(
-                        controller: _nameController,
-                        hint: "Enter your full name",
-                        obscure: false,
-                      ),
+              SizedBox(height: screenSize.height * 0.04),
 
-                      const SizedBox(height: 16),
-                      _buildLabel("Email"),
-                      _buildTextField(
-                        controller: _emailController,
-                        hint: "abc@example.com",
-                        obscure: false,
-                      ),
+              // Submit Button
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    vertical: screenSize.height * 0.02,
+                  ),
+                ),
+                onPressed: _isLoading ? null : _submitForm,
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Register as Therapist'),
+              ),
 
-                      const SizedBox(height: 16),
-                      _buildLabel("Password"),
-                      _buildTextField(
-                        controller: _passwordController,
-                        hint: "At least 8 characters",
-                        obscure: true,
-                        icon: Icons.visibility_off,
-                      ),
+              SizedBox(height: screenSize.height * 0.02),
 
-                      const SizedBox(height: 16),
-                      _buildLabel("Verification Document (optional)"),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(6),
-                                  topRight: Radius.circular(6),
-                                ),
-                                border: const Border(
-                                  bottom: BorderSide(
-                                    color: Colors.grey,
-                                    width: 3.0,
-                                  ),
-                                ),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedDoc,
-                                  hint: const Text(
-                                    "Upload your document here...",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(
-                                      value: 'aadhaar',
-                                      child: Text("Aadhaar Card"),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'pan',
-                                      child: Text("PAN Card"),
-                                    ),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedDoc = value;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(6),
-                              color: Colors.white,
-                            ),
-                            padding: const EdgeInsets.all(10),
-                            child: const Icon(Icons.upload, size: 24),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 30),
-
-                      // Sign In Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                _isFormValid
-                                    ? const Color(0xFF4E7159)
-                                    : Colors.grey,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          onPressed:
-                              _isFormValid
-                                  ? () async {
-                                    UserRole.isTherapist = true;
-                                    UserRole.saveRole(true);
-                                    final authService = AuthService();
-                                    await authService.handleAnonymousLogin();
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => BottomNav(),
-                                      ),
-                                    );
-                                  }
-                                  : null,
-                          child: const Text(
-                            "Sign in",
-                            style: TextStyle(fontSize: 16, color: Colors.white),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-                      const Center(child: Text("Or sign in with")),
-                      const SizedBox(height: 12),
-
-                      // Google Sign In Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF2DCDC),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          onPressed: () {},
-                          icon: const Icon(
-                            Icons.g_mobiledata,
-                            color: Colors.red,
-                            size: 30,
-                          ),
-                          label: const Text(
-                            "Sign in with Google",
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+              // Sign In Button
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SignInPage(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Already have an account? Sign In',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -250,38 +245,31 @@ class _SignUpPageState extends State<SignUpPage> {
 
   Widget _buildTextField({
     required TextEditingController controller,
-    required String hint,
-    required bool obscure,
-    IconData? icon,
+    required String label,
+    required TextInputType type,
+    bool isPassword = false,
+    int maxLines = 1,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
-        ),
-        border: const Border(
-          bottom: BorderSide(color: Colors.grey, width: 3.0),
-        ),
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surface,
       ),
-      child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          hintText: hint,
-          suffixIcon: icon != null ? Icon(icon) : null,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 14,
-          ),
-          border: InputBorder.none,
-        ),
-      ),
+      keyboardType: type,
+      obscureText: isPassword,
+      maxLines: maxLines,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'This field is required';
+        }
+        if (isPassword && value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return null;
+      },
     );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(text, style: const TextStyle(fontWeight: FontWeight.bold));
   }
 }

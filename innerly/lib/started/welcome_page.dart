@@ -29,7 +29,7 @@ class WelcomePage extends StatelessWidget {
                 onPressed: () async {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SignUpPage()),
+                    MaterialPageRoute(builder: (context) => const TherapistSignUpPage()),
                   );
                 },
                 textStyle: GoogleFonts.alegreyaSansSc(
@@ -48,7 +48,7 @@ class WelcomePage extends StatelessWidget {
                     UserRole.isTherapist = false;
                     UserRole.saveRole(false);
                     final authService = AuthService();
-                    await authService.handleAnonymousLogin();
+                    await authService.signInAnonymously();
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => BottomNav()),
