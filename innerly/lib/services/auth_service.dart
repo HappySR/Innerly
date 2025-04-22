@@ -29,28 +29,27 @@ class AuthService {
     String? bio,
     double? hourlyRate,
   }) async {
-    AuthResponse? authResponse;
     try {
-      final File file = File(documentFile.path);
+      final file = File(documentFile.path);
       await _validateDocument(file);
 
-      authResponse = await _supabase.auth.signUp(
+      // 1. Create auth user directly
+      final authResponse = await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
-        data: {'role': 'therapist'}, // Add custom claim
       );
 
       final user = authResponse.user;
       if (user == null) throw Exception('User creation failed');
 
+      // 2. Direct insert to therapists table
       final documentPath = await _uploadDocument(
         userId: user.id,
         documentType: documentType,
         file: file,
       );
 
-      // Use RLS-friendly insert
-      await _supabase.from('therapists').insert({
+      await Supabase.instance.client.from('therapists').insert({
         'id': user.id,
         'email': email,
         'name': name,
@@ -61,22 +60,11 @@ class AuthService {
         if (specialization != null) 'specialization': specialization,
         if (bio != null) 'bio': bio,
         if (hourlyRate != null) 'hourly_rate': hourlyRate,
-      }).select().single();
+      });
 
       return user;
     } catch (e, stack) {
       print('Therapist signup error: $e\n$stack');
-
-      if (authResponse?.user?.id != null) {
-        try {
-          await _supabase.rpc('delete_user', params: {
-            'user_id': authResponse!.user!.id
-          });
-        } catch (deleteError) {
-          print('Cleanup failed: $deleteError');
-        }
-      }
-
       rethrow;
     }
   }
