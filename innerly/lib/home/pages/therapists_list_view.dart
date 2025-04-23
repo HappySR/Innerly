@@ -1,213 +1,248 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import 'chat_screen.dart';
+import 'appointment_screen.dart';
 
 class TherapistsListScreen extends StatelessWidget {
   const TherapistsListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Therapists'),
+          centerTitle: true,
+          elevation: 0,
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.people), text: 'Available'),
+              Tab(icon: Icon(Icons.history), text: 'History'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            AvailableTherapistsTab(),
+            ChatHistoryTab(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AvailableTherapistsTab extends StatelessWidget {
+  const AvailableTherapistsTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     final therapistService = Provider.of<AuthService>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Available Therapists'),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: therapistService.getAvailableTherapistsStream(),
-        builder: (context, snapshot) {
-          // Debug connection state
-          if (kDebugMode) {
-            print('''
-            🚀 STREAM STATE:
-            Connection: ${snapshot.connectionState}
-            HasData: ${snapshot.hasData}
-            DataCount: ${snapshot.data?.length ?? 0}
-            Error: ${snapshot.error}
-            ''');
-          }
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: therapistService.getAvailableTherapistsStream(),
+      builder: (context, snapshot) {
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          // Loading state
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2.0,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-              ),
-            );
-          }
+        // Error state
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load therapists',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  snapshot.error.toString(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
 
-          // Error state
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Failed to load therapists',
-                    style: Theme.of(context).textTheme.titleMedium,
+        // Empty state
+        final therapists = snapshot.data ?? [];
+        if (therapists.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_alt_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'No Therapists Available',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.grey[600],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    snapshot.error.toString(),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const TherapistsListScreen()),
-                    ),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
+                ),
+              ],
+            ),
+          );
+        }
 
-          // Empty state
-          final therapists = snapshot.data ?? [];
-          if (therapists.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.people_alt_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No Therapists Available',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Check back later or refresh the page',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: () => Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const TherapistsListScreen()),
-                    ),
-                    child: const Text('Refresh'),
-                  ),
-                ],
-              ),
-            );
-          }
+        // Success state
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: therapists.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final therapist = therapists[index];
 
-          // Success state
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: therapists.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final therapist = therapists[index];
+            final name = therapist['name']?.toString() ?? 'Anonymous Therapist';
+            final specialization = therapist['specialization']?.toString() ?? 'Mental Health Professional';
+            final hourlyRate = therapist['hourly_rate'] is num
+                ? (therapist['hourly_rate'] as num).toDouble()
+                : null;
+            final isOnline = therapist['is_online'] == true;
 
-              // Safe data extraction
-              final name = therapist['name']?.toString() ?? 'Anonymous Therapist';
-              final specialization = therapist['specialization']?.toString() ?? 'Mental Health Professional';
-              final hourlyRate = therapist['hourly_rate'] is num
-                  ? (therapist['hourly_rate'] as num).toDouble()
-                  : null;
-              final isOnline = therapist['is_online'] == true;
-
-              return Card(
+            return Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12)
                 ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TherapistDetailScreen(
-                          therapist: therapist,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.blue[50],
-                          child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : 'T',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                specialization,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              if (hourlyRate != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  '\$${hourlyRate.toStringAsFixed(2)}/hour',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.green[700],
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: isOnline ? Colors.green : Colors.grey,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 3,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+            child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+            Navigator.push(
+            context,
+            MaterialPageRoute(
+            builder: (context) => TherapistDetailScreen(
+            therapist: therapist,
+            ),
+            ),
+            );
+            },
+            child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+            children: [
+            CircleAvatar(
+            radius: 24,
+            backgroundColor: Colors.blue[50],
+            child: Text(
+            name.isNotEmpty ? name[0].toUpperCase() : 'T',
+            style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+            ),
+            ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            Text(
+            name,
+            style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+            specialization,
+            style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            ),
+            ),
+            if (hourlyRate != null) ...[
+            const SizedBox(height: 4),
+            Text(
+            '\$${hourlyRate.toStringAsFixed(2)}/hour',
+            style: TextStyle(
+            fontSize: 14,
+            color: Colors.green[700],
+            ),
+            ),
+            ],
+            ],
+            ),
+            ),
+            Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+            color: isOnline ? Colors.green : Colors.grey,
+            shape: BoxShape.circle,
+            boxShadow: [
+            BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 3,
+            spreadRadius: 1,
+            ),
+            ],
+            ),
+            ),
+            ],
+            ),
+            ),
+            ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class ChatHistoryTab extends StatelessWidget {
+  const ChatHistoryTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO: Replace with actual chat history data
+    final chatHistory = [
+      {'therapist': 'Dr. Smith', 'lastMessage': 'How are you feeling today?', 'time': '2h ago'},
+      {'therapist': 'Dr. Johnson', 'lastMessage': 'Remember our session tomorrow', 'time': '1d ago'},
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: chatHistory.length,
+      itemBuilder: (context, index) {
+        final chat = chatHistory[index];
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.blue[50],
+              child: const Icon(Icons.chat, color: Colors.blue),
+            ),
+            title: Text(chat['therapist']!),
+            subtitle: Text(chat['lastMessage']!),
+            trailing: Text(chat['time']!, style: const TextStyle(color: Colors.grey)),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    therapistName: chat['therapist']!,
+                    therapistId: 'therapist_id_here', // Replace with actual ID
                   ),
                 ),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -219,7 +254,7 @@ class TherapistDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Safe data extraction
+    // Extract all therapist details
     final name = therapist['name']?.toString() ?? 'Anonymous Therapist';
     final specialization = therapist['specialization']?.toString() ?? 'Mental Health Professional';
     final bio = therapist['bio']?.toString() ?? 'No biography provided';
@@ -362,9 +397,7 @@ class TherapistDetailScreen extends StatelessWidget {
                       minimumSize: const Size(200, 48),
                     ),
                     onPressed: isOnline
-                        ? () {
-                      // Implement chat functionality
-                    }
+                        ? () => _navigateToChat(context)
                         : null,
                   ),
                   const SizedBox(height: 12),
@@ -374,15 +407,36 @@ class TherapistDetailScreen extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(200, 48),
                     ),
-                    onPressed: () {
-                      // Implement booking functionality
-                    },
+                    onPressed: () => _navigateToAppointment(context),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToChat(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          therapistName: therapist['name'] ?? 'Therapist',
+          therapistId: therapist['id'],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAppointment(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AppointmentScreen(
+          therapist: therapist,
         ),
       ),
     );

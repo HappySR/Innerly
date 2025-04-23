@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:Innerly/services/role.dart';
 import 'package:Innerly/services/auth_service.dart';
+import 'package:Innerly/services/chat_service.dart'; // Add these
+import 'package:Innerly/services/appointment_service.dart';
 import 'package:Innerly/started/splash_screen_view.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +23,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => BottomNavProvider()),
         Provider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => ChatService()), // Add these
+        ChangeNotifierProvider(create: (_) => AppointmentService()),
       ],
       child: const MyApp(),
     ),
@@ -34,38 +38,39 @@ Future<void> _initializeApp() async {
     // Load environment variables
     await dotenv.load(fileName: 'assets/.env');
 
-    // Initialize Supabase with enhanced configuration
+    // Initialize Supabase with proper configuration
     await Supabase.initialize(
       url: dotenv.env['SUPABASE_URL']!,
       anonKey: dotenv.env['SUPABASE_ANON']!,
       authOptions: const FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
       ),
-      realtimeClientOptions: const RealtimeClientOptions(
-        logLevel: RealtimeLogLevel.debug,
-      ),
       debug: true,
     );
 
-    // Verify connection
+    // Verify database connection
     try {
       final response = await Supabase.instance.client
           .from('therapists')
           .select('id')
           .limit(1);
-      debugPrint('Supabase connection test: ${response.length} records found');
+      debugPrint('✅ Supabase connection verified');
     } catch (e) {
-      debugPrint('Supabase connection test failed: $e');
+      debugPrint('❌ Supabase connection error: $e');
+      throw Exception('Failed to connect to database');
     }
 
-    // Load user role if a session exists
+    // Check existing session
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       await UserRole.loadRole();
-      debugPrint('User session loaded: ${session.user?.email}');
+      debugPrint('👤 User session restored: ${session.user?.email}');
+    } else {
+      debugPrint('🔒 No existing user session');
     }
   } catch (e, stack) {
-    debugPrint('Initialization error: $e\n$stack');
+    debugPrint('‼️ Critical initialization error: $e');
+    debugPrint('🛑 Stack trace: $stack');
     exit(1);
   }
 }
@@ -95,6 +100,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         textTheme: InnerlyTheme.textTheme,
         platform: TargetPlatform.iOS,
+        useMaterial3: true,
       ),
       home: const AuthWrapper(),
     );
@@ -109,17 +115,50 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
+        // Handle connection state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
 
+        // Handle errors
         if (snapshot.hasError) {
-          return const Center(child: Text('Authentication error'));
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Authentication Error',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    snapshot.error.toString(),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
+        // Check authentication status
         final session = Supabase.instance.client.auth.currentSession;
-        debugPrint('Auth state: ${session != null ? "Authenticated" : "Not authenticated"}');
+        if (session != null) {
+          debugPrint('🔑 Authenticated user: ${session.user?.email}');
+          // TODO: Add your authenticated home screen here
+          return const AnimatedSplashScreen();
+        }
 
+        // Show login screen
+        debugPrint('👥 Showing unauthenticated UI');
         return const AnimatedSplashScreen();
       },
     );

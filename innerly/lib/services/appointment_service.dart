@@ -1,22 +1,18 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
-class AppointmentService {
-  final SupabaseClient _supabase = Supabase.instance.client;
-
-  Future<void> bookAppointment({
+class AppointmentService with ChangeNotifier {
+  Future<bool> bookAppointment({
     required String therapistId,
-    required String userId,
-    required DateTime startTime,
-    required DateTime endTime,
-    String? notes,
+    required String therapistName,
+    required DateTime appointmentTime,
+    required String notes,
   }) async {
-    await _supabase.from('appointments').insert({
-      'therapist_id': therapistId,
-      'user_id': userId,
-      'start_time': startTime.toIso8601String(),
-      'end_time': endTime.toIso8601String(),
-      'status': 'scheduled',
-      'notes': notes,
-    });
+    // Implement your actual booking logic here
+    // This is a mock implementation
+    await Future.delayed(const Duration(seconds: 1));
+    if (kDebugMode) {
+      print('Booking appointment with $therapistName at $appointmentTime');
+    }
+    return true;
   }
 }

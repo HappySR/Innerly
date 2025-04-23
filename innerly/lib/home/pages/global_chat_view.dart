@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:open_file/open_file.dart';
-import '../../services/chat_service.dart';
+import '../../services/global_chat_service.dart';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 
