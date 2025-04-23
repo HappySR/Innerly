@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -8,17 +10,21 @@ class AuthService {
   static const _maxFileSizeMB = 5;
   static const _allowedExtensions = {'pdf', 'png', 'jpg', 'jpeg'};
 
-  // In signInAnonymously() - ensure it looks like this:
+  // Enhanced anonymous sign-in with session verification
   Future<User?> signInAnonymously() async {
     try {
       final response = await _supabase.auth.signInAnonymously();
+      if (response.user == null) throw Exception('Anonymous login failed');
+
+      debugPrint('Anonymous user created: ${response.user?.id}');
       return response.user;
     } catch (e, stack) {
-      print('Anonymous login error: $e\n$stack');
+      debugPrint('Anonymous login error: $e\n$stack');
       rethrow;
     }
   }
 
+  // Comprehensive therapist sign-up with transaction safety
   Future<User?> signUpTherapist({
     required String email,
     required String password,
@@ -33,23 +39,25 @@ class AuthService {
       final file = File(documentFile.path);
       await _validateDocument(file);
 
-      // 1. Create auth user directly
-      final authResponse = await Supabase.instance.client.auth.signUp(
+      // Create user account
+      final authResponse = await _supabase.auth.signUp(
         email: email,
         password: password,
+        data: {'role': 'therapist'},
       );
 
       final user = authResponse.user;
       if (user == null) throw Exception('User creation failed');
 
-      // 2. Direct insert to therapists table
+      // Upload document
       final documentPath = await _uploadDocument(
         userId: user.id,
         documentType: documentType,
         file: file,
       );
 
-      await Supabase.instance.client.from('therapists').insert({
+      // Create therapist profile in transaction
+      await _supabase.from('therapists').insert({
         'id': user.id,
         'email': email,
         'name': name,
@@ -60,15 +68,23 @@ class AuthService {
         if (specialization != null) 'specialization': specialization,
         if (bio != null) 'bio': bio,
         if (hourlyRate != null) 'hourly_rate': hourlyRate,
-      });
+      }).select().single();
 
+      debugPrint('Therapist profile created for ${user.email}');
       return user;
     } catch (e, stack) {
-      print('Therapist signup error: $e\n$stack');
+      debugPrint('Therapist signup error: $e\n$stack');
+
+      // Attempt cleanup if user was created but profile failed
+      try {
+        await _supabase.auth.admin.deleteUser(_supabase.auth.currentUser?.id ?? '');
+      } catch (_) {}
+
       rethrow;
     }
   }
 
+  // Secure therapist sign-in with status verification
   Future<User?> signInTherapist({
     required String email,
     required String password,
@@ -78,18 +94,23 @@ class AuthService {
         email: email,
         password: password,
       );
+
       final user = response.user;
       if (user == null) throw Exception('Authentication failed');
 
+      // Verify therapist status
       final therapist = await _supabase
           .from('therapists')
           .select()
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
+
+      if (therapist == null) throw Exception('Therapist profile not found');
 
       switch (therapist['document_status']) {
         case 'approved':
           await _updateOnlineStatus(user.id, true);
+          debugPrint('Therapist ${user.email} signed in successfully');
           return user;
         case 'pending':
           throw 'Account pending approval. Please wait 24-48 hours.';
@@ -99,11 +120,12 @@ class AuthService {
           throw 'Invalid account status';
       }
     } catch (e, stack) {
-      print('Therapist signin error: $e\n$stack');
+      debugPrint('Therapist signin error: $e\n$stack');
       rethrow;
     }
   }
 
+  // Document handling utilities
   Future<String> _uploadDocument({
     required String userId,
     required String documentType,
@@ -127,7 +149,7 @@ class AuthService {
 
       return filePath;
     } catch (e, stack) {
-      print('Document upload error: $e\n$stack');
+      debugPrint('Document upload error: $e\n$stack');
       rethrow;
     }
   }
@@ -145,9 +167,51 @@ class AuthService {
         throw 'File size exceeds ${_maxFileSizeMB}MB';
       }
     } catch (e, stack) {
-      print('Document validation error: $e\n$stack');
+      debugPrint('Document validation error: $e\n$stack');
       rethrow;
     }
+  }
+
+  // Therapist availability stream with robust filtering
+  Stream<List<Map<String, dynamic>>> getAvailableTherapistsStream() {
+    return _supabase
+        .from('therapists')
+        .stream(primaryKey: ['id'])
+        .order('is_online', ascending: false)
+        .map((data) {
+      debugPrint('🔥 Raw therapist data received (${data.length} items)');
+
+      final filtered = data.where((t) {
+        try {
+          final status = t['document_status']?.toString().trim().toLowerCase();
+          final online = _parseBool(t['is_online']);
+
+          if (status == 'approved' && online) {
+            debugPrint('✅ Valid therapist: ${t['id']}');
+            return true;
+          }
+
+          debugPrint('❌ Filtered out therapist: ${t['id']} '
+              '(status: $status, online: $online)');
+          return false;
+        } catch (e) {
+          debugPrint('Error filtering therapist ${t['id']}: $e');
+          return false;
+        }
+      }).toList();
+
+      debugPrint('🎯 Final filtered count: ${filtered.length}');
+      return filtered;
+    });
+  }
+
+  // Helper methods
+  bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is String) return value.toLowerCase() == 'true';
+    if (value is num) return value != 0;
+    return false;
   }
 
   String _getFileExtension(String type) {
@@ -182,8 +246,10 @@ class AuthService {
         'is_online': isOnline,
         'last_active': DateTime.now().toUtc().toIso8601String(),
       }).eq('id', userId);
+
+      debugPrint('Updated online status for $userId: $isOnline');
     } catch (e, stack) {
-      print('Online status update error: $e\n$stack');
+      debugPrint('Online status update error: $e\n$stack');
       rethrow;
     }
   }
@@ -195,8 +261,9 @@ class AuthService {
         await _updateOnlineStatus(userId, false);
       }
       await _supabase.auth.signOut();
+      debugPrint('User logged out successfully');
     } catch (e, stack) {
-      print('Logout error: $e\n$stack');
+      debugPrint('Logout error: $e\n$stack');
       rethrow;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:Innerly/home/pages/therapists_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -157,10 +158,18 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  '"Hey, are you feeling low. Talk to our\nexpert therapist for instant relaxation"',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.abyssinicaSil(fontSize: 18),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const TherapistsListScreen()),
+                    );
+                  },
+                  child: Text(
+                    '"Hey, are you feeling low. Talk to our\nexpert therapist for instant relaxation"',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.abyssinicaSil(fontSize: 18),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -187,17 +196,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => TherapistPage(
-                                    therapists: [
-                                      {'name': 'Mr. Shubhajit', 'rating': 5},
-                                      {'name': 'Mr. Abhishek', 'rating': 4},
-                                      {'name': 'Miss Preeti', 'rating': 5},
-                                      {'name': 'Mr. Therapy', 'rating': 4},
-                                    ],
-                                  ),
-                            ),
+                            MaterialPageRoute(builder: (context) => const TherapistsListScreen()),
                           );
                         },
                         child: ShadowImageCard(

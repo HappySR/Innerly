@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:Innerly/services/role.dart';
+import 'package:Innerly/services/auth_service.dart';
 import 'package:Innerly/started/splash_screen_view.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:provider/provider.dart';
@@ -16,13 +17,15 @@ void main() async {
   await _initializeApp();
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => BottomNavProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => BottomNavProvider()),
+        Provider(create: (_) => AuthService()),
+      ],
       child: const MyApp(),
     ),
   );
 
-  // Optional: Move system UI overlay settings here for cleaner startup
   SystemChrome.setSystemUIOverlayStyle(_systemUiOverlayStyle());
 }
 
@@ -31,25 +34,38 @@ Future<void> _initializeApp() async {
     // Load environment variables
     await dotenv.load(fileName: 'assets/.env');
 
-    // Initialize Supabase
+    // Initialize Supabase with enhanced configuration
     await Supabase.initialize(
       url: dotenv.env['SUPABASE_URL']!,
       anonKey: dotenv.env['SUPABASE_ANON']!,
       authOptions: const FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
       ),
+      realtimeClientOptions: const RealtimeClientOptions(
+        logLevel: RealtimeLogLevel.debug,
+      ),
       debug: true,
     );
+
+    // Verify connection
+    try {
+      final response = await Supabase.instance.client
+          .from('therapists')
+          .select('id')
+          .limit(1);
+      debugPrint('Supabase connection test: ${response.length} records found');
+    } catch (e) {
+      debugPrint('Supabase connection test failed: $e');
+    }
 
     // Load user role if a session exists
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       await UserRole.loadRole();
+      debugPrint('User session loaded: ${session.user?.email}');
     }
-  } catch (e) {
-    if (kDebugMode) {
-      print('Initialization error: $e');
-    }
+  } catch (e, stack) {
+    debugPrint('Initialization error: $e\n$stack');
     exit(1);
   }
 }
@@ -93,9 +109,17 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        final session = Supabase.instance.client.auth.currentSession;
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        // You could route to login or dashboard based on session
+        if (snapshot.hasError) {
+          return const Center(child: Text('Authentication error'));
+        }
+
+        final session = Supabase.instance.client.auth.currentSession;
+        debugPrint('Auth state: ${session != null ? "Authenticated" : "Not authenticated"}');
+
         return const AnimatedSplashScreen();
       },
     );
