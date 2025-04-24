@@ -234,8 +234,9 @@ class ChatHistoryTab extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => ChatScreen(
-                    therapistName: chat['therapist']!,
-                    therapistId: 'therapist_id_here', // Replace with actual ID
+                    receiverId: 'therapist_id_here', // Replace with actual ID
+                    receiverName: chat['therapist']!,
+                    isTherapist: true, // Set based on your user type
                   ),
                 ),
               );
@@ -420,12 +421,21 @@ class TherapistDetailScreen extends StatelessWidget {
   }
 
   void _navigateToChat(BuildContext context) {
+    final therapistId = therapist['id']?.toString() ?? '';
+    if (therapistId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid therapist ID')),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChatScreen(
-          therapistName: therapist['name'] ?? 'Therapist',
-          therapistId: therapist['id'],
+          receiverId: therapistId,
+          receiverName: therapist['name'] ?? 'Therapist',
+          isTherapist: true,
         ),
       ),
     );

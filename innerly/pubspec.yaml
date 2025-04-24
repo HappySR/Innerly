@@ -54,6 +54,7 @@ dependencies:
   sudoku_dart: ^1.2.0
   circular_countdown_timer: ^0.2.4
   riverpod: ^2.6.1
+  path: ^1.9.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

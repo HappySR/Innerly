@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/appointment_service.dart';
 
 class AppointmentScreen extends StatefulWidget {
@@ -94,6 +95,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     );
   }
 
+  final _supabase = Supabase.instance.client;
+
   void _submitAppointment() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedDate == null || _selectedTime == null) {
@@ -127,6 +130,25 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to book appointment')),
+        );
+      }
+
+      try {
+        await _supabase.from('appointments').insert({
+          'therapist_id': widget.therapist['id'],
+          'user_id': _supabase.auth.currentUser?.id,
+          'scheduled_at': appointmentTime.toIso8601String(),
+          'status': 'pending',
+          'notes': _notesController.text,
+        });
+
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appointment booked successfully!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
         );
       }
     }
