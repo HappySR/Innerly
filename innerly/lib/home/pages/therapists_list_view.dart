@@ -132,7 +132,7 @@ class AvailableTherapistsTab extends StatelessWidget {
               );
             },
             leading: CircleAvatar(
-              backgroundImage: NetworkImage(therapist['photo_url'] ?? ''), // fallback if needed
+              backgroundImage: NetworkImage(therapist['photo_url'] ?? 'https://cdn.pixabay.com/photo/2017/05/10/13/36/doctor-2300898_1280.png'), // fallback if needed
               backgroundColor: Colors.grey[200],
             ),
             title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
