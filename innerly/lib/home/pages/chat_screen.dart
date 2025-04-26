@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -11,6 +13,7 @@ import 'package:chewie/chewie.dart';
 import 'package:open_file/open_file.dart';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path/path.dart' as path;
 import '../../services/chat_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -34,7 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final DateFormat _timeFormat = DateFormat('HH:mm');
   final AudioPlayer _audioPlayer = AudioPlayer();
   final ImagePicker _imagePicker = ImagePicker();
-  final ChatService _chatService = ChatService();
+  late final ChatService _chatService;
   final ScrollController _scrollController = ScrollController();
   final AudioRecorder _audioRecorder = AudioRecorder();
 
@@ -48,19 +51,20 @@ class _ChatScreenState extends State<ChatScreen> {
   Duration? _audioPosition;
   String? _currentUserId;
   String? _currentlyPlayingAudioUrl;
+  StreamSubscription? _chatSubscription;
+  bool _isLoadingMessages = false;
+  Timer? _messagePollingTimer;
 
   @override
   void initState() {
     super.initState();
-    _initializeChat().then((_) {
-      _currentUserId = Supabase.instance.client.auth.currentUser?.id;
-      if (_currentUserId != null && widget.receiverId.isNotEmpty) {
-        _loadInitialMessages();
-        _chatService.subscribeToMessages(widget.receiverId);
-      }
-    });
+    _chatService = Provider.of<ChatService>(context, listen: false);
     _setupAudioPlayer();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    // Defer initialization to after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _initializeChat();
+    });
   }
 
   @override
@@ -69,34 +73,75 @@ class _ChatScreenState extends State<ChatScreen> {
     _audioPlayer.dispose();
     _scrollController.dispose();
     _audioRecorder.dispose();
-    _chatService.dispose();
-    super.dispose();
+    _chatSubscription?.cancel();
+    _messagePollingTimer?.cancel();
+    super.dispose();  // Removed _chatService.dispose() from here
   }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-    }
-  }
-
-  Future<void> _initializeChat() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      await Supabase.instance.client.auth.signInAnonymously();
-    }
-    if (mounted) {
-      setState(() {
-        _currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       });
     }
   }
 
-  Future<void> _loadInitialMessages() async {
+  Future<void> _initializeChat() async {
     try {
-      await _chatService.loadInitialMessages(widget.receiverId);
-      _chatService.subscribeToMessages(widget.receiverId);
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        await Supabase.instance.client.auth.signInAnonymously();
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      });
+
+      if (_currentUserId != null && widget.receiverId.isNotEmpty) {
+        await _loadInitialMessages();
+        _startMessagePolling();
+      }
     } catch (e) {
-      _showErrorSnackbar('Failed to load messages: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Failed to initialize chat: ${e.toString()}');
+    }
+  }
+
+  void _startMessagePolling() {
+    _messagePollingTimer?.cancel();
+    _messagePollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (mounted) {
+        context.read<ChatService>().loadInitialMessages(widget.receiverId);
+      }
+    });
+  }
+
+  Future<void> _loadInitialMessages() async {
+    if (_isLoadingMessages) return;
+
+    try {
+      if (mounted) {
+        setState(() => _isLoadingMessages = true);
+      }
+
+      await _chatService.loadInitialMessages(widget.receiverId);
+
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
+      }
+    } catch (e) {
+      if (mounted) _showErrorSnackbar('Failed to load messages: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingMessages = false);
+      }
     }
   }
 
@@ -106,6 +151,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final tempDir = await getTemporaryDirectory();
         _audioPath = '${tempDir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
+        if (!mounted) return;
         setState(() => _isRecording = true);
 
         await _audioRecorder.start(
@@ -114,7 +160,7 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     } catch (e) {
-      _showErrorSnackbar('Recording failed: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Recording failed: ${e.toString()}');
     }
   }
 
@@ -122,6 +168,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final path = await _audioRecorder.stop();
       if (path != null) {
+        if (!mounted) return;
         setState(() {
           _isRecording = false;
           _selectedFile = File(path);
@@ -130,7 +177,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await _sendMessage();
       }
     } catch (e) {
-      _showErrorSnackbar('Stop recording failed: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Stop recording failed: ${e.toString()}');
     }
   }
 
@@ -163,14 +210,14 @@ class _ChatScreenState extends State<ChatScreen> {
       if (source == null) return;
 
       final image = await _imagePicker.pickImage(source: source);
-      if (image != null) {
+      if (image != null && mounted) {
         setState(() {
           _selectedFile = File(image.path);
           _fileType = 'image';
         });
       }
     } catch (e) {
-      _showErrorSnackbar('Failed to pick image: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Failed to pick image: ${e.toString()}');
     }
   }
 
@@ -181,14 +228,14 @@ class _ChatScreenState extends State<ChatScreen> {
         allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null && result.files.single.path != null && mounted) {
         setState(() {
           _selectedFile = File(result.files.single.path!);
           _fileType = 'audio';
         });
       }
     } catch (e) {
-      _showErrorSnackbar('Failed to pick audio: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Failed to pick audio: ${e.toString()}');
     }
   }
 
@@ -200,14 +247,14 @@ class _ChatScreenState extends State<ChatScreen> {
         allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null && result.files.single.path != null && mounted) {
         setState(() {
           _selectedFile = File(result.files.single.path!);
           _fileType = 'document';
         });
       }
     } catch (e) {
-      _showErrorSnackbar('Failed to pick document: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Failed to pick document: ${e.toString()}');
     }
   }
 
@@ -217,14 +264,14 @@ class _ChatScreenState extends State<ChatScreen> {
       if (source == null) return;
 
       final video = await _imagePicker.pickVideo(source: source);
-      if (video != null) {
+      if (video != null && mounted) {
         setState(() {
           _selectedFile = File(video.path);
           _fileType = 'video';
         });
       }
     } catch (e) {
-      _showErrorSnackbar('Failed to pick video: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Failed to pick video: ${e.toString()}');
     }
   }
 
@@ -279,7 +326,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
 
-    if (result != null) {
+    if (result != null && mounted) {
       switch (result) {
         case AttachmentType.image:
           await _pickImage();
@@ -319,11 +366,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     if (_currentlyPlayingAudioUrl != null) {
                       await _audioPlayer.stop();
                     }
-                    setState(() => _currentlyPlayingAudioUrl = url);
+                    if (mounted) {
+                      setState(() => _currentlyPlayingAudioUrl = url);
+                    }
                     await _audioPlayer.play(UrlSource(url));
                   }
                 } catch (e) {
-                  _showErrorSnackbar('Error: ${e.toString()}');
+                  if (mounted) _showErrorSnackbar('Error: ${e.toString()}');
                 }
               },
             ),
@@ -332,13 +381,15 @@ class _ChatScreenState extends State<ChatScreen> {
               onPressed: () async {
                 try {
                   await _audioPlayer.stop();
-                  setState(() {
-                    _currentlyPlayingAudioUrl = null;
-                    _isPlaying = false;
-                    _audioPosition = Duration.zero;
-                  });
+                  if (mounted) {
+                    setState(() {
+                      _currentlyPlayingAudioUrl = null;
+                      _isPlaying = false;
+                      _audioPosition = Duration.zero;
+                    });
+                  }
                 } catch (e) {
-                  _showErrorSnackbar('Error stopping audio: ${e.toString()}');
+                  if (mounted) _showErrorSnackbar('Error stopping audio: ${e.toString()}');
                 }
               },
             ),
@@ -360,7 +411,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         await _audioPlayer.resume();
                       }
                     } catch (e) {
-                      _showErrorSnackbar('Error seeking audio: ${e.toString()}');
+                      if (mounted) _showErrorSnackbar('Error seeking audio: ${e.toString()}');
                     }
                   },
                 ),
@@ -383,7 +434,7 @@ class _ChatScreenState extends State<ChatScreen> {
       onTap: () async {
         try {
           final tempDir = await getTemporaryDirectory();
-          final filePath = '${tempDir.path}/${url.split('/').last}';
+          final filePath = '${tempDir.path}/${path.basename(url)}';
           final file = File(filePath);
 
           if (!await file.exists()) {
@@ -395,7 +446,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
           await OpenFile.open(filePath);
         } catch (e) {
-          _showErrorSnackbar('Failed to open document: ${e.toString()}');
+          if (mounted) _showErrorSnackbar('Failed to open document: ${e.toString()}');
         }
       },
       child: Container(
@@ -413,7 +464,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    url.split('/').last,
+                    path.basename(url),
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
@@ -451,10 +502,14 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 24),
-            onPressed: () => setState(() {
-              _selectedFile = null;
-              _fileType = null;
-            }),
+            onPressed: () {
+              if (mounted) {
+                setState(() {
+                  _selectedFile = null;
+                  _fileType = null;
+                });
+              }
+            },
           ),
         ],
       ),
@@ -511,6 +566,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showErrorSnackbar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -575,7 +631,6 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       String? fileUrl;
       if (_selectedFile != null) {
-        // Add file size validation (e.g., 10MB limit)
         final fileSize = await _selectedFile!.length();
         if (fileSize > 10 * 1024 * 1024) {
           throw Exception('File size exceeds 10MB limit');
@@ -698,22 +753,25 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _chatService.messagesStream,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (!snapshot.hasData) {
+            child: Consumer<ChatService>(
+              builder: (context, chatService, child) {
+                if (_isLoadingMessages) {
                   return const Center(child: CircularProgressIndicator());
+                }
+
+                if (chatService.messages.isEmpty) {
+                  return const Center(
+                    child: Text('No messages yet'),
+                  );
                 }
 
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true,
-                  itemCount: snapshot.data!.length,
+                  itemCount: chatService.messages.length,
                   itemBuilder: (context, index) {
-                    return _buildMessageItem(snapshot.data![index]);
+                    final reversedIndex = chatService.messages.length - 1 - index;
+                    return _buildMessageItem(chatService.messages[reversedIndex]);
                   },
                 );
               },
@@ -826,7 +884,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         },
       );
 
-      setState(() => _isInitialized = true);
+      if (mounted) setState(() => _isInitialized = true);
     } catch (e) {
       if (mounted) setState(() => _isInitialized = false);
     }

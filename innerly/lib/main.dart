@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:Innerly/services/role.dart';
 import 'package:Innerly/services/auth_service.dart';
-import 'package:Innerly/services/chat_service.dart'; // Add these
+import 'package:Innerly/services/chat_service.dart';
 import 'package:Innerly/services/appointment_service.dart';
 import 'package:Innerly/started/splash_screen_view.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'home/providers/bottom_nav_provider.dart';
+import '../home/providers/bottom_nav_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => BottomNavProvider()),
         Provider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => ChatService()), // Add these
+        ChangeNotifierProvider(create: (_) => ChatService()),
         ChangeNotifierProvider(create: (_) => AppointmentService()),
       ],
       child: const MyApp(),
@@ -35,10 +35,8 @@ void main() async {
 
 Future<void> _initializeApp() async {
   try {
-    // Load environment variables
     await dotenv.load(fileName: 'assets/.env');
 
-    // Initialize Supabase with proper configuration
     await Supabase.initialize(
       url: dotenv.env['SUPABASE_URL']!,
       anonKey: dotenv.env['SUPABASE_ANON']!,
@@ -48,7 +46,6 @@ Future<void> _initializeApp() async {
       debug: true,
     );
 
-    // Verify database connection
     try {
       final response = await Supabase.instance.client
           .from('therapists')
@@ -60,7 +57,6 @@ Future<void> _initializeApp() async {
       throw Exception('Failed to connect to database');
     }
 
-    // Check existing session
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       await UserRole.loadRole();
@@ -107,24 +103,33 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  late final Stream<AuthState> _authStateChanges;
+
+  @override
+  void initState() {
+    super.initState();
+    _authStateChanges = Supabase.instance.client.auth.onAuthStateChange;
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+      stream: _authStateChanges,
       builder: (context, snapshot) {
-        // Handle connection state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Handle errors
         if (snapshot.hasError) {
           return Scaffold(
             body: Center(
@@ -140,7 +145,6 @@ class AuthWrapper extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     snapshot.error.toString(),
-                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -149,15 +153,18 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // Check authentication status
         final session = Supabase.instance.client.auth.currentSession;
         if (session != null) {
           debugPrint('🔑 Authenticated user: ${session.user?.email}');
-          // TODO: Add your authenticated home screen here
+
+          // Initialize chat service after authentication
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.read<ChatService>().initialize();
+          });
+
           return const AnimatedSplashScreen();
         }
 
-        // Show login screen
         debugPrint('👥 Showing unauthenticated UI');
         return const AnimatedSplashScreen();
       },
