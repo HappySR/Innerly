@@ -1,3 +1,4 @@
+import 'package:Innerly/home/pages/therapist_schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -88,10 +89,16 @@ class _PatientsRequestsState extends State<PatientsRequests> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6F0),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
+        padding: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.04,
+          vertical: screenHeight * 0.06,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -99,89 +106,94 @@ class _PatientsRequestsState extends State<PatientsRequests> {
               children: [
                 Image.asset(
                   'assets/images/meditation.png',
-                  width: 500,
-                  height: 300,
+                  width: screenWidth * 0.8,
+                  height: screenHeight * 0.3,
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: screenHeight * 0.02),
                 Text(
                   'Take a deep breath',
-                  style: GoogleFonts.getFont(
-                    'Aclonica',
-                    fontSize: 22,
+                  style: GoogleFonts.aclonica(
+                    fontSize: screenWidth * 0.06,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: screenHeight * 0.01),
                 Text(
                   widget.status == 'pending'
                       ? '"You have ${_appointments.length} new requests from users."'
                       : '"You have ${_appointments.length} approved appointments."',
                   style: GoogleFonts.abyssinicaSil(
-                    fontSize: 16,
+                    fontSize: screenWidth * 0.04,
                     color: Colors.grey,
                     fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
                 if (widget.status == 'pending')
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PatientsRequests(status: 'approved'),
+                  Padding(
+                    padding: EdgeInsets.only(top: screenHeight * 0.03),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ScheduleScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6FA57C),
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.015,
+                          horizontal: screenWidth * 0.1,
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6FA57C),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 38,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(screenWidth * 0.06),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    child: Text(
-                      'Appointments',
-                      style: GoogleFonts.aclonica(
-                        fontSize: 22,
-                        color: Colors.white,
+                      child: Text(
+                        'Appointments',
+                        style: GoogleFonts.aclonica(
+                          fontSize: screenWidth * 0.05,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 24),
-
+            SizedBox(height: screenHeight * 0.03),
             Text(
               widget.status == 'pending' ? 'Pending Requests' : 'Approved Appointments',
               style: GoogleFonts.montserrat(
-                fontSize: 18,
+                fontSize: screenWidth * 0.045,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 12),
-
+            SizedBox(height: screenHeight * 0.015),
             _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator())
                 : _appointments.isEmpty
                 ? Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(screenWidth * 0.04),
               child: Text(
                 widget.status == 'pending'
                     ? 'No pending requests'
                     : 'No approved appointments',
                 style: GoogleFonts.abyssinicaSil(
-                  fontSize: 16,
+                  fontSize: screenWidth * 0.04,
                   color: Colors.grey,
                 ),
               ),
             )
                 : Column(
               children: _appointments
-                  .map((appointment) => _sessionCard(appointment: appointment))
+                  .map((appointment) => _sessionCard(
+                appointment: appointment,
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+              ))
                   .toList(),
             ),
           ],
@@ -190,17 +202,24 @@ class _PatientsRequestsState extends State<PatientsRequests> {
     );
   }
 
-  Widget _sessionCard({required Map<String, dynamic> appointment}) {
+  Widget _sessionCard({
+    required Map<String, dynamic> appointment,
+    required double screenWidth,
+    required double screenHeight,
+  }) {
     final client = appointment['client'] as Map<String, dynamic>? ?? {};
     final meta = client['raw_user_meta_data'] ?? {};
     final scheduledAt = DateTime.parse(appointment['scheduled_at']).toLocal();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-      margin: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.04,
+        vertical: screenHeight * 0.02,
+      ),
+      margin: EdgeInsets.only(bottom: screenHeight * 0.015),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(screenWidth * 0.04),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.shade200,
@@ -213,18 +232,10 @@ class _PatientsRequestsState extends State<PatientsRequests> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            backgroundImage: NetworkImage(
-              meta['avatar_url']?.toString() ?? 'https://example.com/placeholder.png',
-            ),
-            onBackgroundImageError: (e, stack) {
-              print('Failed to load avatar: $e');
-            },
-            radius: 28,
-            child: meta['avatar_url'] == null
-                ? const Icon(Icons.person)
-                : null,
+            backgroundImage: const AssetImage('assets/icons/user.png'),
+            radius: screenWidth * 0.07,
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: screenWidth * 0.04),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,30 +246,37 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                   children: [
                     Text(
                       meta['full_name']?.toString() ?? 'Anonymous User',
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.04,
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: screenHeight * 0.005),
                     Text(
                       DateFormat('MMM dd, yyyy - hh:mm a').format(scheduledAt),
-                      style: const TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: screenWidth * 0.035,
+                      ),
                     ),
                     if (appointment['notes'] != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                        padding: EdgeInsets.only(top: screenHeight * 0.005),
                         child: Text(
                           appointment['notes'].toString(),
                           style: TextStyle(
                             color: Colors.grey[600],
-                            fontSize: 14,
+                            fontSize: screenWidth * 0.035,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: screenHeight * 0.015),
                 if (widget.status == 'pending')
                   Row(
                     children: [
@@ -266,7 +284,7 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
                             border: Border.all(
                               color: const Color(0xFF4CAF50),
                               width: 1,
@@ -277,23 +295,23 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                               appointment['id'].toString(),
                               'approved',
                             ),
-                            child: const Text(
+                            child: Text(
                               'Accept',
                               style: TextStyle(
-                                color: Color(0xFF4CAF50),
+                                color: const Color(0xFF4CAF50),
                                 fontWeight: FontWeight.w500,
-                                fontSize: 16,
+                                fontSize: screenWidth * 0.04,
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 18),
+                      SizedBox(width: screenWidth * 0.04),
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
                             border: Border.all(
                               color: const Color(0xFFE53935),
                               width: 1,
@@ -304,12 +322,12 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                               appointment['id'].toString(),
                               'declined',
                             ),
-                            child: const Text(
+                            child: Text(
                               'Decline',
                               style: TextStyle(
-                                color: Color(0xFFE53935),
+                                color: const Color(0xFFE53935),
                                 fontWeight: FontWeight.w500,
-                                fontSize: 16,
+                                fontSize: screenWidth * 0.04,
                               ),
                             ),
                           ),

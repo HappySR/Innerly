@@ -137,7 +137,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         await _supabase.from('appointments').insert({
           'therapist_id': widget.therapist['id'],
           'user_id': _supabase.auth.currentUser?.id,
-          'scheduled_at': appointmentTime.toIso8601String(),
+          'scheduled_at': appointmentTime.toUtc().toIso8601String(),
           'status': 'pending',
           'notes': _notesController.text,
         });
