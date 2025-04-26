@@ -14,3 +14,12 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+Add the below .env file in your assets/.env
+
+```bash
+# Add the real values of the below in your .env
+SUPABASE_URL=...
+SUPABASE_ANON=...
+SERVICE_ROLE_KEY=...
+```
