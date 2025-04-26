@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PatientsRequests extends StatefulWidget {
-  const PatientsRequests({super.key});
+  final String status;
+  const PatientsRequests({super.key, this.status = 'pending'});
 
   @override
   State<PatientsRequests> createState() => _PatientsRequestsState();
@@ -28,12 +29,11 @@ class _PatientsRequestsState extends State<PatientsRequests> {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
 
-      // 1. Get appointments
       final appointments = await _supabase
           .from('appointments')
           .select()
           .eq('therapist_id', userId)
-          .eq('status', 'pending')
+          .eq('status', widget.status)
           .order('created_at', ascending: false);
 
       if (appointments.isEmpty) {
@@ -44,19 +44,15 @@ class _PatientsRequestsState extends State<PatientsRequests> {
         return;
       }
 
-      // 2. Get user IDs
       final userIds = appointments
           .map<String>((a) => a['user_id'] as String)
           .toList();
 
-      // 3. CORRECTED: Access auth.users through rpc
-      // Call with explicit parameter type
       final users = await _supabase.rpc(
           'get_therapist_clients',
           params: {'user_ids': userIds}
       ).select();
 
-      // 4. Combine data
       final combined = appointments.map((appointment) {
         final user = users.firstWhere(
               (u) => u['id'] == appointment['user_id'],
@@ -117,7 +113,9 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '"You have ${_appointments.length} new requests from users."',
+                  widget.status == 'pending'
+                      ? '"You have ${_appointments.length} new requests from users."'
+                      : '"You have ${_appointments.length} approved appointments."',
                   style: GoogleFonts.abyssinicaSil(
                     fontSize: 16,
                     color: Colors.grey,
@@ -125,33 +123,40 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6FA57C),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 38,
+                if (widget.status == 'pending')
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PatientsRequests(status: 'approved'),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6FA57C),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 38,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
+                    child: Text(
+                      'Appointments',
+                      style: GoogleFonts.aclonica(
+                        fontSize: 22,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Appointments',
-                    style: GoogleFonts.aclonica(
-                      fontSize: 22,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // Pending Requests
             Text(
-              'Pending Requests',
+              widget.status == 'pending' ? 'Pending Requests' : 'Approved Appointments',
               style: GoogleFonts.montserrat(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -163,24 +168,22 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                 ? const Center(child: CircularProgressIndicator())
                 : _appointments.isEmpty
                 ? Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'No pending requests',
-                    style: GoogleFonts.abyssinicaSil(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                )
-                : Column(
-                  children:
-                      _appointments
-                          .map(
-                            (appointment) =>
-                                _sessionCard(appointment: appointment),
-                          )
-                          .toList(),
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                widget.status == 'pending'
+                    ? 'No pending requests'
+                    : 'No approved appointments',
+                style: GoogleFonts.abyssinicaSil(
+                  fontSize: 16,
+                  color: Colors.grey,
                 ),
+              ),
+            )
+                : Column(
+              children: _appointments
+                  .map((appointment) => _sessionCard(appointment: appointment))
+                  .toList(),
+            ),
           ],
         ),
       ),
@@ -256,63 +259,64 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF4CAF50),
-                            width: 1,
+                if (widget.status == 'pending')
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF4CAF50),
+                              width: 1,
+                            ),
                           ),
-                        ),
-                        child: TextButton(
-                          onPressed: () => _updateAppointmentStatus(
-                            appointment['id'].toString(),
-                            'approved',
-                          ),
-                          child: const Text(
-                            'Accept',
-                            style: TextStyle(
-                              color: Color(0xFF4CAF50),
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                          child: TextButton(
+                            onPressed: () => _updateAppointmentStatus(
+                              appointment['id'].toString(),
+                              'approved',
+                            ),
+                            child: const Text(
+                              'Accept',
+                              style: TextStyle(
+                                color: Color(0xFF4CAF50),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFE53935),
-                            width: 1,
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFE53935),
+                              width: 1,
+                            ),
                           ),
-                        ),
-                        child: TextButton(
-                          onPressed: () => _updateAppointmentStatus(
-                            appointment['id'].toString(),
-                            'declined',
-                          ),
-                          child: const Text(
-                            'Decline',
-                            style: TextStyle(
-                              color: Color(0xFFE53935),
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,
+                          child: TextButton(
+                            onPressed: () => _updateAppointmentStatus(
+                              appointment['id'].toString(),
+                              'declined',
+                            ),
+                            child: const Text(
+                              'Decline',
+                              style: TextStyle(
+                                color: Color(0xFFE53935),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),
