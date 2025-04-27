@@ -1,84 +1,114 @@
-import 'package:Innerly/home/pages/home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Innerly/started/signup_view.dart';
 import '../home/pages/bottom_nav.dart';
 import '../services/auth_service.dart';
 import '../services/role.dart';
+import 'package:Innerly/started/user_verification.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final List<OptionCardData> options = [
+      OptionCardData(
+        imagePath: 'assets/images/therapist_profile_image.png',
+        text: 'Are You a therapist?',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const TherapistSignUpPage(),
+            ),
+          );
+        },
+      ),
+      OptionCardData(
+        imagePath: 'assets/images/anonymous.png',
+        text: 'Continue Anonymously....',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => UUIDInputPage()),
+          );
+        },
+      ),
+    ];
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F1EA), // soft cream background
+      backgroundColor: const Color(0xFFFFF7E7),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.fromLTRB(24, 30, 24, 30),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 40),
-              Image.asset('assets/logo/app_logo.png', height: 250),
               const SizedBox(height: 20),
 
-              // "Are you a Therapist???" button
-              RoundedButton(
-                text: 'Are you a Therapist???',
-                onPressed: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TherapistSignUpPage()),
-                  );
-                },
-                textStyle: GoogleFonts.alegreyaSansSc(
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w400,
+              // Title
+              Text(
+                '"Innerly: A Safe Space"',
+                style: GoogleFonts.lora(
                   fontSize: 26,
+                  color: Colors.green[800],
+                  fontWeight: FontWeight.bold,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 10),
 
-              // "Continue Anonymously..." button
-              RoundedButton(
-                text: 'Continue Anonymously...',
-                onPressed: () async {
-                  try {
-                    UserRole.isTherapist = false;
-                    UserRole.saveRole(false);
-                    final authService = AuthService();
-                    await authService.signInAnonymously();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => BottomNav()),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: ${e.toString()}')),
-                    );
-                  }
-                },
-                textStyle: GoogleFonts.alegreyaSansSc(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 5,
+              // Subtitle
+              Text(
+                "Support, connection, and healing. Whether you're guiding or seeking.",
+                style: GoogleFonts.poppins(
+                  fontSize: 17,
+                  color: Colors.grey[800],
                 ),
+                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 30),
 
-              const Spacer(),
-              Padding(
-                padding: EdgeInsets.only(bottom: 24.0),
-                child: Text(
-                  '"Not all battles are visible and neither are the victories." — Brittany Burgunder',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.aboreto(
-                    fontStyle: FontStyle.italic,
-                    fontSize: 25,
+              // Dynamic Option Cards
+              ...options.map(
+                (option) => Padding(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: OptionCard(
+                    imagePath: option.imagePath,
+                    text: option.text,
+                    onTap: option.onTap,
                   ),
                 ),
               ),
-              SizedBox(height: 40),
+
+              // Admin Link
+              Padding(
+                padding: const EdgeInsets.only(bottom: 32.0),
+                child: InkWell(
+                  onTap: () {
+                    // TODO: navigate to admin login
+                  },
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Are you an admin? ',
+                      style: GoogleFonts.lora(
+                        color: Colors.black87,
+                        fontSize: 16,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: 'Click here',
+                          style: GoogleFonts.lora(
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -87,34 +117,56 @@ class WelcomePage extends StatelessWidget {
   }
 }
 
-class RoundedButton extends StatelessWidget {
+// OptionCardData model
+class OptionCardData {
+  final String imagePath;
   final String text;
-  final VoidCallback onPressed;
-  final TextStyle textStyle;
+  final VoidCallback onTap;
 
-  const RoundedButton({
-    Key? key,
+  OptionCardData({
+    required this.imagePath,
     required this.text,
-    required this.onPressed,
-    required this.textStyle,
+    required this.onTap,
+  });
+}
+
+class OptionCard extends StatelessWidget {
+  final String imagePath;
+  final String text;
+  final VoidCallback onTap;
+
+  const OptionCard({
+    Key? key,
+    required this.imagePath,
+    required this.text,
+    required this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFDDE0E6),
-        foregroundColor: Colors.black87,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 28,
-          vertical: 15,
-        ), // Removed vertical padding
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-        elevation: 0,
-      ),
-      onPressed: onPressed,
-      child: Center(
-        child: Text(text, style: textStyle, textAlign: TextAlign.center),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0x14719E07), // 8% opacity of #719E07
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+            Image.asset(imagePath, height: 200),
+            const SizedBox(height: 10),
+            Text(
+              text,
+              style: GoogleFonts.lora(
+                color: Colors.green[800],
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

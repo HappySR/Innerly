@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../home/pages/bottom_nav.dart';
 import '../home/pages/pending_approval_screen.dart';
@@ -20,27 +21,6 @@ class _SignInPageState extends State<SignInPage> {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   bool _isLoading = false;
-  bool _obscurePassword = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _emailController.addListener(_validateForm);
-    _passwordController.addListener(_validateForm);
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  void _validateForm() {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() {});
-    }
-  }
 
   Future<void> _handleSignIn() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -58,12 +38,12 @@ class _SignInPageState extends State<SignInPage> {
         UserRole.isTherapist = true;
         UserRole.saveRole(true);
 
-        // Check approval status
-        final therapistData = await _supabase
-            .from('therapists')
-            .select()
-            .eq('id', _supabase.auth.currentUser!.id)
-            .single();
+        final therapistData =
+            await _supabase
+                .from('therapists')
+                .select()
+                .eq('id', _supabase.auth.currentUser!.id)
+                .single();
 
         if (!mounted) return;
 
@@ -95,137 +75,78 @@ class _SignInPageState extends State<SignInPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF5E6),
+      backgroundColor: const Color(0xFFFFF7E7),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Top banner
-              Container(
-                height: screenSize.height * 0.2,
-                decoration: const BoxDecoration(color: Color(0xFFFDF5E6)),
-                alignment: Alignment.center,
-                child: Image.asset(
-                  'assets/icons/leaf.png',
-                  height: screenSize.height * 0.1,
-                ),
-              ),
-
-              // Form section
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFD3D7DA),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(200),
-                      topRight: Radius.circular(200),
-                    ),
-                    border: Border(
-                      top: BorderSide(color: Colors.green, width: 3.0),
-                    ),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenSize.width * 0.1,
-                    vertical: screenSize.height * 0.05,
-                  ),
-                  child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(30, 0, 30, 50),
+                child: Center(
+                  child: Form(
+                    key: _formKey,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Therapist Login',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: screenSize.height * 0.04),
-
-                        // Email Field
-                        Text(
-                          'Email',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: screenSize.height * 0.01),
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            hintText: 'abc@example.com',
-                            border: _buildInputBorder(),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: screenSize.width * 0.04,
-                              vertical: screenSize.height * 0.02,
+                        const SizedBox(height: 40),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Hey! Welcome back',
+                            style: GoogleFonts.lora(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
+                        ),
+
+                        const SizedBox(height: 8),
+                        Text(
+                          'Create your account. Enter your email and password',
+                          style: GoogleFonts.rubik(fontSize: 18),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Email
+                        _buildInputField(
+                          label: 'E-mail',
+                          controller: _emailController,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your email';
                             }
-                            if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                              return 'Please enter a valid email';
+                            if (!RegExp(
+                              r'^[^@]+@[^@]+\.[^@]+',
+                            ).hasMatch(value)) {
+                              return 'Enter a valid email';
                             }
                             return null;
                           },
                         ),
-                        SizedBox(height: screenSize.height * 0.02),
+                        const SizedBox(height: 16),
 
-                        // Password Field
-                        Text(
-                          'Password',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: screenSize.height * 0.01),
-                        TextFormField(
+                        // Password
+                        _buildInputField(
+                          label: 'Password',
                           controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            hintText: 'Enter your password',
-                            border: _buildInputBorder(),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: screenSize.width * 0.04,
-                              vertical: screenSize.height * 0.02,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
+                          obscureText: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your password';
@@ -236,55 +157,139 @@ class _SignInPageState extends State<SignInPage> {
                             return null;
                           },
                         ),
-                        SizedBox(height: screenSize.height * 0.04),
 
-                        // Sign In Button
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4E7159),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              vertical: screenSize.height * 0.02,
-                            ),
-                          ),
-                          onPressed: (_formKey.currentState?.validate() ?? false) && !_isLoading
-                              ? _handleSignIn
-                              : null,
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Text(
-                            'Sign in',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.white,
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            'Forgot password?',
+                            style: GoogleFonts.rubik(
+                              color: const Color(0xFF719E07),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                        SizedBox(height: screenSize.height * 0.02),
+                        const SizedBox(height: 20),
 
-                        // Sign Up Link
+                        // Login Button
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: ElevatedButton(
+                            onPressed:
+                                (_formKey.currentState?.validate() ?? false) &&
+                                        !_isLoading
+                                    ? _handleSignIn
+                                    : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF719E07),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 94,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child:
+                                _isLoading
+                                    ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                    : Text(
+                                      'Log in',
+                                      style: GoogleFonts.rubik(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 22,
+                                      ),
+                                    ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Row(
+                          children: const [
+                            Expanded(child: Divider()),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Text('OR'),
+                            ),
+                            Expanded(child: Divider()),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Google Button
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: 400,
+                            ), // adjust as needed
+                            child: SizedBox(
+                              child: ElevatedButton.icon(
+                                onPressed: () {},
+                                icon: Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: Image.asset(
+                                    'assets/icons/google.png',
+                                    height: 24,
+                                  ),
+                                ),
+                                label: Text(
+                                  'Continue with Google',
+                                  style: GoogleFonts.rubik(
+                                    color: Colors.black87,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black87,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                    horizontal: 34,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: const BorderSide(
+                                      color: Color(0xFFE0E0E0),
+                                    ),
+                                  ),
+                                  shadowColor: Colors.transparent,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Create Account
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "Don't have an account? ",
-                              style: theme.textTheme.bodyMedium,
+                              "I don't have an account. ",
+                              style: GoogleFonts.rubik(),
                             ),
                             TextButton(
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const TherapistSignUpPage(),
+                                    builder: (_) => const TherapistSignUpPage(),
                                   ),
                                 );
                               },
                               child: Text(
-                                'Sign up',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
+                                'Create account',
+                                style: GoogleFonts.rubik(
+                                  color: const Color(0xFF719E07),
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
@@ -295,19 +300,45 @@ class _SignInPageState extends State<SignInPage> {
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  InputBorder _buildInputBorder() {
-    return const OutlineInputBorder(
-      borderSide: BorderSide.none,
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(8),
-        topRight: Radius.circular(8),
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    required String? Function(String?) validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      validator: validator,
+      style: GoogleFonts.rubik(
+        fontSize: 18,
+        fontWeight: FontWeight.w500,
+        color: Colors.black87,
+      ),
+      decoration: InputDecoration(
+        hintText: label,
+        hintStyle: GoogleFonts.rubik(
+          fontSize: 16,
+          color: Colors.black45,
+          fontWeight: FontWeight.w400,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }
