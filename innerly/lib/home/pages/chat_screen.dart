@@ -887,18 +887,29 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
       await _videoPlayerController.initialize();
 
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-      }
+      // Initialize ChewieController after video controller is ready
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController,
+        autoPlay: false,
+        looping: false,
+        showControls: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.blue,
+          handleColor: Colors.blue,
+          backgroundColor: Colors.grey,
+          bufferedColor: Colors.grey.shade300,
+        ),
+        placeholder: Container(
+          color: Colors.grey,
+        ),
+        autoInitialize: true,
+      );
 
-    } catch (e) {
       if (mounted) {
-        setState(() {
-          _isInitialized = false;
-        });
+        setState(() => _isInitialized = true);
       }
+    } catch (e) {
+      if (mounted) setState(() => _isInitialized = false);
       debugPrint('Video initialization error: $e');
     }
   }
@@ -914,7 +925,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
+    if (!_isInitialized || _chewieController == null) {
       return Container(
         height: 200,
         decoration: BoxDecoration(
@@ -940,17 +951,18 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
     }
 
-    return AspectRatio(
-      aspectRatio: _videoPlayerController.value.aspectRatio,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Chewie(
-            controller: _chewieController!,
+    return GestureDetector(
+      onTap: () => _showFullScreenVideo(context),
+      child: AspectRatio(
+        aspectRatio: _videoPlayerController.value.aspectRatio,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Chewie(controller: _chewieController!),
           ),
         ),
       ),
@@ -970,7 +982,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         bufferedColor: Colors.grey.shade300,
       ),
       autoInitialize: true,
-      allowPlaybackSpeedChanging: false,
     );
 
     Navigator.push(
@@ -980,7 +991,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           backgroundColor: Colors.black,
           appBar: AppBar(
             backgroundColor: Colors.black,
-            title: const Text('Video Player'),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {
@@ -990,16 +1000,11 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             ),
           ),
           body: Center(
-            child: AspectRatio(
-              aspectRatio: _videoPlayerController.value.aspectRatio,
-              child: Chewie(controller: fullScreenController),
-            ),
+            child: Chewie(controller: fullScreenController),
           ),
         ),
       ),
-    ).then((_) {
-      fullScreenController.dispose();
-    });
+    ).then((_) => fullScreenController.dispose());
   }
 }
 
