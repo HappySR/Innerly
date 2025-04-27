@@ -60,11 +60,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _chatService = Provider.of<ChatService>(context, listen: false);
     _setupAudioPlayer();
-
-    // Defer initialization to after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _initializeChat();
-    });
+    _initializeChat();
   }
 
   @override
@@ -93,32 +89,18 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _initializeChat() async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        await Supabase.instance.client.auth.signInAnonymously();
+      if (user == null) await Supabase.instance.client.auth.signInAnonymously();
+
+      if (mounted) {
+        setState(() => _currentUserId = user?.id ?? Supabase.instance.client.auth.currentUser?.id);
       }
 
-      if (!mounted) return;
-
-      setState(() {
-        _currentUserId = Supabase.instance.client.auth.currentUser?.id;
-      });
-
-      if (_currentUserId != null && widget.receiverId.isNotEmpty) {
+      if (_currentUserId != null) {
         await _loadInitialMessages();
-        _startMessagePolling();
       }
     } catch (e) {
-      if (mounted) _showErrorSnackbar('Failed to initialize chat: ${e.toString()}');
+      if (mounted) _showErrorSnackbar('Initialization failed: ${e.toString()}');
     }
-  }
-
-  void _startMessagePolling() {
-    _messagePollingTimer?.cancel();
-    _messagePollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (mounted) {
-        context.read<ChatService>().loadInitialMessages(widget.receiverId);
-      }
-    });
   }
 
   Future<void> _loadInitialMessages() async {
@@ -347,136 +329,155 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildAudioPlayer(String url) {
     final isCurrentAudio = url == _currentlyPlayingAudioUrl;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: Icon(
-                isCurrentAudio && _isPlaying ? Icons.pause : Icons.play_arrow,
-                size: 32,
-              ),
-              onPressed: () async {
-                try {
-                  if (isCurrentAudio && _isPlaying) {
-                    await _audioPlayer.pause();
-                  } else {
-                    if (_currentlyPlayingAudioUrl != null) {
-                      await _audioPlayer.stop();
-                    }
-                    if (mounted) {
-                      setState(() => _currentlyPlayingAudioUrl = url);
-                    }
-                    await _audioPlayer.play(UrlSource(url));
-                  }
-                } catch (e) {
-                  if (mounted) _showErrorSnackbar('Error: ${e.toString()}');
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.stop, size: 32),
-              onPressed: () async {
-                try {
-                  await _audioPlayer.stop();
-                  if (mounted) {
-                    setState(() {
-                      _currentlyPlayingAudioUrl = null;
-                      _isPlaying = false;
-                      _audioPosition = Duration.zero;
-                    });
-                  }
-                } catch (e) {
-                  if (mounted) _showErrorSnackbar('Error stopping audio: ${e.toString()}');
-                }
-              },
-            ),
-          ],
-        ),
-        if (isCurrentAudio && _audioDuration != null && _audioPosition != null)
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
+            child: Row(
               children: [
-                Slider(
-                  value: _audioPosition!.inSeconds.toDouble(),
-                  min: 0,
-                  max: _audioDuration!.inSeconds.toDouble(),
-                  onChanged: (value) async {
+                IconButton(
+                  icon: Icon(
+                    isCurrentAudio && _isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
+                    size: 32,
+                    color: Colors.blue,
+                  ),
+                  onPressed: () async {
                     try {
-                      await _audioPlayer.seek(Duration(seconds: value.toInt()));
-                      if (!_isPlaying) {
-                        await _audioPlayer.resume();
+                      if (isCurrentAudio && _isPlaying) {
+                        await _audioPlayer.pause();
+                      } else {
+                        if (_currentlyPlayingAudioUrl != null) {
+                          await _audioPlayer.stop();
+                        }
+                        if (mounted) {
+                          setState(() => _currentlyPlayingAudioUrl = url);
+                        }
+                        await _audioPlayer.play(UrlSource(url));
                       }
                     } catch (e) {
-                      if (mounted) _showErrorSnackbar('Error seeking audio: ${e.toString()}');
+                      if (mounted) _showErrorSnackbar('Error: ${e.toString()}');
                     }
                   },
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_formatDuration(_audioPosition!)),
-                    Text(_formatDuration(_audioDuration!)),
-                  ],
+                Expanded(
+                  child: Column(
+                    children: [
+                      if (isCurrentAudio && _audioDuration != null && _audioPosition != null)
+                        Slider(
+                          value: _audioPosition!.inSeconds.toDouble(),
+                          min: 0,
+                          max: _audioDuration!.inSeconds.toDouble(),
+                          onChanged: (value) async {
+                            try {
+                              await _audioPlayer.seek(Duration(seconds: value.toInt()));
+                              if (!_isPlaying) await _audioPlayer.resume();
+                            } catch (e) {
+                              if (mounted) _showErrorSnackbar('Error seeking: ${e.toString()}');
+                            }
+                          },
+                          activeColor: Colors.blue,
+                          inactiveColor: Colors.grey,
+                        ),
+                      if (isCurrentAudio && _audioDuration != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _formatDuration(_audioPosition ?? Duration.zero),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                _formatDuration(_audioDuration!),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildDocumentPreview(String url) {
-    return InkWell(
-      onTap: () async {
-        try {
-          final tempDir = await getTemporaryDirectory();
-          final filePath = '${tempDir.path}/${path.basename(url)}';
-          final file = File(filePath);
+    final fileName = path.basename(url);
+    final fileExtension = fileName.split('.').last.toLowerCase();
 
-          if (!await file.exists()) {
-            final response = await _chatService.downloadFile(url);
-            if (response != null) {
-              await file.writeAsBytes(response);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: InkWell(
+        onTap: () async {
+          try {
+            final tempDir = await getTemporaryDirectory();
+            final filePath = '${tempDir.path}/$fileName';
+            final file = File(filePath);
+
+            if (!await file.exists()) {
+              final response = await _chatService.downloadFile(url);
+              if (response != null) {
+                await file.writeAsBytes(response);
+              }
             }
-          }
 
-          await OpenFile.open(filePath);
-        } catch (e) {
-          if (mounted) _showErrorSnackbar('Failed to open document: ${e.toString()}');
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(8),
-        ),
+            await OpenFile.open(filePath);
+          } catch (e) {
+            if (mounted) _showErrorSnackbar('Failed to open document: ${e.toString()}');
+          }
+        },
         child: Row(
           children: [
-            const Icon(Icons.insert_drive_file, size: 40),
+            _getFileTypeIcon(fileExtension),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    path.basename(url),
+                    fileName,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Tap to open',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.open_in_new, size: 24),
+            Icon(Icons.open_in_new, size: 20, color: Colors.grey[600]),
           ],
         ),
       ),
@@ -484,24 +485,32 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildFilePreview() {
+    final fileName = _selectedFile?.path.split('/').last ?? '';
+    final fileExtension = fileName.split('.').last.toLowerCase();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.grey[200],
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Icon(_getFileTypeIcon(), color: Colors.blue, size: 28),
+          _getFileTypeIcon(fileExtension),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _selectedFile?.path.split('/').last ?? '',
+              fileName,
               overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 24),
+            icon: Icon(Icons.close, size: 20, color: Colors.grey[600]),
             onPressed: () {
               if (mounted) {
                 setState(() {
@@ -516,18 +525,28 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  IconData _getFileTypeIcon() {
-    switch (_fileType) {
-      case 'image':
-        return Icons.image;
-      case 'audio':
-        return Icons.audiotrack;
-      case 'document':
-        return Icons.insert_drive_file;
-      case 'video':
-        return Icons.videocam;
+  Widget _getFileTypeIcon(String extension) {
+    const iconSize = 28.0;
+
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return const Icon(Icons.image, size: iconSize, color: Colors.blue);
+      case 'mp3':
+      case 'wav':
+      case 'm4a':
+        return const Icon(Icons.audiotrack, size: iconSize, color: Colors.purple);
+      case 'pdf':
+        return const Icon(Icons.picture_as_pdf, size: iconSize, color: Colors.red);
+      case 'doc':
+      case 'docx':
+        return const Icon(Icons.description, size: iconSize, color: Colors.blue);
+      case 'mp4':
+      case 'mov':
+        return const Icon(Icons.videocam, size: iconSize, color: Colors.orange);
       default:
-        return Icons.attach_file;
+        return const Icon(Icons.insert_drive_file, size: iconSize, color: Colors.grey);
     }
   }
 
@@ -581,13 +600,17 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildImageMessage(String url) {
     return GestureDetector(
       onTap: () => _showFullScreenImage(url),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          constraints: const BoxConstraints(
-            maxHeight: 300,
-            maxWidth: 300,
-          ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxHeight: 300,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.grey[200],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
           child: Image.network(
             url,
             fit: BoxFit.cover,
@@ -596,23 +619,31 @@ class _ChatScreenState extends State<ChatScreen> {
               return Container(
                 height: 200,
                 width: 200,
-                color: Colors.grey[200],
-                child: Center(
-                  child: CircularProgressIndicator(
-                    value: progress.expectedTotalBytes != null
-                        ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                        : null,
-                  ),
+                padding: const EdgeInsets.all(20),
+                child: CircularProgressIndicator(
+                  value: progress.expectedTotalBytes != null
+                      ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                      : null,
                 ),
               );
             },
             errorBuilder: (context, error, stackTrace) {
               return Container(
-                height: 200,
-                width: 200,
                 color: Colors.grey[200],
-                child: const Center(
-                  child: Icon(Icons.broken_image, color: Colors.grey),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Failed to load image',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
@@ -629,21 +660,16 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _isSending = true);
 
     try {
-      String? fileUrl;
+      String? filePath;
       if (_selectedFile != null) {
-        final fileSize = await _selectedFile!.length();
-        if (fileSize > 10 * 1024 * 1024) {
-          throw Exception('File size exceeds 10MB limit');
-        }
-
-        fileUrl = await _chatService.uploadFile(_selectedFile!);
+        filePath = await _chatService.uploadFile(_selectedFile!);
       }
 
       await _chatService.sendMessage(
         receiverId: widget.receiverId,
         message: _messageController.text,
         senderType: widget.isTherapist ? 'therapist' : 'user',
-        fileUrl: fileUrl,
+        fileUrl: filePath,
         fileType: _fileType,
       );
 
@@ -855,38 +881,25 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   Future<void> _initializeVideoPlayer() async {
-    _videoPlayerController = VideoPlayerController.network(widget.url)
-      ..setLooping(false);
-
     try {
+      _videoPlayerController = VideoPlayerController.network(widget.url)
+        ..setLooping(false);
+
       await _videoPlayerController.initialize();
-      if (_isDisposed) return;
 
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController,
-        autoPlay: false,
-        looping: false,
-        showControls: true,
-        materialProgressColors: ChewieProgressColors(
-          playedColor: Colors.blue,
-          handleColor: Colors.blue,
-          backgroundColor: Colors.grey,
-          bufferedColor: Colors.grey.shade300,
-        ),
-        autoInitialize: true,
-        errorBuilder: (context, errorMessage) {
-          return Center(
-            child: Text(
-              errorMessage,
-              style: const TextStyle(color: Colors.white),
-            ),
-          );
-        },
-      );
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
 
-      if (mounted) setState(() => _isInitialized = true);
     } catch (e) {
-      if (mounted) setState(() => _isInitialized = false);
+      if (mounted) {
+        setState(() {
+          _isInitialized = false;
+        });
+      }
+      debugPrint('Video initialization error: $e');
     }
   }
 
@@ -905,18 +918,41 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       return Container(
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.black12,
+          color: Colors.black,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Center(child: CircularProgressIndicator()),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Colors.white),
+              const SizedBox(height: 10),
+              Text(
+                'Loading video...',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
     return AspectRatio(
       aspectRatio: _videoPlayerController.value.aspectRatio,
-      child: GestureDetector(
-        onTap: () => _showFullScreenVideo(context),
-        child: Chewie(controller: _chewieController!),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Chewie(
+            controller: _chewieController!,
+          ),
+        ),
       ),
     );
   }
