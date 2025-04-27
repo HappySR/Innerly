@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../home/pages/bottom_nav.dart';
-import 'welcome_page.dart';
+import 'get_started_view.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {
   const AnimatedSplashScreen({super.key});
@@ -33,7 +33,7 @@ class AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => user != null ? const BottomNav() : const WelcomePage(),
+        pageBuilder: (_, __, ___) => user != null ? const BottomNav() : const OnboardingFlow(),
         transitionDuration: const Duration(milliseconds: 500),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);

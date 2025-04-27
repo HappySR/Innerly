@@ -1,3 +1,4 @@
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -24,8 +25,8 @@ class GamesPage extends StatelessWidget {
         ),
         centerTitle: true,
         title: Text(
-          'GAMES',
-          style: GoogleFonts.aboreto(
+          'ACTIVITY',
+          style: GoogleFonts.lora(
             color: Colors.black,
             fontSize: 28,
             fontWeight: FontWeight.w400,
@@ -107,7 +108,7 @@ class GameCard extends StatelessWidget {
       onTap: () => _handleNavigation(context),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFDAF5FB),
+          color: InnerlyTheme.pink,
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
@@ -120,7 +121,7 @@ class GameCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(image, height: 55, color: Colors.blueGrey),
+            Image.asset(image, height: 55, color: Colors.black),
             const SizedBox(height: 12),
             Text(
               label,

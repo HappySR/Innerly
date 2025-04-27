@@ -2,6 +2,7 @@ import 'package:Innerly/home/pages/therapists_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../started/get_started_view.dart';
 import '../../started/welcome_page.dart';
 import '../../widget/home_drawer.dart';
 import '../../widget/imageCard.dart';
@@ -31,7 +32,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
     if (user == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const WelcomePage()),
+        MaterialPageRoute(builder: (context) => const OnboardingFlow()),
       );
     } else {
       setState(() => _isInitializing = false);
@@ -50,210 +51,356 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
     bool _isDrawerOpen = false;
 
     return Scaffold(
-      drawer: const HomeDrawer(),
-      backgroundColor: InnerlyTheme.appBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: const Icon(
-                  Icons.filter_list_sharp,
-                  color: Colors.black87,
-                ),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
-        ),
-        title: SizedBox(
-          height: 36,
-          child: TextField(
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              hintText: 'Search',
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              prefixIcon: const Icon(Icons.search),
-            ),
-          ),
-        ),
-      ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ListView(
-              children: [
-                const SizedBox(height: 10),
-                Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+      backgroundColor: const Color(0xFFFDF4E7),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Greeting + Profile Pic
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hello, Julia',
-                        style: GoogleFonts.aclonica(
+                        "Hello Kate",
+                        style: GoogleFonts.lora(
                           fontSize: 24,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
+                      Text(
+                        "How are you feeling today?",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const CircleAvatar(
+                    radius: 24,
+                    backgroundImage: AssetImage(
+                      'assets/user/user.png',
+                    ), // Add a dummy image in assets
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Search Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const TextField(
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "Search for session, journals...",
+                    hintStyle: TextStyle(color: Colors.grey),
+                    icon: Icon(Icons.search),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Daily Mood Log
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
                           Text(
-                            'HOW ARE YOU',
-                            style: GoogleFonts.aboreto(
-                              fontSize: 17,
-                              color: Colors.grey.shade700,
+                            "Daily mood log",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(width: 5),
                           Text(
-                            'FEELING',
-                            style: GoogleFonts.aboreto(
-                              fontSize: 20,
-                              color: Colors.grey.shade800,
-                            ),
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'TODAY',
-                            style: GoogleFonts.aboreto(
-                              fontSize: 17,
-                              color: Colors.grey.shade700,
+                            "Track mood",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF6AA84F), // Light Green
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "Identify and track your emotions",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Mood Emojis
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: InnerlyTheme.beige,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            moodEmoji("😊"),
+                            moodEmoji("😄"),
+                            moodEmoji("😐"),
+                            moodEmoji("😢"),
+                            moodEmoji("😡"),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Relaxing Activities Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: InnerlyTheme.pink,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            // Left side: Text
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Relaxing Activities",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    "Wanna know how heaven feels like? Explore more...",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0XFF000000),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 30),
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const GamesPage(),
+                                        ),
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(10), // to match the container's border radius
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: InnerlyTheme.secondary,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        "Explore More",
+                                        style: TextStyle(
+                                          color: InnerlyTheme.secondary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                            // Right side: Image
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              height: 150,
+                              width: 150,
+                              child: Image.asset(
+                                'assets/images/explore.png',
+                              ), // Add an illustration in assets
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Connect with Experts Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: InnerlyTheme.pink,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            // Left side: Text
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Connect with our Experts",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    "Let’s see the progress of your journey",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0XFF000000),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const TherapistsListScreen(),
+                                        ),
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(10), // to match the container's border radius
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: InnerlyTheme.secondary,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        "Start Session",
+                                        style: TextStyle(
+                                          color: InnerlyTheme.secondary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                            // Right side: Image
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              height: 150,
+                              width: 150,
+                              child: Image.asset(
+                                'assets/images/img.png',
+                              ), // Add an illustration in assets
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 20,),
+                      const Text(
+                        'Weekly challenge',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Build your confidence and resilience',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: InnerlyTheme.beige, // inner box color
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 150,
+                              height: 150,
+                              child: Image.asset(
+                                'assets/images/challenge.png', // replace with your image path
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Want to build up your confidence?',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Make better yourself',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  OutlinedButton(
+                                    onPressed: () {},
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(
+                                        color: Colors.green,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Start challenge',
+                                      style: TextStyle(
+                                        color: InnerlyTheme.secondary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.transparent,
-                  ),
-                  child: Center(
-                    child: SizedBox(
-                      width: 140,
-                      height: 120,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          image: DecorationImage(
-                            image: AssetImage('assets/user/user.png'),
-                            fit: BoxFit.cover,
-                            alignment: Alignment(0.0, -0.1),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const TherapistsListScreen()),
-                    );
-                  },
-                  child: Text(
-                    '"Hey, are you feeling low. Talk to our\nexpert therapist for instant relaxation"',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.abyssinicaSil(fontSize: 18),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const GamesPage(),
-                            ),
-                          );
-                        },
-                        child: ShadowImageCard(
-                          imagePath: 'assets/images/explore.png',
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const TherapistsListScreen()),
-                          );
-                        },
-                        child: ShadowImageCard(
-                          imagePath: 'assets/images/interact.png',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const GlobalChatScreen(),
-                      ),
-                    );
-                  },
-                  child: const ShadowImageCard(
-                    imagePath: 'assets/images/global_chat.png',
-                    height: 220,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 4,
-            right: 5,
-            child: GestureDetector(
-              onTap: () {
-                debugPrint("Leaf icon clicked!");
-              },
-              child: Container(
-                // decoration: BoxDecoration(
-                //   color: Colors.white,
-                //   shape: BoxShape.circle,
-                //   boxShadow: [
-                //     BoxShadow(
-                //       color: Colors.black12,
-                //       blurRadius: 4,
-                //       offset: Offset(2, 2),
-                //     ),
-                //   ],
-                // ),
-                padding: const EdgeInsets.all(10),
-                child: Image.asset(
-                  'assets/chat/leaf.png',
-                  width: 50,
-                  height: 50,
-                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+
+  Widget moodEmoji(String emoji) {
+    return Text(emoji, style: const TextStyle(fontSize: 30));
   }
 }

@@ -1,159 +1,145 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../widget/profile_button.dart';
-
-class EditProfileScreen extends StatelessWidget {
-  const EditProfileScreen({super.key});
+class EditProfilePage extends StatelessWidget {
+  const EditProfilePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF5E6), // Light cream background
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Opacity(
-                    opacity: 0.1,
-                    child: Image.asset(
-                      'assets/logo/app_logo.png',
-                      width: 300,
-                      height: 300,
-                      fit: BoxFit.contain,
-                    ),
+      backgroundColor: const Color(0xFFFFF6E9),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF6E9),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            // Handle back action
+          },
+        ),
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            CircleAvatar(
+              radius: 60,
+              backgroundImage: AssetImage(
+                'assets/user/user.png',
+              ), // therapist image
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFF6E9),
+                elevation: 0,
+                side: const BorderSide(color: Colors.transparent),
+              ),
+              onPressed: () {
+                // Handle change photo
+              },
+              child: const Text(
+                'Change Photo',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+            const SizedBox(height: 30),
+            buildLabel('Display Name'),
+            buildTextField('Kate'),
+            const SizedBox(height: 20),
+            buildLabel('Bio'),
+            buildTextField('“A safe space seeker, finding\npeace in little moments.”', maxLines: 2),
+            const SizedBox(height: 20),
+            buildLabel('Languages'),
+            buildDropdown('Languages you know'),
+            const SizedBox(height: 20),
+            buildLabel('Theme'),
+            buildDropdown('Calm Blue'),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
+                onPressed: () {
+                  // Handle Save Changes
+                },
+                child: const Text(
+                  'Save Changes',
+                  style: TextStyle(fontSize: 18,
+                  color: Colors.white),
+                ),
               ),
-              Column(
-                children: [
-                  // Back button and title
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.arrow_back_ios_new, size: 20),
-                        const SizedBox(width: 20),
-                        Center(
-                          child: Text(
-                              'Edit Profile',
-                              style: GoogleFonts.abel(
-                                  fontSize: 30
-                              )
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Avatar
-                  Container(
-                    width: 150,
-                    height: 150,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.transparent,
-                    ),
-                    child: Center(
-                      child: SizedBox(
-                        width: 140,
-                        height: 120,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: AssetImage('assets/user/user.png'),
-                              fit: BoxFit.cover,
-                              alignment: Alignment(0.0, 0.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  // Name
-                  Text(
-                    "Julia",
-                    style: GoogleFonts.aclonica(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  // Email
-                  Text(
-                    "abc@example.com",
-                    style: GoogleFonts.abyssinicaSil(
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
-                  ),
-
-                  const SizedBox(height: 110),
-
-                  // Opacity(
-                  //   opacity: 0.05,
-                  //   child: Image.asset(
-                  //     'assets/logo/app_logo.png', // Faded inner leaf
-                  //     height: 100,
-                  //     fit: BoxFit.cover,
-                  //   ),
-                  // ),
-
-                  // Input Fields
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      children: [
-                        _buildRoundedTextField("GENDER"),
-                        const SizedBox(height: 20),
-                        _buildRoundedTextField("AGE"),
-                        const SizedBox(height: 20),
-                        _buildRoundedTextField("LANGUAGE"),
-                        const SizedBox(height:50),
-
-                        // Save Changes Button
-                        ProfileButton(text: "Save Changes",),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            )
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildRoundedTextField(String hint) {
+  Widget buildLabel(String text) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget buildTextField(String hint, {int maxLines = 1}) {
     return TextField(
+      maxLines: maxLines,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(letterSpacing: 1),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         filled: true,
         fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.grey),
-          borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+
+  Widget buildDropdown(String hint) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          border: InputBorder.none,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.teal),
-          borderRadius: BorderRadius.circular(20),
-        ),
+        hint: Text(hint),
+        items: const [
+          DropdownMenuItem(value: 'Black', child: Text('English')),
+          DropdownMenuItem(value: 'White', child: Text('Spanish')),
+          DropdownMenuItem(value: 'System Default', child: Text('French')),
+        ],
+        onChanged: (value) {
+          // Handle dropdown changes
+        },
       ),
     );
   }

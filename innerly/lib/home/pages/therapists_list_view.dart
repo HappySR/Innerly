@@ -1,4 +1,6 @@
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import 'chat_screen.dart';
@@ -18,9 +20,9 @@ class TherapistsListScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Therapists',
-          style: TextStyle(color: Colors.black),
+          style: GoogleFonts.lora(color: Colors.black),
         ),
         centerTitle: true,
       ),
@@ -66,11 +68,11 @@ class AvailableTherapistsTab extends StatelessWidget {
               const SizedBox(height: 16),
               _buildSectionTitle(context, 'Great Match'),
               const SizedBox(height: 8),
-              _buildTherapistList(context, greatMatch, cardColor: const Color(0xFFFFF1DC)),
+              _buildTherapistList(context, greatMatch, cardColor: InnerlyTheme.beige),
               const SizedBox(height: 24),
               _buildSectionTitle(context, 'Specializing in Sleep help'),
               const SizedBox(height: 8),
-              _buildTherapistList(context, specializing, cardColor: const Color(0xFFFFE4E1)),
+              _buildTherapistList(context, specializing, cardColor: InnerlyTheme.pink),
             ],
           ),
         );
@@ -135,8 +137,8 @@ class AvailableTherapistsTab extends StatelessWidget {
               backgroundImage: NetworkImage(therapist['photo_url'] ?? 'https://cdn.pixabay.com/photo/2017/05/10/13/36/doctor-2300898_1280.png'), // fallback if needed
               backgroundColor: Colors.grey[200],
             ),
-            title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(specialization),
+            title: Text(name, style: GoogleFonts.rubik(fontWeight: FontWeight.w600)),
+            subtitle: Text(specialization, style: GoogleFonts.rubik(fontWeight: FontWeight.w400)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

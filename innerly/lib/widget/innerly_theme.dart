@@ -8,6 +8,11 @@ class InnerlyTheme {
   static const Color background = Color.fromARGB(255, 255, 255, 255);
   static const Color nearlyDarkBlue = Color.fromARGB(255, 0, 0, 0);
   static const Color appColor = Color(0xFF502af5);
+  static const Color secondary = Color(0xFF496800);
+  static const Color lightGreen = Color(0xFF95935B);
+  static const Color bottomnav = Color(0xFF93EA4F);
+  static const Color pink = Color(0xFFF1C7CC);
+  static const Color beige = Color(0xFFF8EBD2);
 
 
   static const Color nearlyBlue = Color.fromARGB(188,92,57,246);
@@ -91,3 +96,6 @@ class InnerlyTheme {
     color: lightText, // was lightText
   );
 }
+
+
+

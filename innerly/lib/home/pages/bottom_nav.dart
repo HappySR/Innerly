@@ -1,5 +1,6 @@
 import 'package:Innerly/home/pages/profile_view.dart';
 import 'package:Innerly/home/pages/therapist_home.dart';
+import 'package:Innerly/home/pages/therapists_list_view.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +35,7 @@ class _BottomNavState extends State<BottomNav> {
             const HomeTherapist()
           else
             MentalHealthHome(),
-          if (UserRole.isTherapist) const PatientsPage() else ExplorePage(),
+          if (UserRole.isTherapist) const PatientsPage() else TherapistsListScreen(),
           const SizedBox.shrink(), // Placeholder for notifications
           if (UserRole.isTherapist) TherapistProfile() else ProfileView(),
         ];
@@ -76,7 +77,7 @@ class _BottomNavState extends State<BottomNav> {
                 setState(() => _isNotificationSheetOpen = false);
               }
             },
-            selectedItemColor: InnerlyTheme.appColor.withAlpha(180),
+            selectedItemColor: InnerlyTheme.secondary.withAlpha(200),
             unselectedItemColor: Colors.grey,
             showUnselectedLabels: false,
             showSelectedLabels: false,
@@ -101,12 +102,12 @@ class _BottomNavState extends State<BottomNav> {
                 )
               else
                 const BottomNavigationBarItem(
-                  icon: Icon(Icons.search),
+                  icon: Icon(Icons.local_hospital_rounded),
                   label: 'Explore',
                 ),
 
               const BottomNavigationBarItem(
-                icon: Icon(Icons.notifications),
+                icon: Icon(Icons.chat_outlined),
                 label: 'Community',
               ),
               const BottomNavigationBarItem(
