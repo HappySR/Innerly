@@ -198,15 +198,22 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                     ),
                     SizedBox(height: 20),
                     ElevatedButton(
-                      onPressed: () {
-                        // TODO: Handle new user action
+                      onPressed: () async {
+                        try {
+                          UserRole.isTherapist = false;
+                          UserRole.saveRole(false);
+                          final authService = AuthService();
+                          await authService.signInAnonymously();
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => BottomNav()),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: ${e.toString()}')),
+                          );
+                        }
                       },
-                      child: Text(
-                        'Register Now',
-                        style: TextStyle(
-                          color: Colors.white, // <-- Set text color to white
-                        ),
-                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF719E07),
                         padding: EdgeInsets.symmetric(
@@ -218,7 +225,13 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ),
+                      child: Text(
+                        'Register Now',
+                        style: TextStyle(
+                          color: Colors.white, // Set text color to white
+                        ),
+                      ),
+                    )
                   ],
                 ),
               ),
