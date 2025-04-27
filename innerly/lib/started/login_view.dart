@@ -21,9 +21,10 @@ class _SignInPageState extends State<SignInPage> {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   bool _isLoading = false;
+  bool _isFormValid = false;
 
   Future<void> _handleSignIn() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!_isFormValid) return;
 
     setState(() => _isLoading = true);
 
@@ -39,11 +40,11 @@ class _SignInPageState extends State<SignInPage> {
         UserRole.saveRole(true);
 
         final therapistData =
-            await _supabase
-                .from('therapists')
-                .select()
-                .eq('id', _supabase.auth.currentUser!.id)
-                .single();
+        await _supabase
+            .from('therapists')
+            .select()
+            .eq('id', _supabase.auth.currentUser!.id)
+            .single();
 
         if (!mounted) return;
 
@@ -83,6 +84,13 @@ class _SignInPageState extends State<SignInPage> {
     }
   }
 
+  void _validateForm() {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (isValid != _isFormValid) {
+      setState(() => _isFormValid = isValid);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,7 +100,7 @@ class _SignInPageState extends State<SignInPage> {
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight:
-                  MediaQuery.of(context).size.height -
+              MediaQuery.of(context).size.height -
                   MediaQuery.of(context).padding.top -
                   MediaQuery.of(context).padding.bottom,
             ),
@@ -102,6 +110,8 @@ class _SignInPageState extends State<SignInPage> {
                 child: Center(
                   child: Form(
                     key: _formKey,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    onChanged: _validateForm,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -175,11 +185,9 @@ class _SignInPageState extends State<SignInPage> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: ElevatedButton(
-                            onPressed:
-                                (_formKey.currentState?.validate() ?? false) &&
-                                        !_isLoading
-                                    ? _handleSignIn
-                                    : null,
+                            onPressed: _isFormValid && !_isLoading
+                                ? _handleSignIn
+                                : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF719E07),
                               padding: const EdgeInsets.symmetric(
@@ -191,18 +199,18 @@ class _SignInPageState extends State<SignInPage> {
                               ),
                             ),
                             child:
-                                _isLoading
-                                    ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                    : Text(
-                                      'Log in',
-                                      style: GoogleFonts.rubik(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 22,
-                                      ),
-                                    ),
+                            _isLoading
+                                ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                                : Text(
+                              'Log in',
+                              style: GoogleFonts.rubik(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 22,
+                              ),
+                            ),
                           ),
                         ),
 
@@ -317,6 +325,7 @@ class _SignInPageState extends State<SignInPage> {
       controller: controller,
       obscureText: obscureText,
       validator: validator,
+      onChanged: (_) => _validateForm(),
       style: GoogleFonts.rubik(
         fontSize: 18,
         fontWeight: FontWeight.w500,
