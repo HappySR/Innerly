@@ -3,23 +3,95 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
-  final ImagePicker _picker = ImagePicker();
+  final Uuid _uuid = Uuid();
   static const _maxFileSizeMB = 5;
   static const _allowedExtensions = {'pdf', 'png', 'jpg', 'jpeg'};
 
-  // Enhanced anonymous sign-in with session verification
-  Future<User?> signInAnonymously() async {
+  Future<User?> signUpAnonymously() async {
     try {
-      final response = await _supabase.auth.signInAnonymously();
-      if (response.user == null) throw Exception('Anonymous login failed');
+      // 1. Create anonymous auth user
+      final authResponse = await _supabase.auth.signInAnonymously();
+      final user = authResponse.user;
+      if (user == null) throw Exception('Anonymous authentication failed');
 
-      debugPrint('Anonymous user created: ${response.user?.id}');
-      return response.user;
+      // 2. Generate UUID
+      final uuid = _uuid.v4();
+
+      // 3. Insert user profile with explicit column selection
+      final response = await _supabase
+          .from('users')
+          .insert({
+        'id': user.id,
+        'uuid': uuid,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+      })
+          .select('id, uuid')
+          .single();
+
+      debugPrint('New user created with UUID: ${response['uuid']}');
+      return user;
+    } on PostgrestException catch (e) {
+      debugPrint('Database error: ${e.message}');
+      await _supabase.auth.signOut();
+      throw Exception('Failed to create user profile: ${e.message}');
     } catch (e, stack) {
-      debugPrint('Anonymous login error: $e\n$stack');
+      debugPrint('Signup error: $e\n$stack');
+      await _supabase.auth.signOut();
+      rethrow;
+    }
+  }
+
+  Future<User?> signInAnonymously(String uuid) async {
+    try {
+      // Verify UUID exists
+      final userRecord = await _supabase
+          .from('users')
+          .select()
+          .eq('uuid', uuid)
+          .maybeSingle();
+
+      if (userRecord == null) throw Exception('Invalid UUID - please check your code');
+
+      // Get existing user ID from UUID record
+      final userId = userRecord['id'] as String;
+
+      // Verify user exists in auth system
+      final authUser = await _supabase.auth.admin.getUserById(userId);
+      if (authUser == null) throw Exception('Account not found - please register first');
+
+      // Sign in as the existing user
+      final response = await _supabase.auth.signInAnonymously();
+      if (response.user?.id != userId) {
+        throw Exception('Authentication failed - user mismatch');
+      }
+
+      return response.user;
+    } on PostgrestException catch (e) {
+      debugPrint('Database error: ${e.message}');
+      throw Exception('Connection error - please try again later');
+    } on AuthException catch (e) {
+      debugPrint('Auth error: ${e.message}');
+      throw Exception('Authentication failed - ${e.message}');
+    } catch (e, stack) {
+      debugPrint('Anonymous signin error: $e\n$stack');
+      throw Exception('Login failed - please check your connection');
+    }
+  }
+
+  Future<bool> checkUUIDExists(String uuid) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('uuid', uuid)
+          .maybeSingle();
+      return response != null;
+    } catch (e) {
+      debugPrint('UUID check error: $e');
       rethrow;
     }
   }

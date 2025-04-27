@@ -15,32 +15,33 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
 
   void _validateUUID() async {
     final input = _controller.text.trim();
+    if (input.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter your UUID')),
+      );
+      return;
+    }
 
-    // Set your correct UUID here
-    const correctUUID = 'your-correct-uuid-here';
+    try {
+      final authService = AuthService();
+      final user = await authService.signInAnonymously(input);
 
-    if (input == correctUUID) {
-      try {
+      if (user != null) {
         UserRole.isTherapist = false;
         UserRole.saveRole(false);
-        final authService = AuthService();
-        await authService.signInAnonymously();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => BottomNav()),
         );
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
-    } else {
+    } catch (e) {
+      final message = e.toString().replaceAll('Exception: ', '');
       setState(() {
         _attemptsLeft--;
         if (_attemptsLeft > 0) {
-          _message = '❌ Incorrect UUID. Attempts left: $_attemptsLeft';
+          _message = '❌ $message. Attempts left: $_attemptsLeft';
         } else {
-          _message = '🚫 No attempts left. Access denied.';
+          _message = '🚫 Account locked - please contact support';
         }
       });
     }
@@ -54,7 +55,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
     return Scaffold(
       backgroundColor: Color(0xFFFFF7E7),
       appBar: AppBar(
-        backgroundColor: Colors.white, // <-- White/default AppBar
+        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -107,32 +108,14 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                       enabled: !isLocked,
                     ),
                     SizedBox(height: 20),
-
                     // Center the Submit Button
                     Center(
                       child: ElevatedButton(
-                        onPressed: () async {
-                          try {
-                            UserRole.isTherapist = false;
-                            UserRole.saveRole(false);
-                            final authService = AuthService();
-                            await authService.signInAnonymously();
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BottomNav(),
-                              ),
-                            );
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: ${e.toString()}')),
-                            );
-                          }
-                        },
+                        onPressed: isLocked ? null : _validateUUID,
                         child: Text(
                           'Submit',
                           style: TextStyle(
-                            color: Colors.white, // <-- Set text color to white
+                            color: Colors.white,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -148,7 +131,6 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                         ),
                       ),
                     ),
-
                     if (_message.isNotEmpty) ...[
                       SizedBox(height: 20),
                       Text(
@@ -163,9 +145,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                   ],
                 ),
               ),
-
               SizedBox(height: 40),
-
               // New User Section
               Container(
                 padding: EdgeInsets.all(20),
@@ -203,7 +183,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                           UserRole.isTherapist = false;
                           UserRole.saveRole(false);
                           final authService = AuthService();
-                          await authService.signInAnonymously();
+                          await authService.signUpAnonymously();
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (context) => BottomNav()),
@@ -228,7 +208,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                       child: Text(
                         'Register Now',
                         style: TextStyle(
-                          color: Colors.white, // Set text color to white
+                          color: Colors.white,
                         ),
                       ),
                     )
