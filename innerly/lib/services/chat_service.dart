@@ -136,7 +136,6 @@ class ChatService with ChangeNotifier {
 
     try {
       _isLoading = true;
-      notifyListeners();
 
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('User not authenticated');
@@ -147,7 +146,6 @@ class ChatService with ChangeNotifier {
           .or('and(sender_id.eq.$userId,receiver_id.eq.$receiverId),and(sender_id.eq.$receiverId,receiver_id.eq.$userId)')
           .order('created_at', ascending: true);
 
-      // Generate signed URLs for existing messages
       final List<Map<String, dynamic>> messagesWithUrls = [];
       for (var message in List<Map<String, dynamic>>.from(response)) {
         if (message['file_url'] != null) {
@@ -159,14 +157,12 @@ class ChatService with ChangeNotifier {
       }
 
       _messages = messagesWithUrls;
-      debugPrint('Loaded ${_messages.length} initial messages');
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('Load messages error: $e');
       rethrow;
     } finally {
       _isLoading = false;
-      notifyListeners();
     }
   }
 

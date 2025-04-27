@@ -60,7 +60,9 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _chatService = Provider.of<ChatService>(context, listen: false);
     _setupAudioPlayer();
-    _initializeChat();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeChat();
+    });
   }
 
   @override
