@@ -1,6 +1,8 @@
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../started/welcome_page.dart';
 import 'edit_profile_view.dart';
 
 class ProfileView extends StatelessWidget {
@@ -286,6 +288,38 @@ class ProfileView extends StatelessWidget {
                       isCompleted: true,
                     ),
                   ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0), // Margin around button
+                child: SizedBox(
+                  width: double.infinity, // Full width
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0), // Padding inside button
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12), // Rounded corners
+                      ),
+                      backgroundColor: Colors.redAccent, // Button color (optional, can remove if you want default color)
+                    ),
+                    onPressed: () async {
+                      await Supabase.instance.client.auth.signOut();
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const WelcomePage()),
+                            (route) => false,
+                      );
+                    },
+                    child: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white, // Text color
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
