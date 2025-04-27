@@ -1,8 +1,112 @@
+import 'package:Innerly/home/pages/therapist_schedule.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:Innerly/home/pages/therapist_patient_details.dart';
+import 'package:Innerly/home/pages/chat_screen.dart';
 
-class PatientsPage extends StatelessWidget {
+class Patient {
+  final String id;
+  final String name;
+  final String issue;
+  final bool isActive;
+  final DateTime lastMessageTime;
+
+  Patient({
+    required this.id,
+    required this.name,
+    required this.issue,
+    required this.isActive,
+    required this.lastMessageTime,
+  });
+}
+
+class PatientsPage extends StatefulWidget {
   const PatientsPage({super.key});
+
+  @override
+  State<PatientsPage> createState() => _PatientsPageState();
+}
+
+class _PatientsPageState extends State<PatientsPage> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+  List<Patient> _patients = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPatients();
+  }
+
+  Future<void> _fetchPatients() async {
+    try {
+      final currentUser = _supabase.auth.currentUser;
+      if (currentUser == null) throw Exception('User not authenticated');
+
+      // First, query the user_profiles table to check its structure
+      final profilesStructure = await _supabase
+          .from('user_profiles')
+          .select()
+          .limit(1);
+
+      // Now use the appropriate field names in your main query
+      final response = await _supabase
+          .from('private_messages')
+          .select('''
+          sender_id, 
+          created_at,
+          user_profiles!sender_id(*)
+        ''')
+          .eq('receiver_id', currentUser.id)
+          .order('created_at', ascending: false);
+
+      final Map<String, Patient> uniquePatients = {};
+      for (final message in response) {
+        final senderId = message['sender_id'] as String;
+        if (uniquePatients.containsKey(senderId)) continue;
+
+        final profile = (message['user_profiles'] as Map<String, dynamic>?) ?? {};
+
+        // Print the profile structure to debug
+        print('Profile structure: $profile');
+
+        // Try to find the right field names
+        final name = profile['name'] ??
+            profile['user_name'] ??
+            profile['username'] ??
+            profile['display_name'] ??
+            'User#${senderId.substring(0, 6)}';
+
+        final userIssue = profile['issue'] ??
+            profile['health_issue'] ??
+            profile['problem'] ??
+            'Not specified';
+
+        uniquePatients[senderId] = Patient(
+          id: senderId,
+          name: name,
+          issue: userIssue,
+          isActive: true,
+          lastMessageTime: DateTime.parse(message['created_at'] as String),
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _patients = uniquePatients.values.toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load patients: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +124,7 @@ class PatientsPage extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                   alignment: Alignment.center,
                   child: Image.asset(
-                    'assets/images/patients.png', // Replace with your actual asset path
+                    'assets/images/patients.png',
                     height: 300,
                   ),
                 ),
@@ -40,7 +144,7 @@ class PatientsPage extends StatelessWidget {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: Color(0xFFCED4DA), // light grey border
+                          color: Color(0xFFCED4DA),
                           width: 1,
                         ),
                       ),
@@ -54,7 +158,7 @@ class PatientsPage extends StatelessWidget {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: Color(0xFF4CAF50), // green when focused
+                          color: Color(0xFF4CAF50),
                           width: 1,
                         ),
                       ),
@@ -62,10 +166,31 @@ class PatientsPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // User Cards
-                _buildPatientCard(context),
-                const SizedBox(height: 12),
-                _buildPatientCard(context),
+
+                // Loading/Error states
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator()),
+                if (_errorMessage != null)
+                  Center(child: Text(_errorMessage!)),
+                if (!_isLoading && _patients.isEmpty)
+                  const Center(child: Text('No patients found')),
+
+                // Patient List
+                if (!_isLoading && _patients.isNotEmpty)
+                  ListView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: _patients.length,
+                    itemBuilder: (context, index) {
+                      return Column(
+                        children: [
+                          _buildPatientCard(context, _patients[index]),
+                          if (index != _patients.length - 1)
+                            const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -74,14 +199,14 @@ class PatientsPage extends StatelessWidget {
     );
   }
 
-  // Patient card builder
-  Widget _buildPatientCard(BuildContext context) {
+  Widget _buildPatientCard(BuildContext context, Patient patient) {
     return GestureDetector(
       onTap: () {
-        // Navigate to PatientDetails page on card tap
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const PatientDetails()),
+          MaterialPageRoute(
+            builder: (context) => const PatientDetails(),
+          ),
         );
       },
       child: Container(
@@ -114,14 +239,20 @@ class PatientsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'User#A56',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    patient.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Issue: Anxiety',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  Text(
+                    'Issue: ${patient.issue}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -138,37 +269,52 @@ class PatientsPage extends StatelessWidget {
                         margin: const EdgeInsets.only(right: 4),
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.green,
+                          color: patient.isActive ? Colors.green : Colors.grey,
                         ),
                       ),
-                      const Text(
-                        'Active',
+                      Text(
+                        patient.isActive ? 'Active' : 'Inactive',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.green,
+                          color: patient.isActive ? Colors.green : Colors.grey,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 12),
 
-                  // Buttons — wrapped individually with GestureDetector to stop tap propagation
+                  // Buttons
                   Row(
                     children: [
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Prevent parent tap — do message action here
-                            print("Message pressed");
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(
+                                  receiverId: patient.id,
+                                  receiverName: patient.name,
+                                  isTherapist: true,
+                                ),
+                              ),
+                            );
                           },
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              // Same message action
-                              print("Message pressed");
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    receiverId: patient.id,
+                                    receiverName: patient.name,
+                                    isTherapist: true,
+                                  ),
+                                ),
+                              );
                             },
                             icon: const Icon(
                               Icons.message,
@@ -199,13 +345,21 @@ class PatientsPage extends StatelessWidget {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            // Prevent parent tap — do schedule action here
-                            print("Schedule pressed");
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ScheduleScreen(),
+                              ),
+                            );
                           },
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              // Same schedule action
-                              print("Schedule pressed");
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ScheduleScreen(),
+                                ),
+                              );
                             },
                             icon: const Icon(
                               Icons.calendar_today,
