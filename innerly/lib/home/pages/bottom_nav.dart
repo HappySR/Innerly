@@ -8,6 +8,7 @@ import 'package:Innerly/home/pages/therapist_patients.dart';
 import 'package:Innerly/home/pages/therapist_profile.dart';
 import '../../services/role.dart';
 import '../providers/bottom_nav_provider.dart';
+import 'community_screen.dart';
 import 'explore_view.dart';
 import 'home_view.dart';
 import 'notifications_view.dart';
@@ -20,10 +21,6 @@ class BottomNav extends StatefulWidget {
 }
 
 class _BottomNavState extends State<BottomNav> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isNotificationSheetOpen = false;
-  PersistentBottomSheetController? _controller;
-
   @override
   Widget build(BuildContext context) {
     return Consumer<BottomNavProvider>(
@@ -35,47 +32,23 @@ class _BottomNavState extends State<BottomNav> {
             const HomeTherapist()
           else
             MentalHealthHome(),
-          if (UserRole.isTherapist) const PatientsPage() else TherapistsListScreen(),
-          const SizedBox.shrink(), // Placeholder for notifications
-          if (UserRole.isTherapist) TherapistProfile() else ProfileView(),
+          if (UserRole.isTherapist)
+            const PatientsPage()
+          else
+            const TherapistsListScreen(),
+          CommunityScreen(), // <-- now a normal screen
+          if (UserRole.isTherapist)
+            TherapistProfile()
+          else
+            const ProfileView(),
         ];
 
         return Scaffold(
-          key: _scaffoldKey,
           body: IndexedStack(index: selectedIndex, children: pages),
           bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _isNotificationSheetOpen ? 2 : selectedIndex,
+            currentIndex: selectedIndex,
             onTap: (index) {
-              if (index == 2) {
-                // Open notification sheet
-                if (!_isNotificationSheetOpen) {
-                  setState(() => _isNotificationSheetOpen = true);
-                  _controller = _scaffoldKey.currentState!.showBottomSheet(
-                    (context) => Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                      ),
-                      child: const NotificationBottomSheet(),
-                    ),
-                    backgroundColor: Colors.transparent,
-                  );
-                  _controller!.closed.then((_) {
-                    if (mounted) {
-                      setState(() => _isNotificationSheetOpen = false);
-                    }
-                  });
-                }
-              } else {
-                // Close the sheet if it was open and switch tab
-                if (_isNotificationSheetOpen) {
-                  _controller?.close();
-                }
-                bottomNavProvider.setIndex(index);
-                setState(() => _isNotificationSheetOpen = false);
-              }
+              bottomNavProvider.setIndex(index);
             },
             selectedItemColor: InnerlyTheme.secondary.withAlpha(200),
             unselectedItemColor: Colors.grey,
@@ -84,34 +57,55 @@ class _BottomNavState extends State<BottomNav> {
             backgroundColor: Colors.white,
             type: BottomNavigationBarType.fixed,
             items: [
-              if (UserRole.isTherapist)
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: 'Therapist',
-                )
-              else
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: 'Home',
+              BottomNavigationBarItem(
+                icon: Image.asset(
+                  'assets/icons/home.png',
+                  width: 24,
+                  height: 24,
+                  color: selectedIndex == 0
+                      ? InnerlyTheme.secondary.withAlpha(200)
+                      : Colors.grey,
                 ),
-
-              if (UserRole.isTherapist)
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.medical_services),
-                  label: 'Clients',
+                label: UserRole.isTherapist ? 'Therapist' : 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: UserRole.isTherapist
+                    ? Icon(
+                  Icons.medical_services,
+                  color: selectedIndex == 1
+                      ? InnerlyTheme.secondary.withAlpha(200)
+                      : Colors.grey,
                 )
-              else
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.local_hospital_rounded),
-                  label: 'Explore',
+                    : Image.asset(
+                  'assets/icons/plus.png',
+                  width: 24,
+                  height: 30,
+                  color: selectedIndex == 1
+                      ? InnerlyTheme.secondary.withAlpha(200)
+                      : Colors.grey,
                 ),
-
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.chat_outlined),
+                label: UserRole.isTherapist ? 'Clients' : 'Explore',
+              ),
+              BottomNavigationBarItem(
+                icon: Image.asset(
+                  'assets/icons/community.png',
+                  width: 30,
+                  height: 32,
+                  color: selectedIndex == 2
+                      ? InnerlyTheme.secondary.withAlpha(200)
+                      : Colors.grey,
+                ),
                 label: 'Community',
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.person),
+              BottomNavigationBarItem(
+                icon: Image.asset(
+                  'assets/icons/user.png',
+                  width: 22,
+                  height: 28,
+                  color: selectedIndex == 3
+                      ? InnerlyTheme.secondary.withAlpha(200)
+                      : Colors.grey,
+                ),
                 label: 'Profile',
               ),
             ],

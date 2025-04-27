@@ -58,6 +58,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
@@ -67,13 +73,46 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            PageView.builder(
-              controller: _pageController,
-              itemCount: onboardingData.length,
-              onPageChanged: (index) => setState(() => _currentPage = index),
-              physics: const BouncingScrollPhysics(),
-              itemBuilder: (context, index) => _buildPageContent(size, onboardingData[index]),
+            Column(
+              children: [
+                SizedBox(height: size.height * 0.2),
+
+                // Image
+                SizedBox(
+                  height: size.height * 0.3,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: onboardingData.length,
+                    onPageChanged: (index) => setState(() => _currentPage = index),
+                    physics: const BouncingScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return Image.asset(
+                        onboardingData[index]['imagePath']!,
+                        width: size.width * 0.8,
+                        fit: BoxFit.contain,
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Dots
+                _buildDots(),
+
+                const SizedBox(height: 24),
+
+                // Title & Description
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
+                    child: _buildTextContent(onboardingData[_currentPage], size),
+                  ),
+                ),
+              ],
             ),
+
+            // Bottom Button
             _buildBottomButton(size),
           ],
         ),
@@ -81,48 +120,30 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     );
   }
 
-
-  Widget _buildPageContent(Size size, Map<String, String> data) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          SizedBox(height: size.height * 0.15),
-          Image.asset(
-            data['imagePath']!,
-            width: size.width * 0.8,
-            fit: BoxFit.contain,
+  Widget _buildTextContent(Map<String, String> data, Size size) {
+    return Column(
+      children: [
+        Text(
+          data['title']!,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: size.width * 0.07,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Poppins',
+            color: InnerlyTheme.lightGreen,
           ),
-          const SizedBox(height: 20),
-          _buildDots(),
-          const SizedBox(height: 20),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
-            child: Text(
-              data['title']!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: size.width * 0.07,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-                color: InnerlyTheme.lightGreen,
-              ),
-            ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          data['description']!,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: size.width * 0.0355,
+            fontFamily: 'Poppins',
+            color: Colors.grey[600],
           ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
-            child: Text(
-              data['description']!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: size.width * 0.0355,
-                fontFamily: 'Poppins',
-                color: Colors.grey[600],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

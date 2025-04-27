@@ -60,10 +60,11 @@ class EditProfilePage extends StatelessWidget {
             buildTextField('“A safe space seeker, finding\npeace in little moments.”', maxLines: 2),
             const SizedBox(height: 20),
             buildLabel('Languages'),
-            buildDropdown('Languages you know'),
+            buildDropdown('Languages you know', ['English', 'Spanish', 'French', 'German']),
             const SizedBox(height: 20),
             buildLabel('Theme'),
-            buildDropdown('Calm Blue'),
+            buildDropdown('Select Theme', ['Calm Blue', 'Dark Mode', 'Light Mode', 'Sunset Glow']),
+
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
@@ -120,7 +121,7 @@ class EditProfilePage extends StatelessWidget {
     );
   }
 
-  Widget buildDropdown(String hint) {
+  Widget buildDropdown(String hint, List<String> options) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
@@ -132,11 +133,12 @@ class EditProfilePage extends StatelessWidget {
           border: InputBorder.none,
         ),
         hint: Text(hint),
-        items: const [
-          DropdownMenuItem(value: 'Black', child: Text('English')),
-          DropdownMenuItem(value: 'White', child: Text('Spanish')),
-          DropdownMenuItem(value: 'System Default', child: Text('French')),
-        ],
+        items: options.map((option) {
+          return DropdownMenuItem(
+            value: option,
+            child: Text(option),
+          );
+        }).toList(),
         onChanged: (value) {
           // Handle dropdown changes
         },

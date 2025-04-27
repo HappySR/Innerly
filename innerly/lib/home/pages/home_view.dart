@@ -367,8 +367,8 @@ class _MentalHealthHomeState extends State<MentalHealthHome> {
                                   OutlinedButton(
                                     onPressed: () {},
                                     style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(
-                                        color: Colors.green,
+                                      side: BorderSide(
+                                        color: InnerlyTheme.secondary,
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
