@@ -15,6 +15,10 @@ class ChatService with ChangeNotifier {
   List<Map<String, dynamic>> get messages => List.unmodifiable(_messages);
   bool get isLoading => _isLoading;
 
+  ChatService() {
+    initialize();
+  }
+
   void initialize() {
     _supabase = Supabase.instance.client;
     debugPrint('ChatService initialized');

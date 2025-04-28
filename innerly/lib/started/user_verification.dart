@@ -16,9 +16,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
   void _validateUUID() async {
     final input = _controller.text.trim();
     if (input.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter your UUID')),
-      );
+      showSnackBar('Please enter your UUID');
       return;
     }
 
@@ -26,31 +24,50 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
       final authService = AuthService();
       final user = await authService.signInAnonymously(input);
 
-      if (user != null) {
-        UserRole.isTherapist = false;
-        UserRole.saveRole(false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => BottomNav()),
-        );
-      }
+      UserRole.isTherapist = false;
+      UserRole.saveRole(false);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BottomNav()),
+      );
     } catch (e) {
-      final message = e.toString().replaceAll('Exception: ', '');
-      setState(() {
-        _attemptsLeft--;
-        if (_attemptsLeft > 0) {
-          _message = '❌ $message. Attempts left: $_attemptsLeft';
-        } else {
-          _message = '🚫 Account locked - please contact support';
-        }
-      });
+      handleError(e.toString());
     }
     _controller.clear();
+  }
+
+  void handleError(String error) {
+    final message = error.replaceAll('Exception: ', '');
+    setState(() {
+      _attemptsLeft = _attemptsLeft > 0 ? _attemptsLeft - 1 : 0;
+      _message = _attemptsLeft > 0
+          ? '❌ $message. Attempts left: $_attemptsLeft'
+          : '🚫 Account locked';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: Duration(seconds: 3),
+        ),
+    );
+  }
+
+  void showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final bool isLocked = _attemptsLeft == 0;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: Color(0xFFFFF7E7),
@@ -64,158 +81,166 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
         ),
         iconTheme: IconThemeData(color: Colors.black),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Already a User Section
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: screenHeight * 0.8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    constraints: BoxConstraints(
+                      maxHeight: screenHeight * 0.6,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Already a User?',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF719E07),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: _controller,
-                      decoration: InputDecoration(
-                        labelText: 'Enter your UUID',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
                         ),
-                        filled: true,
-                        fillColor: Color(0xFFFFF7E7),
-                      ),
-                      enabled: !isLocked,
+                      ],
                     ),
-                    SizedBox(height: 20),
-                    // Center the Submit Button
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: isLocked ? null : _validateUUID,
-                        child: Text(
-                          'Submit',
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Already a User?',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF719E07),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          TextField(
+                            controller: _controller,
+                            decoration: InputDecoration(
+                              labelText: 'Enter your UUID',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                              fillColor: Color(0xFFFFF7E7),
+                            ),
+                            enabled: !isLocked,
+                          ),
+                          SizedBox(height: 20),
+                          Center(
+                            child: ElevatedButton(
+                              onPressed: isLocked ? null : _validateUUID,
+                              child: Text(
+                                'Submit',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF719E07),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 14),
+                                textStyle: TextStyle(fontSize: 18),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (_message.isNotEmpty) ...[
+                            SizedBox(height: 20),
+                            Text(
+                              _message,
+                              style: TextStyle(
+                                color: isLocked ? Colors.red : Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 40),
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    constraints: BoxConstraints(
+                      maxHeight: screenHeight * 0.4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'New here?',
                           style: TextStyle(
-                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF719E07),
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF719E07),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 14,
-                          ),
-                          textStyle: TextStyle(fontSize: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        SizedBox(height: 16),
+                        Text(
+                          'If you are a new user, please register to continue.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 16, color: Colors.black87),
                         ),
-                      ),
+                        SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              UserRole.isTherapist = false;
+                              UserRole.saveRole(false);
+                              final authService = AuthService();
+                              await authService.signUpAnonymously();
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => BottomNav()),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: ${e.toString()}')),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF719E07),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 14),
+                            textStyle: TextStyle(fontSize: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Register Now',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        )
+                      ],
                     ),
-                    if (_message.isNotEmpty) ...[
-                      SizedBox(height: 20),
-                      Text(
-                        _message,
-                        style: TextStyle(
-                          color: isLocked ? Colors.red : Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                ],
               ),
-              SizedBox(height: 40),
-              // New User Section
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'New here?',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF719E07),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'If you are a new user, please register to continue.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          UserRole.isTherapist = false;
-                          UserRole.saveRole(false);
-                          final authService = AuthService();
-                          await authService.signUpAnonymously();
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => BottomNav()),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: ${e.toString()}')),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF719E07),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
-                        ),
-                        textStyle: TextStyle(fontSize: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'Register Now',
-                        style: TextStyle(
-                          color: Colors.white,
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

@@ -11,63 +11,22 @@ class AuthService {
   static const _maxFileSizeMB = 5;
   static const _allowedExtensions = {'pdf', 'png', 'jpg', 'jpeg'};
 
-  Future<User?> signUpAnonymously() async {
-    try {
-      // 1. Create anonymous auth user
-      final authResponse = await _supabase.auth.signInAnonymously();
-      final user = authResponse.user;
-      if (user == null) throw Exception('Anonymous authentication failed');
-
-      // 2. Generate UUID
-      final uuid = _uuid.v4();
-
-      // 3. Insert user profile with explicit column selection
-      final response = await _supabase
-          .from('users')
-          .insert({
-        'id': user.id,
-        'uuid': uuid,
-        'created_at': DateTime.now().toUtc().toIso8601String(),
-      })
-          .select('id, uuid')
-          .single();
-
-      debugPrint('New user created with UUID: ${response['uuid']}');
-      return user;
-    } on PostgrestException catch (e) {
-      debugPrint('Database error: ${e.message}');
-      await _supabase.auth.signOut();
-      throw Exception('Failed to create user profile: ${e.message}');
-    } catch (e, stack) {
-      debugPrint('Signup error: $e\n$stack');
-      await _supabase.auth.signOut();
-      rethrow;
-    }
-  }
-
   Future<User?> signInAnonymously(String uuid) async {
     try {
-      // Verify UUID exists
+      // 1. Lookup user by UUID
       final userRecord = await _supabase
           .from('users')
-          .select()
-          .eq('uuid', uuid)
+          .select('id, email, password')
+          .eq('uuid', uuid.trim().toLowerCase())
           .maybeSingle();
 
-      if (userRecord == null) throw Exception('Invalid UUID - please check your code');
+      if (userRecord == null) throw Exception('Invalid UUID - please register first');
 
-      // Get existing user ID from UUID record
-      final userId = userRecord['id'] as String;
-
-      // Verify user exists in auth system
-      final authUser = await _supabase.auth.admin.getUserById(userId);
-      if (authUser == null) throw Exception('Account not found - please register first');
-
-      // Sign in as the existing user
-      final response = await _supabase.auth.signInAnonymously();
-      if (response.user?.id != userId) {
-        throw Exception('Authentication failed - user mismatch');
-      }
+      // 2. Authenticate with stored credentials
+      final response = await _supabase.auth.signInWithPassword(
+        email: userRecord['email'] as String,
+        password: userRecord['password'] as String,
+      );
 
       return response.user;
     } on PostgrestException catch (e) {
@@ -77,8 +36,49 @@ class AuthService {
       debugPrint('Auth error: ${e.message}');
       throw Exception('Authentication failed - ${e.message}');
     } catch (e, stack) {
-      debugPrint('Anonymous signin error: $e\n$stack');
-      throw Exception('Login failed - please check your connection');
+      debugPrint('Signin error: $e\n$stack');
+      throw Exception('Login failed - please check your credentials');
+    }
+  }
+
+  Future<User?> signUpAnonymously() async {
+    User? authUser;
+    try {
+      // 1. Create anonymous auth user
+      final authResponse = await _supabase.auth.signInAnonymously();
+      authUser = authResponse.user;
+      if (authUser == null) throw Exception('Anonymous authentication failed');
+
+      // 2. Generate UUID and credentials
+      final uuid = _uuid.v4();
+      final email = '${authUser.id}@innerly.com';
+      final password = uuid;
+
+      // 3. Convert to permanent account
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          email: email,
+          password: password,
+        ),
+      );
+
+      // 4. Store user metadata
+      await _supabase.from('users').insert({
+        'id': authUser.id,
+        'uuid': uuid,
+        'email': email,
+        'password': password,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+      });
+
+      return authUser;
+    } catch (e, stack) {
+      debugPrint('Signup error: $e\n$stack');
+      // Cleanup on error
+      if (authUser != null) {
+        await _supabase.auth.admin.deleteUser(authUser.id);
+      }
+      rethrow;
     }
   }
 
@@ -86,7 +86,7 @@ class AuthService {
     try {
       final response = await _supabase
           .from('users')
-          .select()
+          .select('uuid')
           .eq('uuid', uuid)
           .maybeSingle();
       return response != null;
