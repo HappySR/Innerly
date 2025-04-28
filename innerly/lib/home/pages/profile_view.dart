@@ -1,12 +1,91 @@
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../started/welcome_page.dart';
 import 'edit_profile_view.dart';
 
-class ProfileView extends StatelessWidget {
+class ProfileView extends StatefulWidget {
   const ProfileView({Key? key}) : super(key: key);
+
+  @override
+  State<ProfileView> createState() => _ProfileViewState();
+}
+
+class _ProfileViewState extends State<ProfileView> {
+  final LocalAuthentication _localAuth = LocalAuthentication();
+  bool _isUuidRevealed = false;
+  String? _uuid;
+  bool _obscureUuid = true;
+
+  Future<void> _getUserUuid() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      setState(() {
+        _uuid = user.id;
+      });
+    }
+  }
+
+  Future<void> _authenticate() async {
+    try {
+      // First check if biometrics are available
+      final canAuthenticate = await _localAuth.canCheckBiometrics;
+      final isDeviceSupported = await _localAuth.isDeviceSupported();
+
+      if (!canAuthenticate || !isDeviceSupported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric authentication not available')),
+        );
+        return;
+      }
+
+      // Then authenticate
+      final didAuthenticate = await _localAuth.authenticate(
+        localizedReason: 'Authenticate to reveal your UUID',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: false, // Allow device credentials too
+        ),
+      );
+
+      if (didAuthenticate) {
+        setState(() {
+          _isUuidRevealed = true;
+          _obscureUuid = false;
+        });
+        await _getUserUuid();
+      }
+    } on PlatformException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Authentication failed: ${e.message}')),
+      );
+    }
+  }
+
+  void _copyToClipboard() {
+    if (_uuid != null) {
+      Clipboard.setData(ClipboardData(text: _uuid!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('UUID copied to clipboard')),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _getUserUuid();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load user information')),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,32 +97,62 @@ class ProfileView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile Section
+              // Modified Profile Section
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         "Hello, Kate",
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Your Mental Health Score: 85",
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: () async {
+                          if (_uuid == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('UUID not available')),
+                            );
+                            return;
+                          }
+
+                          if (!_isUuidRevealed) {
+                            await _authenticate();
+                          } else {
+                            _copyToClipboard();
+                          }
+                        },
+                        child: Row(
+                          children: [
+                            Text(
+                              _isUuidRevealed && _uuid != null
+                                  ? _obscureUuid
+                                  ? '••••••••••••••••'
+                                  : _uuid!
+                                  : 'Tap to reveal UUID',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            if (_isUuidRevealed && _uuid != null)
+                              IconButton(
+                                icon: const Icon(Icons.copy, size: 16),
+                                onPressed: _copyToClipboard,
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                   const CircleAvatar(
                     radius: 35,
-                    backgroundImage: AssetImage(
-                      'assets/user/user.png',
-                    ), // your asset path
+                    backgroundImage: AssetImage('assets/user/user.png'),
                   ),
                 ],
               ),
