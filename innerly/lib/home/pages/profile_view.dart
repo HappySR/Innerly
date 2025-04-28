@@ -18,13 +18,33 @@ class _ProfileViewState extends State<ProfileView> {
   bool _isUuidRevealed = false;
   String? _uuid;
   bool _obscureUuid = true;
+  bool _isLoadingUuid = false;
 
   Future<void> _getUserUuid() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      setState(() {
-        _uuid = user.id;
-      });
+    setState(() => _isLoadingUuid = true);
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final response = await Supabase.instance.client
+            .from('users')
+            .select('uuid')
+            .eq('id', user.id)
+            .single();
+
+        if (response != null && mounted) {
+          setState(() => _uuid = response['uuid'] as String?);
+        }
+      }
+    } on PostgrestException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching UUID: ${e.message}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingUuid = false);
+      }
     }
   }
 
@@ -114,6 +134,8 @@ class _ProfileViewState extends State<ProfileView> {
                       const SizedBox(height: 4),
                       GestureDetector(
                         onTap: () async {
+                          if (_isLoadingUuid) return;
+
                           if (_uuid == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('UUID not available')),
@@ -127,32 +149,53 @@ class _ProfileViewState extends State<ProfileView> {
                             _copyToClipboard();
                           }
                         },
-                        child: Row(
-                          children: [
-                            Text(
-                              _isUuidRevealed && _uuid != null
-                                  ? _obscureUuid
-                                  ? '••••••••••••••••'
-                                  : _uuid!
-                                  : 'Tap to reveal UUID',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            if (_isUuidRevealed && _uuid != null)
-                              IconButton(
-                                icon: const Icon(Icons.copy, size: 16),
-                                onPressed: _copyToClipboard,
-                              ),
-                          ],
+                        child: Container(
+                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isLoadingUuid)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              else
+                                Flexible(
+                                  child: Text(
+                                    _isUuidRevealed && _uuid != null
+                                        ? _obscureUuid
+                                        ? '••••••••••••••••'
+                                        : _uuid!
+                                        : 'Tap to reveal UUID',
+                                    style: TextStyle(
+                                      fontSize: MediaQuery.of(context).size.width * 0.035,
+                                      color: Colors.grey,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              if (_isUuidRevealed && _uuid != null && !_isLoadingUuid)
+                                Padding(
+                                  padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
+                                  child: GestureDetector(
+                                    onTap: _copyToClipboard,
+                                    child: Icon(
+                                      Icons.copy,
+                                      size: MediaQuery.of(context).size.width * 0.045,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const CircleAvatar(
-                    radius: 35,
-                    backgroundImage: AssetImage('assets/user/user.png'),
+                  CircleAvatar(
+                    radius: MediaQuery.of(context).size.width * 0.08,
+                    backgroundImage: const AssetImage('assets/user/user.png'),
                   ),
                 ],
               ),
