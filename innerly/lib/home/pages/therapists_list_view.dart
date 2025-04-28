@@ -11,28 +11,45 @@ class TherapistsListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF5E6), // Light creamy background
-      appBar: AppBar(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
         backgroundColor: const Color(0xFFFDF5E6),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFFDF5E6),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Therapists',
+            style: GoogleFonts.lora(color: Colors.black),
+          ),
+          centerTitle: true,
+          bottom: TabBar(
+            tabs: const [
+              Tab(text: 'Available'),
+              Tab(text: 'Chat History'),
+            ],
+            labelColor: Colors.black,
+            indicatorColor: Colors.black,
+            labelStyle: GoogleFonts.rubik(fontWeight: FontWeight.w500),
+          ),
         ),
-        title: Text(
-          'Therapists',
-          style: GoogleFonts.lora(color: Colors.black),
+        body: const TabBarView(
+          children: [
+            OnlineTherapistsTab(),
+            ChatHistoryTab(),
+          ],
         ),
-        centerTitle: true,
       ),
-      body: const AvailableTherapistsTab(),
     );
   }
 }
 
-class AvailableTherapistsTab extends StatelessWidget {
-  const AvailableTherapistsTab({super.key});
+class OnlineTherapistsTab extends StatelessWidget {
+  const OnlineTherapistsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +81,6 @@ class AvailableTherapistsTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSearchBar(),
               const SizedBox(height: 16),
               _buildSectionTitle(context, 'Great Match'),
               const SizedBox(height: 8),
@@ -159,46 +175,120 @@ class ChatHistoryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chatHistory = [
-      {'therapist': 'Dr. Smith', 'lastMessage': 'How are you feeling today?', 'time': '2h ago'},
-      {'therapist': 'Dr. Johnson', 'lastMessage': 'Remember our session tomorrow', 'time': '1d ago'},
-    ];
+    final authService = Provider.of<AuthService>(context);
+    final currentUserId = authService.currentUserId;
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: chatHistory.length,
-      itemBuilder: (context, index) {
-        final chat = chatHistory[index];
-        return Card(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 2,
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue[50],
-              child: const Icon(Icons.chat, color: Colors.blue),
-            ),
-            title: Text(chat['therapist']!),
-            subtitle: Text(chat['lastMessage']!),
-            trailing: Text(chat['time']!, style: const TextStyle(color: Colors.grey)),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatScreen(
-                    receiverId: 'therapist_id_here', // Replace
-                    receiverName: chat['therapist']!,
-                    isTherapist: true,
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: authService.getChatHistoryStream(currentUserId!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Failed to load chat history.'));
+        }
+
+        final messages = snapshot.data ?? [];
+        Map<String, Map<String, dynamic>> therapistMessages = {};
+
+        for (var msg in messages) {
+          String therapistId = (msg['sender_id'] == currentUserId)
+              ? msg['receiver_id']
+              : msg['sender_id'];
+
+          // Parse timestamps to DateTime
+          final msgCreatedAt = DateTime.parse(msg['created_at'] as String);
+          final existingMsg = therapistMessages[therapistId];
+
+          if (existingMsg == null) {
+            therapistMessages[therapistId] = msg;
+          } else {
+            final existingCreatedAt = DateTime.parse(existingMsg['created_at'] as String);
+            if (msgCreatedAt.isAfter(existingCreatedAt)) {
+              therapistMessages[therapistId] = msg;
+            }
+          }
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: therapistMessages.length,
+          itemBuilder: (context, index) {
+            final therapistId = therapistMessages.keys.elementAt(index);
+            final lastMessage = therapistMessages[therapistId]!;
+
+            return FutureBuilder<Map<String, dynamic>>(
+              future: authService.getTherapist(therapistId),
+              builder: (context, therapistSnapshot) {
+                if (therapistSnapshot.connectionState != ConnectionState.done) {
+                  return const ListTile(
+                    leading: CircleAvatar(),
+                    title: Text('Loading...'),
+                  );
+                }
+                final therapist = therapistSnapshot.data ?? {};
+                return Card(
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-              );
-            },
-          ),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 2,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: NetworkImage(therapist['photo_url'] ?? 'https://cdn.pixabay.com/photo/2017/05/10/13/36/doctor-2300898_1280.png'),
+                    ),
+                    title: Text(therapist['name'] ?? 'Therapist'),
+                    subtitle: Text(lastMessage['message'] ?? ''),
+                    trailing: Text(_formatTime(DateTime.parse(lastMessage['created_at'] as String))),
+                    onTap: () => _navigateToChat(context, {
+                      'id': therapist['id']?.toString() ?? '', // Match working version
+                      'name': therapist['name']?.toString() ?? 'Therapist'
+                    }),
+                  ),
+                );
+              },
+            );
+          },
         );
       },
+    );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inMinutes}m ago';
+    }
+  }
+
+  void _navigateToChat(BuildContext context, Map<String, dynamic> therapist) {
+    // Change from 'user_id' to 'id' to match working version
+    final receiverId = therapist['id']?.toString() ?? '';
+    final receiverName = therapist['name']?.toString() ?? 'Therapist';
+
+    if (receiverId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid therapist ID')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          receiverId: receiverId,
+          receiverName: receiverName,
+          isTherapist: true,
+        ),
+      ),
     );
   }
 }

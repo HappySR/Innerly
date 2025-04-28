@@ -197,6 +197,25 @@ class AuthService {
     }
   }
 
+  Stream<List<Map<String, dynamic>>> getChatHistoryStream(String userId) {
+    return _supabase
+        .from('private_messages')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .execute()
+        .map((messages) => messages.where((msg) =>
+    msg['sender_id'] == userId || msg['receiver_id'] == userId).toList());
+  }
+
+  Future<Map<String, dynamic>> getTherapist(String therapistId) async {
+    final response = await _supabase
+        .from('therapists')
+        .select()
+        .eq('id', therapistId)
+        .single();
+    return response;
+  }
+
   // Document handling utilities
   Future<String> _uploadDocument({
     required String userId,
