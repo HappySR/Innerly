@@ -177,15 +177,36 @@ class _ProfileViewState extends State<ProfileView> {
                                   ),
                                 ),
                               if (_isUuidRevealed && _uuid != null && !_isLoadingUuid)
-                                Padding(
-                                  padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
-                                  child: GestureDetector(
-                                    onTap: _copyToClipboard,
-                                    child: Icon(
-                                      Icons.copy,
-                                      size: MediaQuery.of(context).size.width * 0.045,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
+                                      child: GestureDetector(
+                                        onTap: _copyToClipboard,
+                                        child: Icon(
+                                          Icons.copy,
+                                          size: MediaQuery.of(context).size.width * 0.045,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    Padding(
+                                      padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isUuidRevealed = false;
+                                            _obscureUuid = true;
+                                          });
+                                        },
+                                        child: Icon(
+                                          Icons.visibility_off,
+                                          size: MediaQuery.of(context).size.width * 0.045,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                             ],
                           ),
