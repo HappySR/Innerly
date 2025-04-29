@@ -1,7 +1,7 @@
-import 'package:Innerly/home/pages/therapist_schedule.dart';
+import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:Innerly/home/pages/therapist_patient_details.dart';
+import 'package:Innerly/home/pages/therapists/therapist_patient_details.dart';
 import 'package:Innerly/home/pages/chat_screen.dart';
 
 class Patient {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:Innerly/home/pages/therapist_patients.dart';
-import 'package:Innerly/home/pages/therapist_requests.dart';
-import 'package:Innerly/home/pages/therapist_schedule.dart';
+import 'package:Innerly/home/pages/therapists/therapist_patients.dart';
+import 'package:Innerly/home/pages/therapists/therapist_requests.dart';
+import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
 
 class HomeTherapist extends StatelessWidget {
   const HomeTherapist({super.key});

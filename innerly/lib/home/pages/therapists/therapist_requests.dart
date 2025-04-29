@@ -1,4 +1,4 @@
-import 'package:Innerly/home/pages/therapist_schedule.dart';
+import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';

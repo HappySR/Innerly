@@ -1,11 +1,11 @@
 import 'package:Innerly/home/pages/profile_view.dart';
-import 'package:Innerly/home/pages/therapist_home.dart';
+import 'package:Innerly/home/pages/therapists/therapist_home.dart';
 import 'package:Innerly/home/pages/therapists_list_view.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:Innerly/home/pages/therapist_patients.dart';
-import 'package:Innerly/home/pages/therapist_profile.dart';
+import 'package:Innerly/home/pages/therapists/therapist_patients.dart';
+import 'package:Innerly/home/pages/therapists/therapist_profile.dart';
 import '../../services/role.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'community_screen.dart';
