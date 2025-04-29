@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:Innerly/started/signup_view.dart';
+import 'package:Innerly/home/pages/therapists/started/signup_view.dart';
 import '../home/pages/bottom_nav.dart';
 import '../services/auth_service.dart';
 import '../services/role.dart';

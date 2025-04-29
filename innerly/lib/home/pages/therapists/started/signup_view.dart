@@ -3,9 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../home/pages/pending_approval_screen.dart';
-import '../services/auth_service.dart';
-import '../services/role.dart';
+import '../../pending_approval_screen.dart';
+import '../../../../services/auth_service.dart';
+import '../../../../services/role.dart';
 import 'login_view.dart';
 
 class TherapistSignUpPage extends StatefulWidget {

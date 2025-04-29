@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../home/pages/bottom_nav.dart';
-import '../home/pages/pending_approval_screen.dart';
-import '../services/auth_service.dart';
-import '../services/role.dart';
+import '../../bottom_nav.dart';
+import '../../pending_approval_screen.dart';
+import '../../../../services/auth_service.dart';
+import '../../../../services/role.dart';
 import 'signup_view.dart';
 
 class SignInPage extends StatefulWidget {

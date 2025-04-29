@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../started/signup_view.dart';
+import 'therapists/started/signup_view.dart';
 import 'bottom_nav.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
