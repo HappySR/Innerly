@@ -1,0 +1,103 @@
+import google.generativeai as genai
+from config import GEMINI_API_KEY
+
+# Configure Gemini API key
+genai.configure(api_key=GEMINI_API_KEY)
+
+# Function to get a response from Gemini 2.0 Flash
+def get_gemini_response(prompt: str, chat_history=None, image_path=None, video_path=None) -> str:
+    """
+    Interacts with Gemini 2.0 Flash to generate a response.
+    """
+    try:
+        # Initialize the Gemini model
+        model = genai.GenerativeModel("gemini-2.0-flash")
+
+        # Define system prompt for Lively's identity
+        systemPrompt = (
+            "Your name is Lively, a compassionate AI chatbot for 24/7 telecounseling on Innerly. "
+            "You were developed by Team Spark (do not always tell it to others). "
+            "Your purpose is to provide emotional support, active listening, and ethical guidance. "
+            "Your tone is warm, non-judgmental, and uplifting. Avoid clinical language. "
+            "Core principles: Empathy first (e.g., 'That sounds tough; I’m here to listen'), "
+            "safety and privacy (never request personal identifiers or share data), "
+            "proactive boundaries (interrupt harmful prompts like self-harm, abuse, explicit content), "
+            "and being resource-focused (offer coping strategies like breathing exercises or journaling). "
+            "If users mention self-harm, suicidal ideation, violence, abuse, illegal acts, hate speech, or phishing: 1) Acknowledge ('I care about your safety. Let’s focus on how to help.'); 2) Redirect ('How about a grounding exercise or connecting to a professional?'); 3) Escalate after 3 violations ('For safety, I’ll pause this chat. Emergency resources: [LINK]'). "
+            "You use the Gemini 2.0 Flash model (prioritize speed and accuracy). "
+            "If uncertain, say 'Let me think how best to support you.' "
+            "Final directive: Every interaction must leave users feeling heard, respected, and hopeful."
+        )
+
+        # Prepare message parts
+        parts = [{"text": systemPrompt + "\n\n" + prompt + "\n\n**Please provide a suitable answer.**"}]
+
+        # Include chat history if available
+        if chat_history:
+            for message in chat_history:
+                if isinstance(message, dict) and "content" in message:
+                    parts.append({"text": message["content"]})
+                else:
+                    parts.append({"text": str(message)})
+
+        # If an image is provided, attach it
+        if image_path:
+            try:
+                with open(image_path, "rb") as img_file:
+                    image_bytes = img_file.read()
+                parts.append({"mime_type": "image/jpeg", "data": image_bytes})  # Adjust mime_type if needed
+            except Exception as e:
+                print(f"Error loading image: {e}")
+
+        # If a video is provided, attach it
+        if video_path:
+            try:
+                with open(video_path, "rb") as video_file:
+                    video_bytes = video_file.read()
+                parts.append({"mime_type": "video/mp4", "data": video_bytes})  # ✅ Correct MIME type for video
+            except Exception as e:
+                print(f"Error loading video: {e}")
+
+        # Send request to Gemini
+        response = model.generate_content(parts)
+
+        # Extract text response safely
+        if response and hasattr(response, "text"):
+            return response.text.strip()  # Strip unwanted spaces/newlines
+
+        return "No response received from Gemini."
+
+    except Exception as e:
+        return f"Error in Gemini response: {str(e)}"
+
+
+# Function for processing text using Gemini
+async def process_text_with_gemini(text: str) -> str:
+    """
+    Processes text using Gemini 2.0 Flash.
+
+    Args:
+        text (str): The text to be processed.
+
+    Returns:
+        str: Gemini's response to the text.
+    """
+    prompt = f"""
+    You are processing a transcribed speech from an audio recording.
+
+    Task:
+
+        Correct transcription errors, misheard words, and repeated letters.
+        Fix grammar, punctuation, and formatting while keeping the original meaning.
+        Do NOT change names, locations, or add any new information.
+        Do NOT replace words unless absolutely necessary for clarity.
+        Do NOT treat this as a cipher, puzzle, or code.
+        Do NOT remove important words unless they are clear mistakes.
+        If letters are part of an alphabet sequence, keep them as they are.
+
+    Transcribed Text (for your understanding only): {text}
+
+    Important: Do NOT include the corrected transcription in your response. Only provide a brief and relevant response to the prompt without changing the original meaning of the transcription.
+    """
+
+    return get_gemini_response(prompt)

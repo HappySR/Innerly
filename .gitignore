@@ -1,1 +1,8 @@
 .idea
+db
+lively-backend/__pycache__
+lively-backend/agents/__pycache__
+lively-backend/services/__pycache__
+lively-backend/utils/__pycache__
+lively-backend/venv
+lively-backend/.env
