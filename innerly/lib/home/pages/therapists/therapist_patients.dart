@@ -27,85 +27,100 @@ class PatientsPage extends StatefulWidget {
   State<PatientsPage> createState() => _PatientsPageState();
 }
 
-class _PatientsPageState extends State<PatientsPage> {
+class _PatientsPageState extends State<PatientsPage>
+    with SingleTickerProviderStateMixin {
   final SupabaseClient _supabase = Supabase.instance.client;
   List<Patient> _patients = [];
+  List<Patient> _chatHistory = [];
   bool _isLoading = true;
   String? _errorMessage;
+  late TabController _tabController;
+  late RealtimeChannel _messagesChannel;
 
   @override
   void initState() {
     super.initState();
-    _fetchPatients();
+    _tabController = TabController(length: 2, vsync: this);
+    _messagesChannel = _supabase.channel('patients_messages');
+    _setupRealtimeUpdates();
+    _fetchData();
   }
 
-  Future<void> _fetchPatients() async {
+  void _setupRealtimeUpdates() {
+    _messagesChannel = Supabase.instance.client
+        .channel('public:private_messages')
+        .onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'private_messages',
+      callback: (payload) {
+        if (mounted) {
+          _fetchData(); // Refresh data when new message is inserted
+        }
+      },
+    )
+        .subscribe();
+  }
+
+  Future<void> _fetchData() async {
     try {
       final currentUser = _supabase.auth.currentUser;
       if (currentUser == null) throw Exception('User not authenticated');
 
-      // First, query the user_profiles table to check its structure
-      final profilesStructure = await _supabase
-          .from('user_profiles')
-          .select()
-          .limit(1);
-
-      // Now use the appropriate field names in your main query
-      final response = await _supabase
+      // Fetch latest received messages
+      final messagesResponse = await _supabase
           .from('private_messages')
-          .select('''
-          sender_id, 
-          created_at,
-          user_profiles!sender_id(*)
-        ''')
+          .select('sender_id, created_at, user_profiles!sender_id(*)')
           .eq('receiver_id', currentUser.id)
           .order('created_at', ascending: false);
 
-      final Map<String, Patient> uniquePatients = {};
-      for (final message in response) {
-        final senderId = message['sender_id'] as String;
-        if (uniquePatients.containsKey(senderId)) continue;
-
-        final profile = (message['user_profiles'] as Map<String, dynamic>?) ?? {};
-
-        // Print the profile structure to debug
-        print('Profile structure: $profile');
-
-        // Try to find the right field names
-        final name = profile['name'] ??
-            profile['user_name'] ??
-            profile['username'] ??
-            profile['display_name'] ??
-            'User#${senderId.substring(0, 6)}';
-
-        final userIssue = profile['issue'] ??
-            profile['health_issue'] ??
-            profile['problem'] ??
-            'Not specified';
-
-        uniquePatients[senderId] = Patient(
-          id: senderId,
-          name: name,
-          issue: userIssue,
-          isActive: true,
-          lastMessageTime: DateTime.parse(message['created_at'] as String),
-        );
-      }
+      // Fetch sent messages history
+      final historyResponse = await _supabase
+          .from('private_messages')
+          .select('receiver_id, created_at, user_profiles!receiver_id(*)')
+          .eq('sender_id', currentUser.id)
+          .order('created_at', ascending: false);
 
       if (mounted) {
         setState(() {
-          _patients = uniquePatients.values.toList();
+          _patients = _processMessages(messagesResponse, isReceived: true);
+          _chatHistory = _processMessages(historyResponse, isReceived: false);
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load patients: ${e.toString()}';
+          _errorMessage = 'Failed to load data: ${e.toString()}';
           _isLoading = false;
         });
       }
     }
+  }
+
+  List<Patient> _processMessages(List<dynamic> response, {required bool isReceived}) {
+    final Map<String, Patient> uniquePatients = {};
+    for (final message in response) {
+      final patientId = isReceived
+          ? message['sender_id'] as String
+          : message['receiver_id'] as String;
+
+      if (uniquePatients.containsKey(patientId)) continue;
+
+      final profile = (message['user_profiles'] as Map<String, dynamic>?) ?? {};
+
+      final name = profile['name'] ?? 'User#${patientId.substring(0, 6)}';
+      final userIssue = profile['issue'] ?? 'Not specified';
+
+      uniquePatients[patientId] = Patient(
+        id: patientId,
+        name: name,
+        issue: userIssue,
+        isActive: true,
+        lastMessageTime: DateTime.parse(message['created_at'] as String),
+      );
+    }
+    return uniquePatients.values.toList();
   }
 
   @override
@@ -113,87 +128,81 @@ class _PatientsPageState extends State<PatientsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6EB),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top illustration
-                Container(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                  alignment: Alignment.center,
-                  child: Image.asset(
-                    'assets/images/patients.png',
-                    height: 300,
-                  ),
-                ),
-
-                // Search bar
-                Container(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white,
-                      hintText: 'Search',
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                      ),
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFCED4DA),
-                          width: 1,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFCED4DA),
-                          width: 1,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF4CAF50),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Loading/Error states
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator()),
-                if (_errorMessage != null)
-                  Center(child: Text(_errorMessage!)),
-                if (!_isLoading && _patients.isEmpty)
-                  const Center(child: Text('No patients found')),
-
-                // Patient List
-                if (!_isLoading && _patients.isNotEmpty)
-                  ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: _patients.length,
-                    itemBuilder: (context, index) {
-                      return Column(
-                        children: [
-                          _buildPatientCard(context, _patients[index]),
-                          if (index != _patients.length - 1)
-                            const SizedBox(height: 12),
-                        ],
-                      );
-                    },
-                  ),
-              ],
+        child: Column(
+          children: [
+            // Top illustration
+            Container(
+              padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
+              height: 250,
+              child: Image.asset(
+                'assets/images/patients.png',
+                fit: BoxFit.contain,
+              ),
             ),
-          ),
+
+            // Tabs
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.black,
+                unselectedLabelColor: Colors.grey,
+                indicator: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.black, width: 2),
+                  ),
+                ),
+                tabs: const [
+                  Tab(text: 'Latest Messages'),
+                  Tab(text: 'Chat History'),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildContent(_patients),
+                  _buildContent(_chatHistory),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(List<Patient> patients) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
+        child: Column(
+          children: [
+            // Loading/Error states
+            if (_isLoading) const Center(child: CircularProgressIndicator()),
+            if (_errorMessage != null) Center(child: Text(_errorMessage!)),
+            if (!_isLoading && patients.isEmpty)
+              const Center(child: Text('No conversations found')),
+
+            // Patient List
+            if (!_isLoading && patients.isNotEmpty)
+              ListView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: patients.length,
+                itemBuilder: (context, index) {
+                  return Column(
+                    children: [
+                      _buildPatientCard(context, patients[index]),
+                      if (index != patients.length - 1)
+                        const SizedBox(height: 12),
+                    ],
+                  );
+                },
+              ),
+          ],
         ),
       ),
     );
@@ -204,9 +213,7 @@ class _PatientsPageState extends State<PatientsPage> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const PatientDetails(),
-          ),
+          MaterialPageRoute(builder: (context) => const PatientDetails()),
         );
       },
       child: Container(
@@ -286,7 +293,7 @@ class _PatientsPageState extends State<PatientsPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Buttons
+                  // Buttons - Fixed widget hierarchy here
                   Row(
                     children: [
                       Expanded(
@@ -395,5 +402,12 @@ class _PatientsPageState extends State<PatientsPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _messagesChannel.unsubscribe();
+    _tabController.dispose();
+    super.dispose();
   }
 }
