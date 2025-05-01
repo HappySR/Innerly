@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../started/get_started_view.dart';
 import '../../widget/innerly_theme.dart';
+import 'chatbot/lively.dart';
 import 'global_chat_view.dart';
 import 'mind_games_view.dart';
 
@@ -473,7 +474,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const GlobalChatScreen(),
+                    builder: (context) => Lively(),
                   ),
                 );
               },
