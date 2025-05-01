@@ -75,14 +75,20 @@ class LivelyState extends State<Lively> {
       'bn': 'ওহ! কিছু ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
     },
     'connection_error': {
-      'en': 'Error connecting to the server. Please check your internet connection.',
-      'es': 'Error al conectar con el servidor. Por favor, revise su conexión a internet.',
-      'fr': 'Erreur de connexion au serveur. Veuillez vérifier votre connexion Internet.',
-      'de': 'Fehler beim Verbinden mit dem Server. Bitte überprüfen Sie Ihre Internetverbindung.',
-      'hi': 'सर्वर से कनेक्ट करने में त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।',
+      'en':
+          'Error connecting to the server. Please check your internet connection.',
+      'es':
+          'Error al conectar con el servidor. Por favor, revise su conexión a internet.',
+      'fr':
+          'Erreur de connexion au serveur. Veuillez vérifier votre connexion Internet.',
+      'de':
+          'Fehler beim Verbinden mit dem Server. Bitte überprüfen Sie Ihre Internetverbindung.',
+      'hi':
+          'सर्वर से कनेक्ट करने में त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।',
       'zh': '连接服务器出错。请检查您的互联网连接。',
       'ja': 'サーバーへの接続エラー。インターネット接続を確認してください。',
-      'bn': 'সার্ভারের সাথে সংযোগে ত্রুটি হয়েছে। অনুগ্রহ করে আপনার ইন্টারনেট সংযোগ পরীক্ষা করুন।',
+      'bn':
+          'সার্ভারের সাথে সংযোগে ত্রুটি হয়েছে। অনুগ্রহ করে আপনার ইন্টারনেট সংযোগ পরীক্ষা করুন।',
     },
   };
 
@@ -120,9 +126,8 @@ class LivelyState extends State<Lively> {
           .order('created_at', ascending: false);
 
       setState(() {
-        _chatHistory = (response as List)
-            .map((e) => ChatSession.fromMap(e))
-            .toList();
+        _chatHistory =
+            (response as List).map((e) => ChatSession.fromMap(e)).toList();
         _isLoadingChats = false;
       });
     } catch (e) {
@@ -138,11 +143,8 @@ class LivelyState extends State<Lively> {
         'user_id': _supabase.auth.currentUser?.id,
       };
 
-      final response = await _supabase
-          .from('chats')
-          .insert(newChat)
-          .select()
-          .single();
+      final response =
+          await _supabase.from('chats').insert(newChat).select().single();
 
       setState(() {
         _currentChatId = response['id'];
@@ -170,11 +172,12 @@ class LivelyState extends State<Lively> {
         _currentChatId = chat.id;
         chatMessages = (response as List)
             .map((m) => {
-          'role': m['role'],
-          'text': m['content'],
+          'role': m['role'] ?? 'user',
+          'text': m['content'] ?? '',
+          'media_type': m['media_type'],
+          'file_url': m['file_url'],
+          'storage_path': m['storage_path'], // Could still be null
           'created_at': DateTime.parse(m['created_at']),
-          'fileInfo': m['file_path'],
-          'fileType': m['file_type'],
         })
             .toList();
       });
@@ -198,46 +201,50 @@ class LivelyState extends State<Lively> {
   }
 
   void _showPromptDialog(File file, String fileType) {
-    // This is unchanged
     TextEditingController promptController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(L10n.getTranslatedText(context, 'Add Optional Prompt')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.attach_file),
-              title: Text(file.path.split('/').last),
-              subtitle:
-              Text("${(file.lengthSync() / 1024).toStringAsFixed(1)}KB"),
+      builder:
+          (context) => AlertDialog(
+            title: Text(L10n.getTranslatedText(context, 'Add Optional Prompt')),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.attach_file),
+                  title: Text(file.path.split('/').last),
+                  subtitle: Text(
+                    "${(file.lengthSync() / 1024).toStringAsFixed(1)}KB",
+                  ),
+                ),
+                TextField(
+                  controller: promptController,
+                  decoration: InputDecoration(
+                    hintText: L10n.getTranslatedText(
+                      context,
+                      'Enter your prompt (optional)',
+                    ),
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
             ),
-            TextField(
-              controller: promptController,
-              decoration: InputDecoration(
-                hintText: L10n.getTranslatedText(context, 'Enter your prompt (optional)'),
-                border: OutlineInputBorder(),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(L10n.getTranslatedText(context, 'Cancel')),
               ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(L10n.getTranslatedText(context, 'Cancel')),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _uploadFile(file, fileType, promptController.text);
+                },
+                child: Text(L10n.getTranslatedText(context, 'Upload')),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _uploadFile(file, fileType, promptController.text);
-            },
-            child: Text(L10n.getTranslatedText(context, 'Upload')),
-          ),
-        ],
-      ),
     );
   }
 
@@ -266,8 +273,7 @@ class LivelyState extends State<Lively> {
 
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: type,
-      allowedExtensions:
-      (type == FileType.custom) ? allowedExtensions : null, // ✅ Fix
+      allowedExtensions: (type == FileType.custom) ? allowedExtensions : null,
     );
 
     if (result != null && result.files.single.path != null) {
@@ -278,85 +284,123 @@ class LivelyState extends State<Lively> {
     }
   }
 
-  Future<void> _uploadFile(File file, String fileType,
-      [String prompt = '']) async {
-    var url = Uri.parse(
-        '${dotenv.env['BACKEND_URL'] ?? 'http://10.0.2.2:8000'}/api/process_${fileType.toLowerCase()}');
-
-    var request = http.MultipartRequest('POST', url);
-    request.fields.addAll({
-      'prompt': prompt.isNotEmpty ? prompt : 'Describe this file',
-      'source_lang': 'auto',
-      'target_lang': selectedLanguage,
-    });
-
-    String fileFieldName = (fileType == 'Image') ? 'image' : 'file';
-    String? mimeType = lookupMimeType(file.path);
-    mimeType ??=
-    (fileType == 'Video') ? 'video/mp4' : 'application/octet-stream';
-
-    request.files.add(await http.MultipartFile.fromPath(
-      fileFieldName,
-      file.path,
-      contentType: MediaType.parse(mimeType),
-    ));
-
-    // Add user message to chat
-    setState(() {
-      chatMessages.add({
-        "role": "user",
-        "text": prompt.isNotEmpty ? prompt : "Uploaded $fileType",
-        "fileInfo": file.path,
-        "fileType": fileType,
-        "status": prompt.isNotEmpty ? prompt : "Processing..."
-      });
-
-      // Add a "typing indicator" for the AI response
-      chatMessages.add({
-        "role": "assistant",
-        "text": "...",
-        "isTyping": true, // ✅ Used to identify typing indicator
-      });
-    });
-
+  Future<void> _uploadFile(
+    File file,
+    String fileType, [
+    String prompt = '',
+  ]) async {
     try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      // 1. Upload to Supabase Storage
+      final fileExt = file.path.split('.').last;
+      final storagePath =
+          '${user.id}/$_currentChatId/${fileType.toLowerCase()}/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
+      await _supabase.storage.from('chatbot').upload(storagePath, file);
+
+      final publicUrl = _supabase.storage
+          .from('chatbot')
+          .getPublicUrl(storagePath);
+
+      // 2. Save to messages table
+      final messageData = {
+        'chat_id': _currentChatId,
+        'user_id': user.id,
+        'role': 'user',
+        'content': prompt.isNotEmpty ? prompt : "Uploaded $fileType",
+        'media_type': fileType.toLowerCase(),
+        'storage_path': storagePath,
+        'file_url': publicUrl,
+      };
+
+      await _supabase.from('messages').insert(messageData);
+
+      // 3. Add to local state
+      setState(() {
+        chatMessages.add({
+          "role": "user",
+          "text": prompt.isNotEmpty ? prompt : "Uploaded $fileType",
+          "media_type": fileType.toLowerCase(),
+          "file_url": publicUrl,
+          "storage_path": storagePath,
+        });
+
+        chatMessages.add({
+          "role": "assistant",
+          "text": "...",
+          "isTyping": true,
+        });
+      });
+
+      // 4. Send to backend API
+      var backendUrl = Uri.parse(
+        '${dotenv.env['BACKEND_URL'] ?? 'http://10.0.2.2:8000'}/api/process_${fileType.toLowerCase()}',
+      );
+
+      var request = http.MultipartRequest('POST', backendUrl)
+        ..fields.addAll({
+          'prompt': prompt.isNotEmpty ? prompt : 'Describe this file',
+          'source_lang': 'auto',
+          'target_lang': selectedLanguage,
+          'file_url': publicUrl, // Send Supabase URL instead of file
+        });
+
+      // If backend still needs file bytes, keep this part
+      String fileFieldName = (fileType == 'Image') ? 'image' : 'file';
+      String? mimeType = lookupMimeType(file.path);
+      mimeType ??=
+          (fileType == 'Video') ? 'video/mp4' : 'application/octet-stream';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          fileFieldName,
+          file.path,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+
       var response = await request.send();
       String responseBody = await response.stream.bytesToString();
 
       if (response.statusCode == 200) {
         var decodedResponse = jsonDecode(responseBody);
-        String aiResponse = decodedResponse is Map<String, dynamic>
-            ? decodedResponse.values.first.toString()
-            : responseBody;
+        String aiResponse =
+            decodedResponse is Map<String, dynamic>
+                ? decodedResponse.values.first.toString()
+                : responseBody;
+
+        // Update with AI response
+        final aiMessageData = {
+          'chat_id': _currentChatId,
+          'role': 'assistant',
+          'content': aiResponse,
+        };
+
+        await _supabase.from('messages').insert(aiMessageData);
 
         setState(() {
-          // Remove typing indicator
           chatMessages.removeWhere((msg) => msg["isTyping"] == true);
-
-          // Add actual AI response
-          chatMessages.add({
-            "role": "assistant",
-            "text": aiResponse,
-          });
+          chatMessages.add({"role": "assistant", "text": aiResponse});
         });
       } else {
-        setState(() {
-          chatMessages.removeWhere((msg) => msg["isTyping"] == true);
-          chatMessages.add({
-            "role": "assistant",
-            "text": "⚠️ Error uploading file: $responseBody",
-          });
-        });
+        _handleUploadError(responseBody);
       }
     } catch (e) {
-      setState(() {
-        chatMessages.removeWhere((msg) => msg["isTyping"] == true);
-        chatMessages.add({
-          "role": "assistant",
-          "text": "⚠️ Error connecting to server.",
-        });
-      });
+      _handleUploadError(e.toString());
     }
+  }
+
+  void _handleUploadError(String error) {
+    setState(() {
+      chatMessages.removeWhere((msg) => msg["isTyping"] == true);
+      chatMessages.add({
+        "role": "assistant",
+        "text": "⚠️ Error: ${L10n.getTranslatedText(context, 'upload_failed')}",
+      });
+    });
+    debugPrint("Upload error: $error");
   }
 
   Future<void> _toggleRecording() async {
@@ -372,7 +416,8 @@ class LivelyState extends State<Lively> {
       if (path != null) {
         File file = File(path);
         debugPrint(
-            "Audio file path: $path, Size: ${file.existsSync() ? file.lengthSync() : 'File not found'} bytes");
+          "Audio file path: $path, Size: ${file.existsSync() ? file.lengthSync() : 'File not found'} bytes",
+        );
 
         if (file.existsSync()) {
           debugPrint("File exists, uploading...");
@@ -388,7 +433,6 @@ class LivelyState extends State<Lively> {
       PermissionStatus micStatus = await Permission.microphone.request();
       if (!micStatus.isGranted) {
         debugPrint("Microphone permission not granted.");
-
         return;
       }
 
@@ -401,7 +445,7 @@ class LivelyState extends State<Lively> {
         // Start recording with WAV format
         debugPrint("Starting recording at path: $filePath");
         await _audioRecorder.start(
-          const RecordConfig(encoder: AudioEncoder.wav), // WAV format
+          const RecordConfig(encoder: AudioEncoder.wav),
           path: filePath,
         );
 
@@ -422,7 +466,6 @@ class LivelyState extends State<Lively> {
     }
   }
 
-// Upload Speech Function
   Future<void> _uploadSpeech(File file) async {
     try {
       if (!file.existsSync() || file.lengthSync() == 0) {
@@ -435,31 +478,31 @@ class LivelyState extends State<Lively> {
         isConverting = true;
       });
 
-      // Backend API URL
       var url = Uri.parse(
-          '${dotenv.env['BACKEND_URL'] ?? 'http://10.0.2.2:8000'}/api/process_stt');
+        '${dotenv.env['BACKEND_URL'] ?? 'http://10.0.2.2:8000'}/api/process_stt',
+      );
 
       var request = http.MultipartRequest('POST', url);
 
-      // Ensure the selected language is not empty
       selectedLanguage = selectedLanguage.isNotEmpty ? selectedLanguage : "hi";
       debugPrint("Selected target language: $selectedLanguage");
 
       request.fields.addAll({
         'prompt': 'इस ऑडियो को हिंदी में लिखो',
-        'source_lang': 'auto', // Let the server detect the source language
-        'target_lang':
-        selectedLanguage, // Send the selected language for the response
+        'source_lang': 'auto',
+        'target_lang': selectedLanguage,
       });
 
       final mimeType = lookupMimeType(file.path) ?? "audio/flac";
       debugPrint("Detected MIME type: $mimeType");
 
-      request.files.add(await http.MultipartFile.fromPath(
-        'file',
-        file.path,
-        contentType: MediaType.parse(mimeType),
-      ));
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
 
       var response = await request.send();
       String responseBody = await response.stream.bytesToString();
@@ -468,23 +511,18 @@ class LivelyState extends State<Lively> {
 
       if (response.statusCode == 200) {
         debugPrint("✅ Audio uploaded successfully!");
-
         var decodedResponse = jsonDecode(responseBody);
 
-        // Fix: Extract detected language correctly
         String detectedLang = decodedResponse['language'] ?? 'unknown';
         debugPrint("Detected Language: $detectedLang");
 
-        // If the detected language is Hindi and user hasn't explicitly chosen another language
         if (detectedLang == 'hi' && selectedLanguage == "auto") {
           setState(() {
-            selectedLanguage =
-            'hi'; // Update language to Hindi if detected language is Hindi
+            selectedLanguage = 'hi';
           });
           debugPrint("✅ Updated selected language to Hindi");
         }
 
-        // Proceed with handling the server response (your AI response)
         await _handleServerResponse(decodedResponse);
       } else {
         debugPrint("❌ Upload failed with status: ${response.statusCode}");
@@ -492,7 +530,12 @@ class LivelyState extends State<Lively> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(L10n.getTranslatedText(context, '❌ Something went wrong. Hugging Face may be down.')),
+            content: Text(
+              L10n.getTranslatedText(
+                context,
+                '❌ Something went wrong. Hugging Face may be down.',
+              ),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -501,7 +544,12 @@ class LivelyState extends State<Lively> {
       debugPrint("❌ Error uploading audio: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(L10n.getTranslatedText(context, '❌ Error uploading audio. Hugging Face may be down.')),
+          content: Text(
+            L10n.getTranslatedText(
+              context,
+              '❌ Error uploading audio. Hugging Face may be down.',
+            ),
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -512,13 +560,10 @@ class LivelyState extends State<Lively> {
     }
   }
 
-// Handle the server response and update the input field with the "text" part
   Future<void> _handleServerResponse(Map<String, dynamic> response) async {
     try {
       if (response.containsKey('text')) {
         String responseText = response['text'];
-
-        // Update the input field with the 'text' part of the response
         _textController.text = responseText;
       } else {
         debugPrint("❌ No text key in server response");
@@ -528,68 +573,92 @@ class LivelyState extends State<Lively> {
     }
   }
 
-  // Send Message Function
   void _sendMessage(String message) async {
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+
+    if (_currentChatId == null) {
+      final newChat =
+          await supabase
+              .from('chats')
+              .insert({'title': 'New Chat', 'user_id': userId})
+              .select()
+              .single();
+
+      _currentChatId = newChat['id'] as String;
+    }
+
+    final userMessageData = {
+      'chat_id': _currentChatId,
+      'user_id': _supabase.auth.currentUser?.id,
+      'role': 'user',
+      'content': message,
+    };
+
     setState(() {
-      chatMessages.add({"role": "user", "text": message});
-      chatMessages.add({"role": "ai", "isTyping": true}); // Typing Indicator
+      chatMessages.add({
+        "role": "user",
+        "text": message,
+        "timestamp": DateTime.now(),
+      });
     });
 
-    Future.delayed(Duration(milliseconds: 100), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
+    await supabase.from('messages').insert(userMessageData);
 
-    var url = Uri.parse(
-        '${dotenv.env['BACKEND_URL'] ?? 'http://10.0.2.2:8000'}/api/process_text');
+    setState(() {
+      chatMessages.add({
+        "role": "assistant",
+        "text": "...",
+        "isTyping": true,
+        "timestamp": DateTime.now(),
+      });
+    });
 
     try {
-      var response = await http.post(
+      final url = Uri.parse(
+        '${dotenv.env['BACKEND_URL'] ?? 'http://10.0.2.2:8000'}/api/process_text',
+      );
+
+      final response = await http.post(
         url,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {'text': message, 'target_language': selectedLanguage},
       );
 
       if (response.statusCode == 200) {
-        String aiResponse = utf8.decode(response.bodyBytes);
-        String aiMessage = jsonDecode(aiResponse)['response'];
+        final aiResponse = utf8.decode(response.bodyBytes);
+        final aiMessage = jsonDecode(aiResponse)['response'];
+
+        final aiMessageData = {
+          'chat_id': _currentChatId,
+          'user_id': _supabase.auth.currentUser?.id,
+          'role': 'assistant',
+          'content': aiMessage,
+        };
+
+        await supabase.from('messages').insert(aiMessageData);
 
         setState(() {
-          chatMessages[chatMessages.length - 1] = {
-            "role": "ai",
+          chatMessages.removeWhere((msg) => msg["isTyping"] == true);
+          chatMessages.add({
+            "role": "assistant",
             "text": aiMessage,
-            "isTyping": false
-          };
-        });
-
-        Future.delayed(Duration(milliseconds: 100), () {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        });
-      } else {
-        setState(() {
-          chatMessages[chatMessages.length - 1] = {
-            "role": "ai",
-            "text": getTranslatedError('server_error', selectedLanguage),
-            "isTyping": false
-          };
+            "timestamp": DateTime.now(),
+          });
         });
       }
     } catch (error) {
       setState(() {
-        chatMessages[chatMessages.length - 1] = {
-          "role": "ai",
+        chatMessages.removeWhere((msg) => msg["isTyping"] == true);
+        chatMessages.add({
+          "role": "assistant",
           "text": getTranslatedError('connection_error', selectedLanguage),
-          "isTyping": false
-        };
+          "timestamp": DateTime.now(),
+        });
       });
     }
+
+    _scrollToBottom();
   }
 
   void _showLanguageSelection() {
@@ -599,15 +668,18 @@ class LivelyState extends State<Lively> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext modalContext) {
-        String searchQuery = ""; // Local state for search query
+        String searchQuery = "";
 
         return StatefulBuilder(
           builder: (context, setModalState) {
-            List<Map<String, String>> filteredLanguages = languages
-                .where((language) => language['name']!
-                .toLowerCase()
-                .startsWith(searchQuery.toLowerCase()))
-                .toList();
+            List<Map<String, String>> filteredLanguages =
+                languages
+                    .where(
+                      (language) => language['name']!.toLowerCase().startsWith(
+                        searchQuery.toLowerCase(),
+                      ),
+                    )
+                    .toList();
 
             return Padding(
               padding: EdgeInsets.all(20),
@@ -619,24 +691,22 @@ class LivelyState extends State<Lively> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Divider(),
-
-                  // Search bar with live filtering
                   TextField(
                     decoration: InputDecoration(
-                      labelText:
-                      L10n.getTranslatedText(context, 'Search Languages'),
+                      labelText: L10n.getTranslatedText(
+                        context,
+                        'Search Languages',
+                      ),
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.search),
                     ),
                     onChanged: (query) {
                       setModalState(() {
-                        searchQuery = query; // Live update search query
+                        searchQuery = query;
                       });
                     },
                   ),
                   SizedBox(height: 10),
-
-                  // Scrollable list of filtered languages
                   Expanded(
                     child: ListView.builder(
                       itemCount: filteredLanguages.length,
@@ -694,12 +764,13 @@ class LivelyState extends State<Lively> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(icon: newChatIcon(), onPressed: _startNewChat),
                     IconButton(
-                      icon: newChatIcon(),
-                      onPressed: _startNewChat,
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.translate, size: 28, color: Colors.white),
+                      icon: Icon(
+                        Icons.translate,
+                        size: 28,
+                        color: Colors.white,
+                      ),
                       onPressed: _showLanguageSelection,
                     ),
                   ],
@@ -742,14 +813,18 @@ class LivelyState extends State<Lively> {
                 width: 40,
                 height: 40,
                 child: IconButton(
-                  icon: Icon(Icons.attach_file,
-                      color: AcademeTheme.appColor, size: 27),
+                  icon: Icon(
+                    Icons.attach_file,
+                    color: AcademeTheme.appColor,
+                    size: 27,
+                  ),
                   onPressed: () {
                     showModalBottomSheet(
                       context: context,
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                       ),
                       builder: (BuildContext context) {
                         return Padding(
@@ -758,29 +833,33 @@ class LivelyState extends State<Lively> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               _buildAttachmentOption(
-                                  context,
-                                  Icons.image,
-                                  L10n.getTranslatedText(context, 'Image'),
-                                  Colors.blue,
-                                  'Image'),
+                                context,
+                                Icons.image,
+                                L10n.getTranslatedText(context, 'Image'),
+                                Colors.blue,
+                                'Image',
+                              ),
                               _buildAttachmentOption(
-                                  context,
-                                  Icons.insert_drive_file,
-                                  L10n.getTranslatedText(context, 'Document'),
-                                  Colors.green,
-                                  'Document'),
+                                context,
+                                Icons.insert_drive_file,
+                                L10n.getTranslatedText(context, 'Document'),
+                                Colors.green,
+                                'Document',
+                              ),
                               _buildAttachmentOption(
-                                  context,
-                                  Icons.video_library,
-                                  L10n.getTranslatedText(context, 'Video'),
-                                  Colors.orange,
-                                  'Video'),
+                                context,
+                                Icons.video_library,
+                                L10n.getTranslatedText(context, 'Video'),
+                                Colors.orange,
+                                'Video',
+                              ),
                               _buildAttachmentOption(
-                                  context,
-                                  Icons.audiotrack,
-                                  L10n.getTranslatedText(context, 'Audio'),
-                                  Colors.purple,
-                                  'Audio'),
+                                context,
+                                Icons.audiotrack,
+                                L10n.getTranslatedText(context, 'Audio'),
+                                Colors.purple,
+                                'Audio',
+                              ),
                             ],
                           ),
                         );
@@ -799,29 +878,44 @@ class LivelyState extends State<Lively> {
                       minLines: 1,
                       keyboardType: TextInputType.multiline,
                       decoration: InputDecoration(
-                        hintText: isConverting
-                            ? L10n.getTranslatedText(context, 'Converting ... ')
-                            : (_isRecording
-                            ? '${L10n.getTranslatedText(
-                            context, 'Recording')}... ${_seconds}s'
-                            : L10n.getTranslatedText(
-                            context, 'Type a message ...')),
+                        hintText:
+                            isConverting
+                                ? L10n.getTranslatedText(
+                                  context,
+                                  'Converting ... ',
+                                )
+                                : (_isRecording
+                                    ? '${L10n.getTranslatedText(context, 'Recording')}... ${_seconds}s'
+                                    : L10n.getTranslatedText(
+                                      context,
+                                      'Type a message ...',
+                                    )),
                         contentPadding: EdgeInsets.only(
-                            left: 20, right: 60, top: 14, bottom: 14),
+                          left: 20,
+                          right: 60,
+                          top: 14,
+                          bottom: 14,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide:
-                          BorderSide(color: Colors.grey, width: 1.5),
+                          borderSide: BorderSide(
+                            color: Colors.grey,
+                            width: 1.5,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide:
-                          BorderSide(color: Colors.grey, width: 1.5),
+                          borderSide: BorderSide(
+                            color: Colors.grey,
+                            width: 1.5,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
-                          borderSide:
-                          BorderSide(color: Colors.grey[300]!, width: 1.5),
+                          borderSide: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -853,15 +947,16 @@ class LivelyState extends State<Lively> {
                         color: isEmpty ? Colors.grey : AcademeTheme.appColor,
                         size: 25,
                       ),
-                      onPressed: isEmpty
-                          ? null
-                          : () {
-                        String message = _textController.text.trim();
-                        _sendMessage(message);
-                        setState(() {
-                          _textController.clear();
-                        });
-                      },
+                      onPressed:
+                          isEmpty
+                              ? null
+                              : () {
+                                String message = _textController.text.trim();
+                                _sendMessage(message);
+                                setState(() {
+                                  _textController.clear();
+                                });
+                              },
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
                     ),
@@ -889,30 +984,39 @@ class LivelyState extends State<Lively> {
         foregroundColor: Colors.white,
         backgroundColor: color,
         padding: EdgeInsets.symmetric(
-            horizontal: width * 0.03, vertical: height * 0.01),
+          horizontal: width * 0.03,
+          vertical: height * 0.01,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
       icon: Icon(icon, size: width * 0.05),
       label: SizedBox(
-        width: width * 0.25, // Set a fixed width for better text control
+        width: width * 0.25,
         child: AutoSizeText(
           text,
-          maxLines: 1, // Ensures text stays in a single line
-          minFontSize: 10, // Minimum text size to avoid overflow
-          stepGranularity: 1, // Smoothly adjusts font size
+          maxLines: 1,
+          minFontSize: 10,
+          stepGranularity: 1,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16), // Default font size
+          style: TextStyle(fontSize: 16),
         ),
       ),
     );
   }
 
-  Widget _buildAttachmentOption(BuildContext context, IconData icon,
-      String label, Color color, String fileType) {
+  Widget _buildAttachmentOption(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+    String fileType,
+  ) {
     return ListTile(
       leading: Icon(icon, color: color),
-      title: Text(label,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+      title: Text(
+        label,
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
       onTap: () {
         Navigator.pop(context);
         _pickFile(fileType);
@@ -921,17 +1025,21 @@ class LivelyState extends State<Lively> {
   }
 
   Widget _languageTile(
-      String language, String code, BuildContext modalContext) {
+    String language,
+    String code,
+    BuildContext modalContext,
+  ) {
     return ListTile(
       title: Text(language),
-      trailing: selectedLanguage == code
-          ? Icon(Icons.check, color: Colors.blue)
-          : null,
+      trailing:
+          selectedLanguage == code
+              ? Icon(Icons.check, color: Colors.blue)
+              : null,
       onTap: () {
         setState(() {
           selectedLanguage = code;
         });
-        Navigator.pop(modalContext); // Use the passed modalContext
+        Navigator.pop(modalContext);
       },
     );
   }
@@ -947,22 +1055,33 @@ class LivelyState extends State<Lively> {
           children: [
             Column(
               children: [
-                Image.asset('assets/icons/requests.png',
-                    width: width * 0.3, height: height * 0.09),
+                Image.asset(
+                  'assets/icons/requests.png',
+                  width: width * 0.3,
+                  height: height * 0.09,
+                ),
                 SizedBox(height: height * 0.01),
                 Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
-                          text: L10n.getTranslatedText(
-                              context, 'Hey there! I am '),
-                          style: _textStyle(Colors.black)),
+                        text: L10n.getTranslatedText(
+                          context,
+                          'Hey there! I am ',
+                        ),
+                        style: _textStyle(Colors.black),
+                      ),
                       TextSpan(
-                          text: 'Lively', style: _textStyle(Colors.amber[700]!)),
+                        text: 'Lively',
+                        style: _textStyle(Colors.amber[700]!),
+                      ),
                       TextSpan(
-                          text: L10n.getTranslatedText(
-                              context, ' your\npersonal tutor.'),
-                          style: _textStyle(Colors.black)),
+                        text: L10n.getTranslatedText(
+                          context,
+                          ' your\npersonal tutor.',
+                        ),
+                        style: _textStyle(Colors.black),
+                      ),
                     ],
                   ),
                   textAlign: TextAlign.center,
@@ -1012,7 +1131,7 @@ class LivelyState extends State<Lively> {
                   ],
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -1032,108 +1151,13 @@ class LivelyState extends State<Lively> {
 
         return Column(
           crossAxisAlignment:
-          isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            // Display Image
-            if (message.containsKey("fileType") &&
-                message["fileType"] == "Image")
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          FullScreenImage(imagePath: message["fileInfo"]),
-                    ),
-                  );
-                },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.file(
-                    File(message["fileInfo"]),
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
+            if (message.containsKey("media_type") &&
+                message["media_type"] != null &&
+                message["media_type"] != 'text')
+              _buildMediaMessage(message),
 
-            // Display Video
-            if (message.containsKey("fileType") &&
-                message["fileType"] == "Video")
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          FullScreenVideo(videoPath: message["fileInfo"]),
-                    ),
-                  );
-                },
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 250,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Colors.black12,
-                      ),
-                    ),
-                    Icon(Icons.play_circle_fill, size: 50, color: Colors.white),
-                  ],
-                ),
-              ),
-
-            // Display Audio
-            if (message.containsKey("fileType") &&
-                message["fileType"] == "Audio")
-              Container(
-                width: MediaQuery.of(context).size.width * 0.75,
-                margin: EdgeInsets.symmetric(vertical: 5),
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue[100],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: AudioPlayerWidget(audioPath: message["fileInfo"]),
-              ),
-
-            // Display Document
-            if (message.containsKey("fileType") &&
-                message["fileType"] != "Image" &&
-                message["fileType"] != "Video" &&
-                message["fileType"] != "Audio")
-              GestureDetector(
-                onTap: () {
-                  OpenFile.open(message["fileInfo"]);
-                },
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.55,
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.insert_drive_file, color: Colors.blue),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          L10n.getTranslatedText(context, 'Open Document'),
-                          style: TextStyle(color: Colors.blue),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            // Chat Message Bubble
             if (message.containsKey("text") && message["isTyping"] != true)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1142,34 +1166,37 @@ class LivelyState extends State<Lively> {
                     children: [
                       Container(
                         constraints: BoxConstraints(
-                          maxWidth: isUser
-                              ? MediaQuery.of(context).size.width * 0.60
-                              : MediaQuery.of(context).size.width * 0.80,
+                          maxWidth:
+                              isUser
+                                  ? MediaQuery.of(context).size.width * 0.60
+                                  : MediaQuery.of(context).size.width * 0.80,
                         ),
                         padding: EdgeInsets.all(15),
                         margin: EdgeInsets.symmetric(vertical: 5),
                         decoration: BoxDecoration(
-                          gradient: isUser
-                              ? LinearGradient(
-                            colors: [
-                              Colors.blue[300]!,
-                              Colors.blue[700]!
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                              : null,
+                          gradient:
+                              isUser
+                                  ? LinearGradient(
+                                    colors: [
+                                      Colors.blue[300]!,
+                                      Colors.blue[700]!,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                  : null,
                           color: isUser ? null : Colors.grey[300]!,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: isUser
-                              ? [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(15),
-                              blurRadius: 6,
-                              offset: Offset(2, 4),
-                            ),
-                          ]
-                              : [],
+                          boxShadow:
+                              isUser
+                                  ? [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(15),
+                                      blurRadius: 6,
+                                      offset: Offset(2, 4),
+                                    ),
+                                  ]
+                                  : [],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1199,7 +1226,12 @@ class LivelyState extends State<Lively> {
                         Clipboard.setData(ClipboardData(text: message["text"]));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(L10n.getTranslatedText(context, 'Copied to clipboard')),
+                            content: Text(
+                              L10n.getTranslatedText(
+                                context,
+                                'Copied to clipboard',
+                              ),
+                            ),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -1207,13 +1239,104 @@ class LivelyState extends State<Lively> {
                     ),
                   ],
                 ),
-
-            // Typing Indicator
             if (message["isTyping"] == true) TypingIndicator(),
           ],
         );
       },
     );
+  }
+
+  Widget _buildMediaMessage(Map<String, dynamic> message) {
+    // Add null checks for storage_path
+    final storagePath = message['storage_path'];
+    if (storagePath == null) return SizedBox.shrink();
+
+    final url = ChatbotStorage.getPublicUrl(storagePath);
+    final mediaType = message['media_type'] ?? 'unknown';
+
+    switch (mediaType) {
+      case 'image':
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FullScreenImage(imagePath: url),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              url,
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Icon(Icons.broken_image),
+            ),
+          ),
+        );
+      case 'video':
+        return GestureDetector(
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FullScreenVideo(videoPath: url),
+                ),
+              ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 250,
+                height: 150,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.black12,
+                ),
+              ),
+              Icon(Icons.play_circle_fill, size: 50, color: Colors.white),
+            ],
+          ),
+        );
+      case 'audio':
+        return Container(
+          width: MediaQuery.of(context).size.width * 0.75,
+          margin: EdgeInsets.symmetric(vertical: 5),
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue[100],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: AudioPlayerWidget(audioPath: url),
+        );
+      case 'document':
+        return GestureDetector(
+          onTap: () => OpenFile.open(message["fileInfo"]),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.55,
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.blue[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.insert_drive_file, color: Colors.blue),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    L10n.getTranslatedText(context, 'Open Document'),
+                    style: TextStyle(color: Colors.blue),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      default:
+        return SizedBox.shrink();
+    }
   }
 
   void _showReportDialog(BuildContext context, Map<String, dynamic> message) {
@@ -1230,14 +1353,20 @@ class LivelyState extends State<Lively> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(L10n.getTranslatedText(context, 'Please describe the issue:')),
+                  Text(
+                    L10n.getTranslatedText(
+                      context,
+                      'Please describe the issue:',
+                    ),
+                  ),
                   SizedBox(height: 10),
                   TextField(
                     controller: reportController,
                     maxLines: 3,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      hintText: "${L10n.getTranslatedText(context, 'Enter your reason for reporting')}...",
+                      hintText:
+                          "${L10n.getTranslatedText(context, 'Enter your reason for reporting')}...",
                     ),
                     onChanged: (text) {
                       setState(() {
@@ -1253,12 +1382,13 @@ class LivelyState extends State<Lively> {
                   child: Text(L10n.getTranslatedText(context, 'Cancel')),
                 ),
                 TextButton(
-                  onPressed: isButtonEnabled
-                      ? () {
-                    _submitReport(message, reportController.text);
-                    Navigator.pop(context);
-                  }
-                      : null, // Disable button when empty
+                  onPressed:
+                      isButtonEnabled
+                          ? () {
+                            _submitReport(message, reportController.text);
+                            Navigator.pop(context);
+                          }
+                          : null,
                   child: Text(L10n.getTranslatedText(context, 'Send')),
                 ),
               ],
@@ -1286,7 +1416,9 @@ class LivelyState extends State<Lively> {
         Container(
           padding: EdgeInsets.all(4),
           decoration: BoxDecoration(
-              color: AcademeTheme.appColor, shape: BoxShape.circle),
+            color: AcademeTheme.appColor,
+            shape: BoxShape.circle,
+          ),
           child: Icon(Icons.chat_bubble_outline, size: 26, color: Colors.white),
         ),
         Positioned(
@@ -1296,47 +1428,71 @@ class LivelyState extends State<Lively> {
             width: 19,
             height: 19,
             decoration: BoxDecoration(
-                color: AcademeTheme.appColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2)),
-            child:
-            Center(child: Icon(Icons.add, size: 12, color: Colors.white)),
+              color: AcademeTheme.appColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Center(
+              child: Icon(Icons.add, size: 12, color: Colors.white),
+            ),
           ),
         ),
       ],
     );
   }
 
-  /// **Helper function to parse inline bold text (e.g., *bold* or **bold**)**
   Widget _parseInlineBoldText(String text, bool isUser) {
     List<InlineSpan> spans = [];
     List<String> parts = text.split(RegExp(r'(\*\*|\*)'));
 
     for (int i = 0; i < parts.length; i++) {
       if (i % 2 == 1) {
-        // Odd indices are bold text (treat as keys)
-        spans.add(TextSpan(
-          text: parts[i],
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: isUser ? Colors.white : Colors.black87,
+        spans.add(
+          TextSpan(
+            text: parts[i],
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: isUser ? Colors.white : Colors.black87,
+            ),
           ),
-        ));
+        );
       } else {
-        // Even indices are regular text (treat as values)
-        spans.add(TextSpan(
-          text: parts[i],
-          style: TextStyle(
-            fontSize: 16,
-            color: isUser ? Colors.white : Colors.black87,
+        spans.add(
+          TextSpan(
+            text: parts[i],
+            style: TextStyle(
+              fontSize: 16,
+              color: isUser ? Colors.white : Colors.black87,
+            ),
           ),
-        ));
+        );
       }
     }
 
-    return RichText(
-      text: TextSpan(children: spans),
-    );
+    return RichText(text: TextSpan(children: spans));
+  }
+}
+
+class ChatbotStorage {
+  static final _supabase = Supabase.instance.client;
+
+  static Future<String> uploadMedia({
+    required File file,
+    required String mediaType,
+    required String userId,
+    required String chatId,
+  }) async {
+    final ext = file.path.split('.').last;
+    final path =
+        '$userId/$chatId/${mediaType.toLowerCase()}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+
+    await _supabase.storage.from('chatbot').upload(path, file);
+
+    return path;
+  }
+
+  static String getPublicUrl(String path) {
+    return _supabase.storage.from('chatbot').getPublicUrl(path);
   }
 }
