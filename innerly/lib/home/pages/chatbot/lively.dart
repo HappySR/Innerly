@@ -137,6 +137,11 @@ class LivelyState extends State<Lively> {
   }
 
   Future<void> _startNewChat() async {
+    // Only create new chat if current chat has content
+    if (chatMessages.isEmpty && _textController.text.isEmpty) {
+      return;
+    }
+
     try {
       final newChat = {
         'title': 'New Chat',
@@ -144,7 +149,7 @@ class LivelyState extends State<Lively> {
       };
 
       final response =
-          await _supabase.from('chats').insert(newChat).select().single();
+      await _supabase.from('chats').insert(newChat).select().single();
 
       setState(() {
         _currentChatId = response['id'];
