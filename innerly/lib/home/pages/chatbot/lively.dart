@@ -108,13 +108,41 @@ class LivelyState extends State<Lively> {
     super.dispose();
   }
 
+  void _addAssistantMessage(String message) async {
+    if (_currentChatId == null) {
+      final supabase = Supabase.instance.client;
+      final newChat = await supabase
+          .from('chats')
+          .insert({'title': 'New Chat', 'user_id': _supabase.auth.currentUser?.id})
+          .select()
+          .single();
+      _currentChatId = newChat['id'] as String;
+    }
+
+    final messageData = {
+      'chat_id': _currentChatId,
+      'role': 'assistant',
+      'content': message,
+    };
+
+    await _supabase.from('messages').insert(messageData);
+
+    setState(() {
+      chatMessages.add({
+        "role": "assistant",
+        "text": message,
+        "timestamp": DateTime.now(),
+      });
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _initRecorder();
     _loadChatHistory();
     if (widget.initialMessage != null) {
-      _sendMessage(widget.initialMessage!);
+      _addAssistantMessage(widget.initialMessage!);
     }
   }
 
@@ -171,7 +199,7 @@ class LivelyState extends State<Lively> {
           .from('messages')
           .select()
           .eq('chat_id', chat.id)
-          .order('created_at');
+          .order('created_at', ascending: true);
 
       setState(() {
         _currentChatId = chat.id;
@@ -181,7 +209,7 @@ class LivelyState extends State<Lively> {
           'text': m['content'] ?? '',
           'media_type': m['media_type'],
           'file_url': m['file_url'],
-          'storage_path': m['storage_path'], // Could still be null
+          'storage_path': m['storage_path'],
           'created_at': DateTime.parse(m['created_at']),
         })
             .toList();
