@@ -19,6 +19,7 @@ class _SignInPageState extends State<SignInPage> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final SupabaseClient _supabase = Supabase.instance.client;
+  bool isTherapist = UserRole.isTherapist;
 
   bool _isLoading = false;
   bool _isFormValid = false;
@@ -52,7 +53,7 @@ class _SignInPageState extends State<SignInPage> {
           case 'approved':
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const BottomNav()),
+              MaterialPageRoute(builder: (context) => BottomNav()),
             );
             break;
           case 'pending':

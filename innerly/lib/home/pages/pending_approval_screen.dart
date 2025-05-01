@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../services/role.dart';
 import 'therapists/started/signup_view.dart';
 import 'bottom_nav.dart';
 
@@ -39,7 +39,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const BottomNav()),
+                    MaterialPageRoute(builder: (context) => BottomNav()),
                   );
                 });
               }

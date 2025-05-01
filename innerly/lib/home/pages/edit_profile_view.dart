@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-class EditProfilePage extends StatelessWidget {
+class EditProfilePage extends StatefulWidget {
   const EditProfilePage({Key? key}) : super(key: key);
+
+  @override
+  State<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends State<EditProfilePage> {
+  final List<String> _languages = ['English', 'Spanish', 'French', 'German'];
+  List<String> _selectedLanguages = [];
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +22,7 @@ class EditProfilePage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            // Handle back action
+            Navigator.pop(context);
           },
         ),
         title: const Text(
@@ -29,72 +38,84 @@ class EditProfilePage extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            CircleAvatar(
-              radius: 60,
-              backgroundImage: AssetImage(
-                'assets/user/user.png',
-              ), // therapist image
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFF6E9),
-                elevation: 0,
-                side: const BorderSide(color: Colors.transparent),
-              ),
-              onPressed: () {
-                // Handle change photo
-              },
-              child: const Text(
-                'Change Photo',
-                style: TextStyle(color: Colors.black),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundImage: AssetImage('assets/user/user.png'), // therapist image
+                  ),
+                  const SizedBox(height: 5),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFF6E9),
+                      elevation: 0,
+                      side: const BorderSide(color: Colors.transparent),
+                    ),
+                    onPressed: () {
+                      // Handle change photo
+                    },
+                    child: const Text(
+                      'Change Photo',
+                      style: TextStyle(color: Colors.black,
+                      fontSize: 18),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 30),
             buildLabel('Display Name'),
             buildTextField('Kate'),
             const SizedBox(height: 20),
+            buildLabel('Age'),
+            buildAgeTextField(),
+            const SizedBox(height: 20),
             buildLabel('Bio'),
-            buildTextField('“A safe space seeker, finding\npeace in little moments.”', maxLines: 2),
+            buildTextField(
+              '“A safe space seeker, finding\npeace in little moments.”',
+              maxLines: 2,
+            ),
             const SizedBox(height: 20),
             buildLabel('Languages'),
-            buildDropdown('Languages you know', ['English', 'Spanish', 'French', 'German']),
+            buildMultiSelectLanguages(),
             const SizedBox(height: 20),
-            buildLabel('Theme'),
-            buildDropdown('Select Theme', ['Calm Blue', 'Dark Mode', 'Light Mode', 'Sunset Glow']),
-
             const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () {
-                  // Handle Save Changes
-                },
-                child: const Text(
-                  'Save Changes',
-                  style: TextStyle(fontSize: 18,
-                  color: Colors.white),
-                ),
-              ),
-            )
           ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(30),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              // Handle Save Changes
+            },
+            child: const Text(
+              'Save Changes',
+              style: TextStyle(fontSize: 18, color: Colors.white),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget buildLabel(String text) {
-    return Align(
-      alignment: Alignment.centerLeft,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         text,
         style: const TextStyle(
@@ -121,6 +142,26 @@ class EditProfilePage extends StatelessWidget {
     );
   }
 
+  Widget buildAgeTextField() {
+    return TextField(
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+      ],
+      decoration: InputDecoration(
+        hintText: 'Enter your age',
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+
   Widget buildDropdown(String hint, List<String> options) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -143,6 +184,61 @@ class EditProfilePage extends StatelessWidget {
           // Handle dropdown changes
         },
       ),
+    );
+  }
+
+  Widget buildMultiSelectLanguages() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: _selectedLanguages.map((language) {
+          return Chip(
+            label: Text(language),
+            deleteIcon: const Icon(Icons.close),
+            onDeleted: () {
+              setState(() {
+                _selectedLanguages.remove(language);
+              });
+            },
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          );
+        }).toList(),
+      ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+            ),
+            hint: const Text('Languages you know'),
+            items: _languages.map((language) {
+              return DropdownMenuItem(
+                value: language,
+                child: Text(language),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null && !_selectedLanguages.contains(value)) {
+                setState(() {
+                  _selectedLanguages.add(value);
+                });
+              }
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+
+      ],
     );
   }
 }

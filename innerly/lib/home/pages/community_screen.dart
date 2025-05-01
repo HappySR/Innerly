@@ -1,5 +1,8 @@
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'global_chat_view.dart';
 
 class CommunityScreen extends StatelessWidget {
   @override
@@ -7,7 +10,7 @@ class CommunityScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF7E7),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFF7E7),
+        backgroundColor: InnerlyTheme.beige,
         automaticallyImplyLeading: false,
         title: Text(
           'Community',
@@ -48,26 +51,35 @@ class CommunityScreen extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  buildChannelItem(Icons.add, "Add\nChannel"),
-                  buildChannelItem(Icons.public, "Global\nChat"),
+                  buildChannelItem(Icons.add, "Add\nChannel", (){}),
+                  buildChannelItem(Icons.public, "Global\nChat", (){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GlobalChatScreen(),
+                      ),
+                    );
+                  }),
                   buildChannelItem(
                     Icons.chat_bubble_outline,
-                    "Therapy\nNutshell",
+                    "Therapy\nNutshell",(){
+
+                  }
                   ),
-                  buildChannelItem(Icons.person_outline, "Kati\nMorton"),
-                  buildChannelItem(Icons.person_outline, "Angus\nMacGyver"),
+                  buildChannelItem(Icons.person_outline, "Kati\nMorton", (){}),
+                  buildChannelItem(Icons.person_outline, "Angus\nMacGyver", (){}),
                   buildChannelItem(
                     Icons.self_improvement,
-                    "Mindfulness\nSpace",
+                    "Mindfulness\nSpace", (){},
                   ),
-                  buildChannelItem(Icons.group, "Anxiety\nSupport"),
-                  buildChannelItem(Icons.family_restroom, "Family\nMatters"),
-                  buildChannelItem(Icons.school, "Student\nLife"),
+                  buildChannelItem(Icons.group, "Anxiety\nSupport", (){}),
+                  buildChannelItem(Icons.family_restroom, "Family\nMatters", (){}),
+                  buildChannelItem(Icons.school, "Student\nLife", (){}),
                   buildChannelItem(
                     Icons.business_center,
-                    "Workplace\nWellness",
+                    "Workplace\nWellness",(){},
                   ),
-                  buildChannelItem(Icons.healing, "Healing\nJourney"),
+                  buildChannelItem(Icons.healing, "Healing\nJourney", (){}),
                 ],
               ),
             ),
@@ -148,29 +160,33 @@ class CommunityScreen extends StatelessWidget {
     );
   }
 
-  Widget buildChannelItem(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, // <-- CENTER vertically
-        children: [
-          CircleAvatar(
-            radius: 28, // slightly bigger
-            backgroundColor: Colors.white,
-            child: Icon(icon, color: Colors.black, size: 28),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: GoogleFonts.rubik(fontSize: 12),
-            textAlign: TextAlign.center,
-            maxLines: 2, // <-- safe to wrap long titles
-            overflow: TextOverflow.ellipsis, // safe overflow
-          ),
-        ],
+  Widget buildChannelItem(IconData icon, String title, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: Colors.white,
+              child: Icon(icon, color: Colors.black, size: 28),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: GoogleFonts.rubik(fontSize: 12),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget buildPost({
     required String userName,

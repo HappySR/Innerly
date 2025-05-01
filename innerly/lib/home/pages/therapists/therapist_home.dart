@@ -5,7 +5,9 @@ import 'package:Innerly/home/pages/therapists/therapist_requests.dart';
 import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
 
 class HomeTherapist extends StatelessWidget {
-  const HomeTherapist({super.key});
+  final VoidCallback onProfileTap;
+
+  HomeTherapist({super.key, required this.onProfileTap});
 
   @override
   Widget build(BuildContext context) {
