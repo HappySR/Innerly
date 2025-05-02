@@ -1,8 +1,15 @@
-import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:dio/dio.dart';
 
 class SleepPage extends StatefulWidget {
   const SleepPage({super.key});
@@ -13,25 +20,191 @@ class SleepPage extends StatefulWidget {
 
 class _SleepPageState extends State<SleepPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final Map<String, String> _soundscapes = {
-    'Ocean Waves': '🌊',
-    'Forest Rain': '🌧️',
-    'Mountain Wind': '🍃',
-    'Night Insects': '🦗'
-  };
+  final Dio _dio = Dio();
+  final _prefsKey = 'downloaded_sleep_tracks';
+  late final CacheManager _cacheManager;
 
   bool _isPlaying = false;
-  bool _isLooping = true; // Default to looping for sleep sounds
+  bool _isLooping = true;
   Duration _audioPosition = Duration.zero;
   Duration _audioDuration = Duration.zero;
-  String? _currentSound;
   double _volume = 0.7;
+  String? _currentSound;
+
+  List<Map<String, dynamic>> _soundscapes = [];
+  Map<String, double> _downloadProgress = {};
+  Map<String, bool> _isDownloading = {};
 
   @override
   void initState() {
     super.initState();
+    _cacheManager = CacheManager(Config('sleep_audio_cache',
+        stalePeriod: const Duration(days: 30), maxNrOfCacheObjects: 100));
     _setupAudioListeners();
-    _audioPlayer.setReleaseMode(ReleaseMode.loop); // Default to loop for sleep
+    _initializeSoundscapes();
+    _loadDownloadedTracks();
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+  }
+
+  void _initializeSoundscapes() async {
+    final cloudName = dotenv.get('CLOUDINARY_CLOUD_NAME');
+
+    setState(() {
+      _soundscapes = [
+        {
+          'name': 'Ocean Waves',
+          'emoji': '🌊',
+          'color': const Color(0xFF6C9A8B),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746185812',
+              publicId: 'ocean_waves_k5arct'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+        {
+          'name': 'Forest Rain',
+          'emoji': '🌧️',
+          'color': const Color(0xFF4A6572),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746185840',
+              publicId: 'forest_rain_r3blwz'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+        {
+          'name': 'Mountain Wind',
+          'emoji': '🍃',
+          'color': const Color(0xFF8A9EA7),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746185807',
+              publicId: 'mountain_wind_wozcem'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+        {
+          'name': 'Night Insects',
+          'emoji': '🦗',
+          'color': const Color(0xFF4B3832),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746185813',
+              publicId: 'night_insects_ad4f7r'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+      ];
+    });
+  }
+
+  String _buildCloudinaryUrl({
+    required String cloudName,
+    required String version,
+    required String publicId,
+  }) {
+    return 'https://res.cloudinary.com/$cloudName/video/upload/$version/$publicId.mp3';
+  }
+
+  Future<void> _loadDownloadedTracks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final downloaded = prefs.getStringList(_prefsKey) ?? [];
+
+    for (var sound in _soundscapes) {
+      final fileName = sound['remoteUrl'].split('/').last;
+      final appDir = await getApplicationDocumentsDirectory();
+      final localPath = '${appDir.path}/$fileName';
+
+      if (downloaded.contains(fileName)) {
+        if (await File(localPath).exists()) {
+          sound['localPath'] = localPath;
+          sound['isDownloaded'] = true;
+        } else {
+          prefs.remove(fileName);
+        }
+      }
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _downloadSoundscape(String soundName) async {
+    final sound = _soundscapes.firstWhere((s) => s['name'] == soundName);
+    final url = sound['remoteUrl'];
+    final fileName = url.split('/').last;
+    final appDir = await getApplicationDocumentsDirectory();
+    final savePath = '${appDir.path}/$fileName';
+
+    if (!await _requestStoragePermission()) return;
+
+    setState(() {
+      _isDownloading[url] = true;
+      _downloadProgress[url] = 0.0;
+    });
+
+    try {
+      await _dio.download(
+        url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            setState(() => _downloadProgress[url] = received / total);
+          }
+        },
+      );
+
+      await _cacheManager.putFile(
+        url,
+        File(savePath).readAsBytesSync(),
+        key: url,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final downloaded = prefs.getStringList(_prefsKey) ?? [];
+      downloaded.add(fileName);
+      await prefs.setStringList(_prefsKey, downloaded);
+
+      setState(() {
+        sound['localPath'] = savePath;
+        sound['isDownloaded'] = true;
+      });
+
+    } catch (e) {
+      _showErrorSnackbar('Download failed: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isDownloading.remove(url);
+        _downloadProgress.remove(url);
+      });
+    }
+  }
+
+  Future<bool> _requestStoragePermission() async {
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        final sdkInt = androidInfo.version.sdkInt;
+
+        if (sdkInt >= 33) {
+          final status = await Permission.audio.request();
+          if (!status.isGranted) {
+            _showErrorSnackbar('Audio access required for downloads');
+            return false;
+          }
+        } else {
+          final status = await Permission.storage.request();
+          if (!status.isGranted) {
+            _showErrorSnackbar('Storage permission required for downloads');
+            return false;
+          }
+        }
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Permission error: $e');
+      return false;
+    }
   }
 
   void _setupAudioListeners() {
@@ -60,20 +233,36 @@ class _SleepPageState extends State<SleepPage> {
     });
   }
 
-  Future<void> _playSound(String sound) async {
+  Future<void> _playSound(String soundName) async {
     try {
-      if (_currentSound == sound && _isPlaying) {
+      if (_currentSound == soundName && _isPlaying) {
         await _audioPlayer.pause();
       } else {
-        final path = 'audio/sleep_audio/${sound.toLowerCase().replaceAll(' ', '_')}.mp3';
-        await _audioPlayer.play(AssetSource(path));
+        final sound = _soundscapes.firstWhere((s) => s['name'] == soundName);
+        final url = sound['remoteUrl'];
+
+        FileInfo? fileInfo = await _cacheManager.getFileFromCache(url);
+        fileInfo ??= await _cacheManager.downloadFile(url);
+
+        await _audioPlayer.play(DeviceFileSource(fileInfo.file.path));
         await _audioPlayer.setVolume(_volume);
-        setState(() => _currentSound = sound);
+        setState(() => _currentSound = soundName);
       }
     } catch (e) {
       if (mounted) setState(() => _isPlaying = false);
       debugPrint('Audio Error: $e');
+      _showErrorSnackbar('Playback error: ${e.toString()}');
     }
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _resetPlayer() {
@@ -106,6 +295,8 @@ class _SleepPageState extends State<SleepPage> {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _dio.close();
+    _cacheManager.emptyCache();
     super.dispose();
   }
 
@@ -137,32 +328,50 @@ class _SleepPageState extends State<SleepPage> {
                   crossAxisCount: 2,
                   childAspectRatio: 1.3,
                   padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
-                  children: _soundscapes.entries.map((entry) => GestureDetector(
-                    onTap: () => _playSound(entry.key),
+                  children: _soundscapes.map((sound) => GestureDetector(
+                    onTap: () => _playSound(sound['name']),
                     child: Card(
-                      color: _currentSound == entry.key
-                          ? const Color(0xFF6C9A8B).withOpacity(0.3)
-                          : Colors.white.withOpacity(0.1),
+                      color: sound['color'].withOpacity(0.2),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: _currentSound == entry.key
-                              ? const Color(0xFF6C9A8B)
+                          color: _currentSound == sound['name']
+                              ? sound['color'].withOpacity(0.8)
                               : Colors.transparent,
                           width: 2,
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Stack(
                         children: [
-                          Text(entry.value, style: const TextStyle(fontSize: 40)),
-                          const SizedBox(height: 10),
-                          Text(entry.key,
-                              style: GoogleFonts.amita(
-                                  fontSize: isSmallScreen ? 18 : 22,
-                                  color: Colors.white
-                              )),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(sound['emoji'], style: const TextStyle(fontSize: 40)),
+                              const SizedBox(height: 10),
+                              Text(sound['name'],
+                                  style: GoogleFonts.amita(
+                                      fontSize: isSmallScreen ? 18 : 22,
+                                      color: Colors.white
+                                  )),
+                            ],
+                          ),
+                          if (!sound['isDownloaded'])
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: IconButton(
+                                icon: _isDownloading[sound['remoteUrl']] ?? false
+                                    ? CircularProgressIndicator(
+                                  value: _downloadProgress[sound['remoteUrl']] ?? 0.0,
+                                  backgroundColor: Colors.white24,
+                                  valueColor: const AlwaysStoppedAnimation(Colors.tealAccent),
+                                )
+                                    : const Icon(Icons.cloud_download, color: Colors.white70),
+                                iconSize: 20,
+                                onPressed: () => _downloadSoundscape(sound['name']),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -170,7 +379,6 @@ class _SleepPageState extends State<SleepPage> {
                 ),
               ),
 
-              // Player controls
               if (_currentSound != null) _buildPlayerControls(isSmallScreen),
             ],
           ),
@@ -180,6 +388,8 @@ class _SleepPageState extends State<SleepPage> {
   }
 
   Widget _buildPlayerControls(bool isSmallScreen) {
+    final currentSound = _soundscapes.firstWhere((s) => s['name'] == _currentSound);
+
     return Container(
       padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
       decoration: BoxDecoration(
@@ -188,7 +398,6 @@ class _SleepPageState extends State<SleepPage> {
       ),
       child: Column(
         children: [
-          // Sound info
           Text(
             _currentSound!,
             style: GoogleFonts.amita(
@@ -198,12 +407,11 @@ class _SleepPageState extends State<SleepPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            _soundscapes[_currentSound]!,
+            currentSound['emoji'],
             style: const TextStyle(fontSize: 24),
           ),
           const SizedBox(height: 16),
 
-          // Volume control
           Row(
             children: [
               const Icon(Icons.volume_down, color: Colors.white70),
@@ -216,7 +424,7 @@ class _SleepPageState extends State<SleepPage> {
                     setState(() => _volume = value);
                     await _audioPlayer.setVolume(value);
                   },
-                  activeColor: const Color(0xFF6C9A8B),
+                  activeColor: currentSound['color'],
                   inactiveColor: Colors.white24,
                 ),
               ),
@@ -225,7 +433,6 @@ class _SleepPageState extends State<SleepPage> {
           ),
           const SizedBox(height: 8),
 
-          // Progress bar
           Column(
             children: [
               Slider(
@@ -239,7 +446,7 @@ class _SleepPageState extends State<SleepPage> {
                 onChanged: (value) async {
                   await _audioPlayer.seek(Duration(seconds: value.toInt()));
                 },
-                activeColor: const Color(0xFF6C9A8B),
+                activeColor: currentSound['color'],
                 inactiveColor: Colors.white24,
               ),
               Padding(
@@ -268,22 +475,19 @@ class _SleepPageState extends State<SleepPage> {
           ),
           const SizedBox(height: 16),
 
-          // Controls
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Loop button
               IconButton(
                 icon: Icon(
                   Icons.loop,
-                  color: _isLooping ? const Color(0xFF6C9A8B) : Colors.white70,
+                  color: _isLooping ? currentSound['color'] : Colors.white70,
                   size: isSmallScreen ? 28 : 32,
                 ),
                 onPressed: _toggleLoop,
               ),
               const SizedBox(width: 20),
 
-              // Play/Pause button
               IconButton(
                 iconSize: isSmallScreen ? 50 : 60,
                 icon: Icon(
@@ -294,7 +498,6 @@ class _SleepPageState extends State<SleepPage> {
               ),
               const SizedBox(width: 20),
 
-              // Stop button
               IconButton(
                 icon: const Icon(Icons.stop_circle),
                 color: Colors.white70,
