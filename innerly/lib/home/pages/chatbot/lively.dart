@@ -611,41 +611,36 @@ class LivelyState extends State<Lively> {
     final userId = supabase.auth.currentUser?.id;
 
     if (_currentChatId == null) {
-      final newChat =
-          await supabase
-              .from('chats')
-              .insert({'title': 'New Chat', 'user_id': userId})
-              .select()
-              .single();
-
+      final newChat = await supabase
+          .from('chats')
+          .insert({'title': 'New Chat', 'user_id': userId})
+          .select()
+          .single();
       _currentChatId = newChat['id'] as String;
     }
 
-    final userMessageData = {
-      'chat_id': _currentChatId,
-      'user_id': _supabase.auth.currentUser?.id,
-      'role': 'user',
-      'content': message,
-    };
-
+    // Add user message to UI immediately
     setState(() {
       chatMessages.add({
         "role": "user",
         "text": message,
         "timestamp": DateTime.now(),
       });
-    });
 
-    await supabase.from('messages').insert(userMessageData);
-
-    setState(() {
+      // Add typing indicator
       chatMessages.add({
         "role": "assistant",
-        "text": "...",
         "isTyping": true,
-        "timestamp": DateTime.now(),
       });
     });
+
+    // Get chat context from previous messages
+    String context = await _getChatContext();
+
+    // Create the full prompt with context
+    String fullPrompt = "The past messages of this chat are:\n$context\n\n"
+        "Current message: $message\n\n"
+        "Please respond to the current message considering the chat history.";
 
     try {
       final url = Uri.parse(
@@ -655,23 +650,25 @@ class LivelyState extends State<Lively> {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {'text': message, 'target_language': selectedLanguage},
+        body: {'text': fullPrompt, 'target_language': selectedLanguage},
       );
 
       if (response.statusCode == 200) {
         final aiResponse = utf8.decode(response.bodyBytes);
         final aiMessage = jsonDecode(aiResponse)['response'];
 
+        // Save to database
         final aiMessageData = {
           'chat_id': _currentChatId,
           'user_id': _supabase.auth.currentUser?.id,
           'role': 'assistant',
           'content': aiMessage,
         };
-
         await supabase.from('messages').insert(aiMessageData);
 
+        // Update UI
         setState(() {
+          // Remove typing indicator
           chatMessages.removeWhere((msg) => msg["isTyping"] == true);
           chatMessages.add({
             "role": "assistant",
@@ -682,6 +679,7 @@ class LivelyState extends State<Lively> {
       }
     } catch (error) {
       setState(() {
+        // Remove typing indicator on error too
         chatMessages.removeWhere((msg) => msg["isTyping"] == true);
         chatMessages.add({
           "role": "assistant",
@@ -692,6 +690,36 @@ class LivelyState extends State<Lively> {
     }
 
     _scrollToBottom();
+  }
+
+// New method to fetch chat context
+  Future<String> _getChatContext() async {
+    try {
+      final response = await _supabase
+          .from('messages')
+          .select()
+          .eq('chat_id', _currentChatId as Object)
+          .order('created_at', ascending: false)
+          .limit(10);
+
+      List<Map<String, dynamic>> messages = (response as List)
+          .map((m) => {
+        'role': m['role'] ?? 'user',
+        'content': m['content'] ?? '',
+        'created_at': DateTime.parse(m['created_at']),
+      })
+          .toList();
+
+      // Format messages for context
+      String context = messages.reversed.map((msg) {
+        return "${msg['role'] == 'user' ? 'User' : 'Assistant'}: ${msg['content']}";
+      }).join('\n');
+
+      return context.isNotEmpty ? context : "No previous messages";
+    } catch (e) {
+      debugPrint("Error fetching context: $e");
+      return "Error loading chat history";
+    }
   }
 
   void _showLanguageSelection() {
