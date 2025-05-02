@@ -1,3 +1,4 @@
+import 'package:Innerly/home/pages/therapists/therapist_appointment.dart';
 import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -94,10 +95,28 @@ class _PatientsRequestsState extends State<PatientsRequests> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6F0),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.schedule, color: Color(0xFF6FA57C)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TherapistsAppointmentScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.04,
-          vertical: screenHeight * 0.06,
+          vertical: screenHeight * 0.02,  // Reduced vertical padding
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -107,7 +126,7 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                 Image.asset(
                   'assets/images/meditation.png',
                   width: screenWidth * 0.8,
-                  height: screenHeight * 0.3,
+                  height: screenHeight * 0.25,  // Adjusted height
                   fit: BoxFit.contain,
                 ),
                 SizedBox(height: screenHeight * 0.02),
