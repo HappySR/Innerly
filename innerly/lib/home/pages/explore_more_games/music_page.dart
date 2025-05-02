@@ -1,8 +1,15 @@
-import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:dio/dio.dart';
 
 class MusicPage extends StatefulWidget {
   const MusicPage({super.key});
@@ -13,12 +20,9 @@ class MusicPage extends StatefulWidget {
 
 class _MusicPageState extends State<MusicPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final List<Map<String, dynamic>> _moodPlaylists = [
-    {'name': 'Calm', 'emoji': '😌', 'color': const Color(0xFF6C9A8B)},
-    {'name': 'Happy', 'emoji': '😊', 'color': const Color(0xFFEDD4B2)},
-    {'name': 'Focus', 'emoji': '🎯', 'color': const Color(0xFF8A9EA7)},
-    {'name': 'Energize', 'emoji': '⚡', 'color': const Color(0xFFE8998D)},
-  ];
+  final Dio _dio = Dio();
+  final _prefsKey = 'downloaded_mood_tracks';
+  late final CacheManager _cacheManager;
 
   bool _isPlaying = false;
   bool _isLooping = false;
@@ -27,11 +31,180 @@ class _MusicPageState extends State<MusicPage> {
   String? _currentTrack;
   String? _currentMood;
 
+  List<Map<String, dynamic>> _moodPlaylists = [];
+  Map<String, double> _downloadProgress = {};
+  Map<String, bool> _isDownloading = {};
+
   @override
   void initState() {
     super.initState();
+    _cacheManager = CacheManager(Config('mood_audio_cache',
+        stalePeriod: const Duration(days: 30), maxNrOfCacheObjects: 100));
     _setupAudioListeners();
+    _initializeMoods();
+    _loadDownloadedTracks();
     _audioPlayer.setReleaseMode(ReleaseMode.stop);
+  }
+
+  Future<void> _initializeMoods() async {
+    final cloudName = dotenv.get('CLOUDINARY_CLOUD_NAME');
+
+    setState(() {
+      _moodPlaylists = [
+        {
+          'name': 'Calm',
+          'emoji': '😌',
+          'color': const Color(0xFF6C9A8B),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746186043',
+              publicId: 'calm_oqh5n7'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+        {
+          'name': 'Happy',
+          'emoji': '😊',
+          'color': const Color(0xFFEDD4B2),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746186045',
+              publicId: 'happy_fbtfxf'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+        {
+          'name': 'Focus',
+          'emoji': '🎯',
+          'color': const Color(0xFF8A9EA7),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746186089',
+              publicId: 'focus_c2s9yb'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+        {
+          'name': 'Energize',
+          'emoji': '⚡',
+          'color': const Color(0xFFE8998D),
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746186100',
+              publicId: 'energize_ybs0kz'),
+          'localPath': '',
+          'isDownloaded': false,
+        },
+      ];
+    });
+  }
+
+  String _buildCloudinaryUrl({
+    required String cloudName,
+    required String version,
+    required String publicId,
+  }) {
+    return 'https://res.cloudinary.com/$cloudName/video/upload/$version/$publicId.mp3';
+  }
+
+  Future<void> _loadDownloadedTracks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final downloaded = prefs.getStringList(_prefsKey) ?? [];
+
+    for (var mood in _moodPlaylists) {
+      final fileName = mood['remoteUrl'].split('/').last;
+      final appDir = await getApplicationDocumentsDirectory();
+      final localPath = '${appDir.path}/$fileName';
+
+      if (downloaded.contains(fileName)) {
+        if (await File(localPath).exists()) {
+          mood['localPath'] = localPath;
+          mood['isDownloaded'] = true;
+        } else {
+          prefs.remove(fileName);
+        }
+      }
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _downloadMoodTrack(String moodName) async {
+    final mood = _moodPlaylists.firstWhere((m) => m['name'] == moodName);
+    final url = mood['remoteUrl'];
+    final fileName = url.split('/').last;
+    final appDir = await getApplicationDocumentsDirectory();
+    final savePath = '${appDir.path}/$fileName';
+
+    if (!await _requestStoragePermission()) return;
+
+    setState(() {
+      _isDownloading[url] = true;
+      _downloadProgress[url] = 0.0;
+    });
+
+    try {
+      await _dio.download(
+        url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            setState(() => _downloadProgress[url] = received / total);
+          }
+        },
+      );
+
+      await _cacheManager.putFile(
+        url,
+        File(savePath).readAsBytesSync(),
+        key: url,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final downloaded = prefs.getStringList(_prefsKey) ?? [];
+      downloaded.add(fileName);
+      await prefs.setStringList(_prefsKey, downloaded);
+
+      setState(() {
+        mood['localPath'] = savePath;
+        mood['isDownloaded'] = true;
+      });
+
+    } catch (e) {
+      _showErrorSnackbar('Download failed: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isDownloading.remove(url);
+        _downloadProgress.remove(url);
+      });
+    }
+  }
+
+  Future<bool> _requestStoragePermission() async {
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        final sdkInt = androidInfo.version.sdkInt;
+
+        if (sdkInt >= 33) {
+          final status = await Permission.audio.request();
+          if (!status.isGranted) {
+            _showErrorSnackbar('Audio access required for downloads');
+            return false;
+          }
+        } else {
+          final status = await Permission.storage.request();
+          if (!status.isGranted) {
+            _showErrorSnackbar('Storage permission required for downloads');
+            return false;
+          }
+        }
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Permission error: $e');
+      return false;
+    }
   }
 
   void _setupAudioListeners() {
@@ -60,22 +233,40 @@ class _MusicPageState extends State<MusicPage> {
     });
   }
 
-  Future<void> _playMood(String mood) async {
+  Future<void> _playMood(String moodName) async {
     try {
-      if (_currentMood == mood && _isPlaying) {
+      if (_currentMood == moodName && _isPlaying) {
         await _audioPlayer.pause();
       } else {
-        final path = 'audio/mood_audio/${mood.toLowerCase()}.mp3';
-        await _audioPlayer.play(AssetSource(path));
+        final mood = _moodPlaylists.firstWhere((m) => m['name'] == moodName);
+        final url = mood['remoteUrl'];
+
+        FileInfo? fileInfo = await _cacheManager.getFileFromCache(url);
+        if (fileInfo == null) {
+          fileInfo = await _cacheManager.downloadFile(url);
+        }
+
+        await _audioPlayer.play(DeviceFileSource(fileInfo.file.path));
         setState(() {
-          _currentMood = mood;
-          _currentTrack = mood;
+          _currentMood = moodName;
+          _currentTrack = moodName;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _isPlaying = false);
       debugPrint('Audio Error: $e');
+      _showErrorSnackbar('Playback error: ${e.toString()}');
     }
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _resetPlayer() {
@@ -108,6 +299,8 @@ class _MusicPageState extends State<MusicPage> {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _dio.close();
+    _cacheManager.emptyCache();
     super.dispose();
   }
 
@@ -153,16 +346,36 @@ class _MusicPageState extends State<MusicPage> {
                           width: 2,
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Stack(
                         children: [
-                          Text(mood['emoji'], style: const TextStyle(fontSize: 40)),
-                          const SizedBox(height: 10),
-                          Text(mood['name'],
-                              style: GoogleFonts.amita(
-                                  fontSize: isSmallScreen ? 18 : 22,
-                                  color: Colors.white
-                              )),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(mood['emoji'], style: const TextStyle(fontSize: 40)),
+                              const SizedBox(height: 10),
+                              Text(mood['name'],
+                                  style: GoogleFonts.amita(
+                                      fontSize: isSmallScreen ? 18 : 22,
+                                      color: Colors.white
+                                  )),
+                            ],
+                          ),
+                          if (!mood['isDownloaded'])
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: IconButton(
+                                icon: _isDownloading[mood['remoteUrl']] ?? false
+                                    ? CircularProgressIndicator(
+                                  value: _downloadProgress[mood['remoteUrl']] ?? 0.0,
+                                  backgroundColor: Colors.white24,
+                                  valueColor: const AlwaysStoppedAnimation(Colors.tealAccent),
+                                )
+                                    : const Icon(Icons.cloud_download, color: Colors.white70),
+                                iconSize: 20,
+                                onPressed: () => _downloadMoodTrack(mood['name']),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -170,7 +383,6 @@ class _MusicPageState extends State<MusicPage> {
                 ),
               ),
 
-              // Player controls
               if (_currentTrack != null) _buildPlayerControls(isSmallScreen),
             ],
           ),
@@ -188,7 +400,6 @@ class _MusicPageState extends State<MusicPage> {
       ),
       child: Column(
         children: [
-          // Track info
           Text(
             _currentTrack!,
             style: GoogleFonts.amita(
@@ -203,7 +414,6 @@ class _MusicPageState extends State<MusicPage> {
           ),
           const SizedBox(height: 16),
 
-          // Progress bar
           Column(
             children: [
               Slider(
@@ -246,11 +456,9 @@ class _MusicPageState extends State<MusicPage> {
           ),
           const SizedBox(height: 16),
 
-          // Controls
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Loop button
               IconButton(
                 icon: Icon(
                   Icons.loop,
@@ -261,7 +469,6 @@ class _MusicPageState extends State<MusicPage> {
               ),
               const SizedBox(width: 20),
 
-              // Play/Pause button
               IconButton(
                 iconSize: isSmallScreen ? 50 : 60,
                 icon: Icon(
@@ -272,7 +479,6 @@ class _MusicPageState extends State<MusicPage> {
               ),
               const SizedBox(width: 20),
 
-              // Stop button
               IconButton(
                 icon: const Icon(Icons.stop_circle),
                 color: Colors.white70,
