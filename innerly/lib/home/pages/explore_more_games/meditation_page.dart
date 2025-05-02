@@ -1,10 +1,16 @@
-import 'dart:convert';
-
+import 'dart:async';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:circular_countdown_timer/circular_countdown_timer.dart';
-import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class MeditationPage extends StatefulWidget {
   const MeditationPage({super.key});
@@ -16,75 +22,177 @@ class MeditationPage extends StatefulWidget {
 class _MeditationPageState extends State<MeditationPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final CountDownController _timerController = CountDownController();
+  final Dio _dio = Dio();
+  final _prefsKey = 'downloaded_tracks';
+  late final CacheManager _cacheManager;
 
   bool _isPlaying = false;
   bool _showTimer = false;
   bool _isLooping = false;
-  int _selectedDuration = -1; // -1 represents infinite duration
+  int _selectedDuration = -1;
   Duration _audioPosition = Duration.zero;
   Duration _audioDuration = Duration.zero;
 
   List<Map<String, dynamic>> _meditationTracks = [];
   int _selectedTrackIndex = 0;
+  Map<String, double> _downloadProgress = {};
+  Map<String, bool> _isDownloading = {};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestStoragePermission();
+    });
+    _cacheManager = CacheManager(Config('audio_cache',
+        stalePeriod: const Duration(days: 30), maxNrOfCacheObjects: 100));
     _setupAudioListeners();
-    _loadAudioFiles();
+    _initializeTracks();
+    _loadDownloadedTracks();
     _audioPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
-  Future<void> _loadAudioFiles() async {
-    try {
-      final manifest = await rootBundle.loadString('AssetManifest.json');
-      final audioPaths = json.decode(manifest).keys
-          .where((path) => path.startsWith('assets/audio/meditation_audio/'))
-          .toList();
+  Future<void> _initializeTracks() async {
+    final cloudName = dotenv.get('CLOUDINARY_CLOUD_NAME');
 
-      _meditationTracks = audioPaths.map((fullPath) {
-        final cleanPath = fullPath.replaceFirst('assets/', '');
-        final filename = cleanPath.split('/').last.replaceAll('.mp3', '');
-
-        return {
-          'title': filename.split('_').map((w) => w[0].toUpperCase() + w.substring(1)).join(' '),
-          'path': cleanPath,
+    setState(() {
+      _meditationTracks = [
+        {
+          'title': 'Morning Calm',
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746185897', // Add this from Cloudinary
+              publicId: 'morning_calm_pcs2ul'
+          ),
+          'localPath': '',
           'duration': '10 min',
-          'description': _getDescription(filename),
-        };
-      }).toList();
+          'description': 'Gentle guidance for starting your day',
+          'isDownloaded': false,
+        },
+        {
+          'title': 'Deep Relaxation',
+          'remoteUrl': _buildCloudinaryUrl(
+              cloudName: cloudName,
+              version: 'v1746185930', // Add this from Cloudinary
+              publicId: 'deep_relaxation_pkyohg'
+          ),
+          'localPath': '',
+          'duration': '20 min',
+          'description': 'Release tension and find peace',
+          'isDownloaded': false,
+        },
+      ];
+    });
+  }
 
-      if (mounted) setState(() {});
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _meditationTracks = [
-            {
-              'title': 'Morning Calm',
-              'path': 'audio/meditation_audio/morning_calm.mp3',
-              'duration': '10 min',
-              'description': 'Gentle guidance for starting your day'
-            },
-            {
-              'title': 'Deep Relaxation',
-              'path': 'audio/meditation_audio/deep_relaxation.mp3',
-              'duration': '20 min',
-              'description': 'Release tension and find peace'
-            },
-          ];
-        });
+  String _buildCloudinaryUrl({
+    required String cloudName,
+    required String version,
+    required String publicId,
+  }) {
+    return 'https://res.cloudinary.com/$cloudName/video/upload/$version/$publicId.mp3';
+  }
+
+  Future<void> _loadDownloadedTracks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final downloaded = prefs.getStringList(_prefsKey) ?? [];
+
+    for (var track in _meditationTracks) {
+      final fileName = track['remoteUrl'].split('/').last;
+      final appDir = await getApplicationDocumentsDirectory();
+      final localPath = '${appDir.path}/$fileName';
+
+      if (downloaded.contains(fileName)) {
+        if (await File(localPath).exists()) {
+          track['localPath'] = localPath;
+          track['isDownloaded'] = true;
+        } else {
+          prefs.remove(fileName);
+        }
       }
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _downloadTrack(int index) async {
+    final track = _meditationTracks[index];
+    final url = track['remoteUrl'];
+    final fileName = url.split('/').last;
+    final appDir = await getApplicationDocumentsDirectory();
+    final savePath = '${appDir.path}/$fileName';
+
+    if (!await _requestStoragePermission()) return;
+
+    setState(() {
+      _isDownloading[url] = true;
+      _downloadProgress[url] = 0.0;
+    });
+
+    try {
+      await _dio.download(
+        url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            setState(() => _downloadProgress[url] = received / total);
+          }
+        },
+      );
+
+      // Add to cache
+      await _cacheManager.putFile(
+        url,
+        File(savePath).readAsBytesSync(),
+        key: url,
+      );
+
+      // Update track state
+      final prefs = await SharedPreferences.getInstance();
+      final downloaded = prefs.getStringList(_prefsKey) ?? [];
+      downloaded.add(fileName);
+      await prefs.setStringList(_prefsKey, downloaded);
+
+      setState(() {
+        track['localPath'] = savePath;
+        track['isDownloaded'] = true;
+      });
+
+    } catch (e) {
+      _showErrorSnackbar('Download failed: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isDownloading.remove(url);
+        _downloadProgress.remove(url);
+      });
     }
   }
 
-  String _getDescription(String filename) {
-    switch (filename) {
-      case 'deep_relaxation':
-        return 'Release tension and find peace';
-      case 'morning_calm':
-        return 'Gentle guidance for starting your day';
-      default:
-        return 'Meditation track';
+  Future<bool> _requestStoragePermission() async {
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        final sdkInt = androidInfo.version.sdkInt;
+
+        if (sdkInt >= 33) { // Android 13+
+          final status = await Permission.audio.request();
+          if (!status.isGranted) {
+            _showErrorSnackbar('Audio access required for downloads');
+            return false;
+          }
+        } else { // Android <13
+          final status = await Permission.storage.request();
+          if (!status.isGranted) {
+            _showErrorSnackbar('Storage permission required for downloads');
+            return false;
+          }
+        }
+      }
+      // iOS doesn't need storage permission for app directories
+      return true;
+    } catch (e) {
+      debugPrint('Permission error: $e');
+      return false;
     }
   }
 
@@ -123,7 +231,14 @@ class _MeditationPageState extends State<MeditationPage> {
         if (_meditationTracks.isEmpty) return;
 
         final track = _meditationTracks[_selectedTrackIndex];
-        await _audioPlayer.play(AssetSource(track['path']));
+        final url = track['remoteUrl'];
+
+        FileInfo? fileInfo = await _cacheManager.getFileFromCache(url);
+        if (fileInfo == null) {
+          fileInfo = await _cacheManager.downloadFile(url);
+        }
+
+        await _audioPlayer.play(DeviceFileSource(fileInfo.file.path));
 
         if (_selectedDuration != -1 && !_showTimer && mounted) {
           setState(() => _showTimer = true);
@@ -133,7 +248,18 @@ class _MeditationPageState extends State<MeditationPage> {
     } catch (e) {
       if (mounted) setState(() => _isPlaying = false);
       debugPrint('Audio Error: $e');
+      _showErrorSnackbar('Playback error: ${e.toString()}');
     }
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _resetMeditation() {
@@ -179,6 +305,8 @@ class _MeditationPageState extends State<MeditationPage> {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _dio.close();
+    _cacheManager.emptyCache();
     super.dispose();
   }
 
@@ -209,7 +337,6 @@ class _MeditationPageState extends State<MeditationPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Header with timer
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -251,7 +378,6 @@ class _MeditationPageState extends State<MeditationPage> {
                           ),
                           SizedBox(height: isSmallScreen ? 15 : 30),
 
-                          // Meditation track artwork
                           Container(
                             width: isPortrait ? screenSize.width * 0.7 : screenSize.height * 0.7,
                             height: isPortrait ? screenSize.width * 0.7 : screenSize.height * 0.7,
@@ -266,13 +392,12 @@ class _MeditationPageState extends State<MeditationPage> {
                                   color: Colors.black.withOpacity(0.3),
                                   blurRadius: 20,
                                   spreadRadius: 5,
-                                )
+                                ),
                               ],
                             ),
                           ),
                           SizedBox(height: isSmallScreen ? 15 : 30),
 
-                          // Track info
                           Flexible(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -303,7 +428,6 @@ class _MeditationPageState extends State<MeditationPage> {
                           ),
                           SizedBox(height: isSmallScreen ? 15 : 20),
 
-                          // Audio progress bar
                           Column(
                             children: [
                               Padding(
@@ -349,11 +473,9 @@ class _MeditationPageState extends State<MeditationPage> {
                           ),
                           SizedBox(height: isSmallScreen ? 10 : 20),
 
-                          // Controls
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Loop button
                               IconButton(
                                 icon: Icon(
                                   Icons.loop,
@@ -364,7 +486,6 @@ class _MeditationPageState extends State<MeditationPage> {
                               ),
                               SizedBox(width: isSmallScreen ? 10 : 20),
 
-                              // Main play/pause button
                               IconButton(
                                 iconSize: isSmallScreen ? 50 : 60,
                                 icon: Icon(
@@ -375,7 +496,6 @@ class _MeditationPageState extends State<MeditationPage> {
                               ),
                               SizedBox(width: isSmallScreen ? 10 : 20),
 
-                              // Reset button
                               IconButton(
                                 icon: const Icon(Icons.stop_circle),
                                 color: Colors.white70,
@@ -386,7 +506,6 @@ class _MeditationPageState extends State<MeditationPage> {
                           ),
                           SizedBox(height: isSmallScreen ? 15 : 30),
 
-                          // Track selection
                           SizedBox(
                             height: isSmallScreen ? 80 : 100,
                             child: _meditationTracks.isEmpty
@@ -396,6 +515,9 @@ class _MeditationPageState extends State<MeditationPage> {
                               itemCount: _meditationTracks.length,
                               itemBuilder: (context, index) {
                                 final track = _meditationTracks[index];
+                                final isDownloading = _isDownloading[track['remoteUrl']] ?? false;
+                                final progress = _downloadProgress[track['remoteUrl']] ?? 0.0;
+
                                 return GestureDetector(
                                   onTap: () {
                                     setState(() => _selectedTrackIndex = index);
@@ -417,43 +539,68 @@ class _MeditationPageState extends State<MeditationPage> {
                                         width: 1,
                                       ),
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                    child: Stack(
                                       children: [
-                                        Flexible(
-                                          child: Text(
-                                            track['title'],
-                                            style: GoogleFonts.abel(
-                                              fontSize: isSmallScreen ? 14 : 16,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        SizedBox(height: isSmallScreen ? 2 : 5),
-                                        Flexible(
-                                          child: Text(
-                                            track['duration'],
-                                            style: GoogleFonts.abel(
-                                              fontSize: isSmallScreen ? 10 : 12,
-                                              color: Colors.white70,
-                                            ),
-                                          ),
-                                        ),
-                                        if (!isSmallScreen) SizedBox(height: 5),
-                                        if (!isSmallScreen)
-                                          Flexible(
-                                            child: Text(
-                                              track['description'],
-                                              style: GoogleFonts.abel(
-                                                fontSize: 10,
-                                                color: Colors.white54,
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                track['title'],
+                                                style: GoogleFonts.abel(
+                                                  fontSize: isSmallScreen ? 14 : 16,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            SizedBox(height: isSmallScreen ? 2 : 5),
+                                            Flexible(
+                                              child: Text(
+                                                track['duration'],
+                                                style: GoogleFonts.abel(
+                                                  fontSize: isSmallScreen ? 10 : 12,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ),
+                                            if (!isSmallScreen) SizedBox(height: 5),
+                                            if (!isSmallScreen)
+                                              Flexible(
+                                                child: Text(
+                                                  track['description'],
+                                                  style: GoogleFonts.abel(
+                                                    fontSize: 10,
+                                                    color: Colors.white54,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        if (!track['isDownloaded'])
+                                          Positioned(
+                                            right: 5,
+                                            top: 5,
+                                            child: IconButton(
+                                              icon: isDownloading
+                                                  ? CircularProgressIndicator(
+                                                value: progress,
+                                                backgroundColor: Colors.white24,
+                                                valueColor: AlwaysStoppedAnimation(
+                                                  Colors.tealAccent,
+                                                ),
+                                              )
+                                                  : Icon(
+                                                Icons.cloud_download,
+                                                color: Colors.white70,
+                                              ),
+                                              iconSize: 20,
+                                              onPressed: () => _downloadTrack(index),
                                             ),
                                           ),
                                       ],
@@ -464,7 +611,6 @@ class _MeditationPageState extends State<MeditationPage> {
                             ),
                           ),
 
-                          // Duration selection
                           Flexible(
                             child: Column(
                               children: [
