@@ -45,11 +45,11 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
   }
 
   void _setupRealtimeUpdates() {
-    _supabase.channel('appointments')
+    _supabase.channel('availability')
         .onPostgresChanges(
         event: PostgresChangeEvent.all,
         schema: 'public',
-        table: 'appointments',
+        table: 'therapists_availability',
         callback: (payload) async {
           await _loadExistingSlots();
         }
@@ -96,10 +96,9 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
     if (userId == null) return [];
 
     final response = await _supabase
-        .from('appointments')
+        .from('therapists_availability')
         .select()
-        .eq('therapist_id', userId)
-        .eq('is_availability', true);
+        .eq('therapist_id', userId);
 
     return response.map((slot) {
       final start = DateTime.parse(slot['scheduled_at']).toLocal();
@@ -108,7 +107,7 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
         startTime: TimeOfDay.fromDateTime(start),
         endTime: TimeOfDay.fromDateTime(DateTime.parse(slot['end_time']).toLocal()),
         originalDate: start,
-        targetWeekday: slot['target_weekday'] as int, // Get from database
+        targetWeekday: slot['target_weekday'] as int,
         isRecurring: slot['is_recurring'] ?? false,
       );
     }).toList();
@@ -258,13 +257,12 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
         slot.endTime.minute,
       );
 
-      await _supabase.from('appointments').insert({
+      await _supabase.from('therapists_availability').insert({
         'therapist_id': userId,
         'scheduled_at': startDateTime.toUtc().toIso8601String(),
         'end_time': endDateTime.toUtc().toIso8601String(),
-        'is_availability': true,
         'is_recurring': slot.isRecurring,
-        'target_weekday': slot.targetWeekday, // Add target weekday
+        'target_weekday': slot.targetWeekday,
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -301,11 +299,11 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
         slot.endTime.minute,
       );
 
-      await _supabase.from('appointments').update({
+      await _supabase.from('therapists_availability').update({
         'scheduled_at': startDateTime.toUtc().toIso8601String(),
         'end_time': endDateTime.toUtc().toIso8601String(),
         'is_recurring': slot.isRecurring,
-        'target_weekday': slot.targetWeekday, // Add target weekday
+        'target_weekday': slot.targetWeekday,
       }).eq('id', slot.id!);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -317,7 +315,7 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
   Future<void> _deleteSlotFromDatabase(String? slotId) async {
     try {
       if (slotId == null) return;
-      await _supabase.from('appointments').delete().eq('id', slotId);
+      await _supabase.from('therapists_availability').delete().eq('id', slotId);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error deleting slot: ${e.toString()}')),
