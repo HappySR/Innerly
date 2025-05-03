@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,14 +24,14 @@ class TherapistsListScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            'Therapists',
+            L10n.getTranslatedText(context, 'Therapists'),
             style: GoogleFonts.lora(color: Colors.black),
           ),
           centerTitle: true,
           bottom: TabBar(
-            tabs: const [
-              Tab(text: 'Available'),
-              Tab(text: 'Chat History'),
+            tabs: [
+              Tab(text: L10n.getTranslatedText(context, 'Available')),
+              Tab(text: L10n.getTranslatedText(context, 'Chat History')),
             ],
             labelColor: Colors.black,
             indicatorColor: Colors.black,
@@ -63,13 +64,13 @@ class OnlineTherapistsTab extends StatelessWidget {
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Failed to load therapists.'));
+          return Center(child: Text(L10n.getTranslatedText(context, 'Failed to load therapists.')));
         }
 
         final therapists = snapshot.data ?? [];
 
         if (therapists.isEmpty) {
-          return const Center(child: Text('No Therapists Available'));
+          return Center(child: Text(L10n.getTranslatedText(context, 'No Therapists Available')));
         }
 
         // Dummy split (you can split based on some criteria like tags)
@@ -82,11 +83,11 @@ class OnlineTherapistsTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              _buildSectionTitle(context, 'Great Match'),
+              _buildSectionTitle(context, L10n.getTranslatedText(context, 'Great Match')),
               const SizedBox(height: 8),
               _buildTherapistList(context, greatMatch, cardColor: InnerlyTheme.beige),
               const SizedBox(height: 24),
-              _buildSectionTitle(context, 'Specializing in Sleep help'),
+              _buildSectionTitle(context, L10n.getTranslatedText(context, 'Specializing in Sleep help')),
               const SizedBox(height: 8),
               _buildTherapistList(context, specializing, cardColor: InnerlyTheme.pink),
             ],
@@ -108,7 +109,7 @@ class OnlineTherapistsTab extends StatelessWidget {
         ),
         TextButton(
           onPressed: () {},
-          child: const Text('See All'),
+          child: Text(L10n.getTranslatedText(context, 'See All')),
         ),
       ],
     );
@@ -192,7 +193,7 @@ class ChatHistoryTab extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return const Center(child: Text('Failed to load chat history.'));
+          return Center(child: Text(L10n.getTranslatedText(context, 'Failed to load chat history.')));
         }
 
         final messages = snapshot.data ?? [];
@@ -228,9 +229,9 @@ class ChatHistoryTab extends StatelessWidget {
               future: authService.getTherapist(therapistId),
               builder: (context, therapistSnapshot) {
                 if (therapistSnapshot.connectionState != ConnectionState.done) {
-                  return const ListTile(
+                  return ListTile(
                     leading: CircleAvatar(),
-                    title: Text('Loading...'),
+                    title: Text("${L10n.getTranslatedText(context, 'Loading')}..."),
                   );
                 }
                 final therapist = therapistSnapshot.data ?? {};
@@ -282,7 +283,7 @@ class ChatHistoryTab extends StatelessWidget {
 
     if (receiverId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid therapist ID')),
+        SnackBar(content: Text(L10n.getTranslatedText(context, 'Invalid therapist ID'))),
       );
       return;
     }
@@ -323,7 +324,7 @@ class TherapistDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Therapist Profile'),
+        title: Text(L10n.getTranslatedText(context, 'Therapist Profile')),
         centerTitle: true,
         elevation: 0,
       ),
@@ -375,7 +376,7 @@ class TherapistDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        isOnline ? 'Online Now' : 'Offline',
+                        isOnline ? L10n.getTranslatedText(context, 'Online Now') : L10n.getTranslatedText(context, 'Offline'),
                         style: TextStyle(
                           color: isOnline ? Colors.green : Colors.grey,
                           fontWeight: FontWeight.w500,
@@ -384,7 +385,7 @@ class TherapistDetailScreen extends StatelessWidget {
                       if (lastActive != null && !isOnline) ...[
                         const SizedBox(width: 8),
                         Text(
-                          '• Last active: ${_formatLastActive(lastActive)}',
+                          '• ${L10n.getTranslatedText(context, 'Last active')}: ${_formatLastActive(lastActive, context)}',
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 12,
@@ -401,22 +402,22 @@ class TherapistDetailScreen extends StatelessWidget {
             // Professional Information
             _buildDetailSection(
               context,
-              'Professional Information',
+              L10n.getTranslatedText(context, 'Professional Information'),
               [
                 _buildDetailRow(
                     Icons.work_outline,
-                    'Experience',
-                    '$experience years'
+                    L10n.getTranslatedText(context, 'Experience'),
+                    '$experience ${L10n.getTranslatedText(context, 'years')}'
                 ),
                 if (hourlyRate != null)
                   _buildDetailRow(
                       Icons.attach_money,
-                      'Hourly Rate',
+                      L10n.getTranslatedText(context, 'Hourly Rate'),
                       '\$${hourlyRate.toStringAsFixed(2)}'
                   ),
                 _buildDetailRow(
                     Icons.verified,
-                    'Verification Status',
+                    L10n.getTranslatedText(context, 'Verification Status'),
                     status
                 ),
               ],
@@ -426,7 +427,7 @@ class TherapistDetailScreen extends StatelessWidget {
             // About Section
             _buildDetailSection(
               context,
-              'About',
+              L10n.getTranslatedText(context, 'About'),
               [
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -445,7 +446,7 @@ class TherapistDetailScreen extends StatelessWidget {
                 children: [
                   FilledButton.icon(
                     icon: const Icon(Icons.chat, size: 20),
-                    label: const Text('Start Chat'),
+                    label: Text(L10n.getTranslatedText(context, 'Start Chat')),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(200, 48),
                     ),
@@ -456,7 +457,7 @@ class TherapistDetailScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.calendar_today, size: 20),
-                    label: const Text('Book Appointment'),
+                    label: Text(L10n.getTranslatedText(context, 'Book Appointment')),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(200, 48),
                     ),
@@ -476,7 +477,7 @@ class TherapistDetailScreen extends StatelessWidget {
     final therapistId = therapist['id']?.toString() ?? '';
     if (therapistId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid therapist ID')),
+        SnackBar(content: Text(L10n.getTranslatedText(context, 'Invalid therapist ID'))),
       );
       return;
     }
@@ -486,7 +487,7 @@ class TherapistDetailScreen extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) => ChatScreen(
           receiverId: therapistId,
-          receiverName: therapist['name'] ?? 'Therapist',
+          receiverName: therapist['name'] ?? L10n.getTranslatedText(context, 'Therapist'),
           isTherapist: true,
         ),
       ),
@@ -504,12 +505,12 @@ class TherapistDetailScreen extends StatelessWidget {
     );
   }
 
-  String _formatLastActive(DateTime lastActive) {
+  String _formatLastActive(DateTime lastActive, BuildContext context) {
     final difference = DateTime.now().difference(lastActive);
-    if (difference.inDays > 30) return '${difference.inDays ~/ 30}mo ago';
-    if (difference.inDays > 0) return '${difference.inDays}d ago';
-    if (difference.inHours > 0) return '${difference.inHours}h ago';
-    return '${difference.inMinutes}m ago';
+    if (difference.inDays > 30) return '${difference.inDays ~/ 30}mo ${L10n.getTranslatedText(context, 'ago')}';
+    if (difference.inDays > 0) return '${difference.inDays}d ${L10n.getTranslatedText(context, 'ago')}';
+    if (difference.inHours > 0) return '${difference.inHours}h ${L10n.getTranslatedText(context, 'ago')}';
+    return '${difference.inMinutes}m ${L10n.getTranslatedText(context, 'ago')}';
   }
 
   Widget _buildDetailSection(

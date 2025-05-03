@@ -1,8 +1,12 @@
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+import '../../localization/i10n.dart';
+import '../../localization/language_provider.dart';
 import '../../started/welcome_page.dart';
 import 'edit_profile_view.dart';
 
@@ -19,6 +23,7 @@ class _ProfileViewState extends State<ProfileView> {
   String? _uuid;
   bool _obscureUuid = true;
   bool _isLoadingUuid = false;
+  late Locale _selectedLocale;
 
   Future<void> _getUserUuid() async {
     setState(() => _isLoadingUuid = true);
@@ -38,7 +43,7 @@ class _ProfileViewState extends State<ProfileView> {
     } on PostgrestException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching UUID: ${e.message}')),
+          SnackBar(content: Text('${L10n.getTranslatedText(context, 'Error fetching UUID')}: ${e.message}')),
         );
       }
     } finally {
@@ -56,14 +61,14 @@ class _ProfileViewState extends State<ProfileView> {
 
       if (!canAuthenticate || !isDeviceSupported) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Biometric authentication not available')),
+          SnackBar(content: Text(L10n.getTranslatedText(context, 'Biometric authentication not available'))),
         );
         return;
       }
 
       // Then authenticate
       final didAuthenticate = await _localAuth.authenticate(
-        localizedReason: 'Authenticate to reveal your UUID',
+        localizedReason: L10n.getTranslatedText(context, 'Authenticate to reveal your UUID'),
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false, // Allow device credentials too
@@ -79,7 +84,7 @@ class _ProfileViewState extends State<ProfileView> {
       }
     } on PlatformException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Authentication failed: ${e.message}')),
+        SnackBar(content: Text('${L10n.getTranslatedText(context, 'Authentication failed')}: ${e.message}')),
       );
     }
   }
@@ -88,7 +93,7 @@ class _ProfileViewState extends State<ProfileView> {
     if (_uuid != null) {
       Clipboard.setData(ClipboardData(text: _uuid!));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('UUID copied to clipboard')),
+        SnackBar(content: Text(L10n.getTranslatedText(context, 'UUID copied to clipboard'))),
       );
     }
   }
@@ -101,10 +106,46 @@ class _ProfileViewState extends State<ProfileView> {
         await _getUserUuid();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load user information')),
+          SnackBar(content: Text(L10n.getTranslatedText(context, 'Failed to load user information'))),
         );
       }
     });
+    _selectedLocale = const Locale('en');
+    _loadLanguage();
+  }
+
+
+
+
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final langCode = prefs.getString('language') ?? 'en';
+
+    final newLocale = Locale(langCode);
+
+    Future.microtask(() {
+      final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+      if (languageProvider.locale != newLocale) {
+        languageProvider.setLocale(newLocale);
+      }
+      setState(() {
+        _selectedLocale = newLocale; // Ensure state is updated
+      });
+    });
+  }
+
+  void _changeLanguage(Locale locale) async {
+    if (locale != _selectedLocale) {
+      setState(() {
+        _selectedLocale = locale;
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('language', locale.languageCode);
+
+      Provider.of<LanguageProvider>(context, listen: false).setLocale(locale);
+    }
   }
 
   @override
@@ -124,8 +165,8 @@ class _ProfileViewState extends State<ProfileView> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Hello, Kate",
+                      Text(
+                        "${L10n.getTranslatedText(context, 'Hello')}, Kate",
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
@@ -138,7 +179,7 @@ class _ProfileViewState extends State<ProfileView> {
 
                           if (_uuid == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('UUID not available')),
+                              SnackBar(content: Text(L10n.getTranslatedText(context, 'UUID not available'))),
                             );
                             return;
                           }
@@ -167,7 +208,7 @@ class _ProfileViewState extends State<ProfileView> {
                                         ? _obscureUuid
                                         ? '••••••••••••••••'
                                         : _uuid!
-                                        : 'Tap to reveal UUID',
+                                        : '${L10n.getTranslatedText(context, 'Tap to reveal')} UUID',
                                     style: TextStyle(
                                       fontSize: MediaQuery.of(context).size.width * 0.035,
                                       color: Colors.grey,
@@ -240,13 +281,13 @@ class _ProfileViewState extends State<ProfileView> {
                   backgroundColor: InnerlyTheme.beige,
                 ),
                 icon: const Icon(Icons.edit, size: 16, color: Colors.black,),
-                label: const Text("Edit Profile", style: TextStyle(color: Colors.black),),
+                label: Text(L10n.getTranslatedText(context, 'Edit Profile'), style: TextStyle(color: Colors.black),),
               ),
               const SizedBox(height: 20),
 
               // Mood Tracker Summary
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: InnerlyTheme.beige,
                   borderRadius: BorderRadius.circular(12),
@@ -254,8 +295,8 @@ class _ProfileViewState extends State<ProfileView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Mood Tracker Summary",
+                    Text(
+                      L10n.getTranslatedText(context, 'Mood Tracker Summary'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -277,10 +318,10 @@ class _ProfileViewState extends State<ProfileView> {
                     // Mood Icons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
-                        _MoodIcon(emoji: "😢", label: "Low"),
-                        _MoodIcon(emoji: "😐", label: "Neutral"),
-                        _MoodIcon(emoji: "😊", label: "Happy"),
+                      children: [
+                        _MoodIcon(emoji: "😢", label: L10n.getTranslatedText(context, 'Low')),
+                        _MoodIcon(emoji: "😐", label: L10n.getTranslatedText(context, 'Neutral')),
+                        _MoodIcon(emoji: "😊", label: L10n.getTranslatedText(context, 'Happy')),
                       ],
                     ),
                   ],
@@ -289,24 +330,24 @@ class _ProfileViewState extends State<ProfileView> {
               const SizedBox(height: 24),
 
               // Personal Growth Section
-              const Text(
-                "Personal Growth",
+              Text(
+                L10n.getTranslatedText(context, 'Personal Growth'),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               _buildGrowthItem(
                 emoji: '📝',
-                title: "Journals Completed",
+                title: L10n.getTranslatedText(context, 'Journals Completed'),
                 value: "12",
               ),
               _buildGrowthItem(
                 emoji: '🎯',
-                title: "Challenges Achieved",
+                title: L10n.getTranslatedText(context, 'Challenges Achieved'),
                 value: "5",
               ),
               _buildGrowthItem(
                 emoji: '🔥',
-                title: "Current Journey Stage",
+                title: L10n.getTranslatedText(context, 'Current Journey Stage'),
                 value: "Stage 3",
               ),
               const SizedBox(height: 24),
@@ -317,7 +358,7 @@ class _ProfileViewState extends State<ProfileView> {
                   children: [
                     Expanded(
                       child: _buildCard(
-                        title: "Therapist",
+                        title: L10n.getTranslatedText(context, 'Therapist'),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -357,8 +398,8 @@ class _ProfileViewState extends State<ProfileView> {
                                         ), // <-- added this
                                       ),
                                     ),
-                                    child: const Text(
-                                      "Message",
+                                    child: Text(
+                                      L10n.getTranslatedText(context, 'Message'),
                                       style: TextStyle(fontSize: 12,
                                       color: Colors.black),
                                     ),
@@ -380,8 +421,8 @@ class _ProfileViewState extends State<ProfileView> {
                                         ), // <-- added this
                                       ),
                                     ),
-                                    child: const Text(
-                                      "Book Session",
+                                    child: Text(
+                                      L10n.getTranslatedText(context, 'Book Session'),
                                       style: TextStyle(fontSize: 12,
                                           color: Colors.black),
                                     ),
@@ -396,20 +437,20 @@ class _ProfileViewState extends State<ProfileView> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildCard(
-                        title: "My Community Posts",
+                        title: L10n.getTranslatedText(context, 'My Community Posts'),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "12 posts . 45 comments",
+                            Text(
+                              "12 ${L10n.getTranslatedText(context, 'posts')} . 45 ${L10n.getTranslatedText(context, 'comments')}",
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              "56 Followers . 45 comments",
+                            Text(
+                              "56 ${L10n.getTranslatedText(context, 'Followers')} . 45 ${L10n.getTranslatedText(context, 'comments')}",
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
@@ -430,8 +471,8 @@ class _ProfileViewState extends State<ProfileView> {
                                   ), // <-- added this
                                 ),
                               ),
-                              child: const Text(
-                                "View my posts",
+                              child: Text(
+                                L10n.getTranslatedText(context, 'View my posts'),
                                 style: TextStyle(fontSize: 12,
                                     color: Colors.black),
                               ),
@@ -447,17 +488,17 @@ class _ProfileViewState extends State<ProfileView> {
 
               // Wellness Goals
               _buildCard(
-                title: "Wellness Goals",
+                title: L10n.getTranslatedText(context, 'Wellness Goals'),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     _GoalItem(
-                      goal: "Meditate 5 times this week",
+                      goal: L10n.getTranslatedText(context, 'Meditate 5 times this week'),
                       isCompleted: true,
                     ),
-                    _GoalItem(goal: "Log mood daily", isCompleted: true),
+                    _GoalItem(goal: L10n.getTranslatedText(context, 'Log mood daily'), isCompleted: true),
                     _GoalItem(
-                      goal: "Eat 2 healthy meals daily",
+                      goal: L10n.getTranslatedText(context, 'Eat 2 healthy meals daily'),
                       isCompleted: true,
                     ),
                   ],
@@ -484,8 +525,8 @@ class _ProfileViewState extends State<ProfileView> {
                             (route) => false,
                       );
                     },
-                    child: const Text(
-                      'Logout',
+                    child: Text(
+                      L10n.getTranslatedText(context, 'Logout'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -493,6 +534,29 @@ class _ProfileViewState extends State<ProfileView> {
                       ),
                     ),
                   ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Consumer<LanguageProvider>(
+                  builder: (context, provider, child) {
+                    return DropdownButton<Locale>(
+                      value: provider.locale,
+                      hint: Text(L10n.getTranslatedText(context, 'Choose Language')),
+                      isExpanded: true,
+                      onChanged: (Locale? newLocale) {
+                        if (newLocale != null) {
+                          _changeLanguage(newLocale); // Call the function
+                        }
+                      },
+                      items: L10n.supportedLocales.map((Locale locale) {
+                        return DropdownMenuItem(
+                          value: locale,
+                          child: Text(L10n.getLanguageName(locale.languageCode)),
+                        );
+                      }).toList(),
+                    );
+                  },
                 ),
               ),
             ],

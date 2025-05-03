@@ -12,9 +12,13 @@ import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../home/providers/bottom_nav_provider.dart';
+import 'localization/i10n.dart';
+import 'localization/language_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
 
   await _initializeApp();
 
@@ -25,10 +29,12 @@ void main() async {
         Provider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => ChatService()),
         ChangeNotifierProvider(create: (_) => AppointmentService()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()), // ✅ Add this line
       ],
       child: const MyApp(),
     ),
   );
+
 
   SystemChrome.setSystemUIOverlayStyle(_systemUiOverlayStyle());
 }
@@ -75,9 +81,8 @@ SystemUiOverlayStyle _systemUiOverlayStyle() {
   return SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
-    statusBarBrightness: !kIsWeb && Platform.isAndroid
-        ? Brightness.dark
-        : Brightness.light,
+    statusBarBrightness:
+    !kIsWeb && Platform.isAndroid ? Brightness.dark : Brightness.light,
     systemNavigationBarColor: Colors.white,
     systemNavigationBarDividerColor: Colors.transparent,
     systemNavigationBarIconBrightness: Brightness.dark,
@@ -89,16 +94,31 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Innerly',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        textTheme: InnerlyTheme.textTheme,
-        platform: TargetPlatform.iOS,
-        useMaterial3: true,
-      ),
-      home: const AuthWrapper(),
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return MaterialApp(
+          title: 'Innerly',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            textTheme: InnerlyTheme.textTheme,
+            platform: TargetPlatform.iOS,
+            useMaterial3: true,
+          ),
+          locale: languageProvider.locale, // Get locale from provider
+          supportedLocales: L10n.supportedLocales,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          localeResolutionCallback: (locale, _) {
+            return L10n.getSupportedLocale(locale);
+          },
+          home: const AuthWrapper(),
+        );
+      },
     );
   }
 }

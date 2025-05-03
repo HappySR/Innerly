@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,7 +14,7 @@ class CommunityScreen extends StatelessWidget {
         backgroundColor: InnerlyTheme.beige,
         automaticallyImplyLeading: false,
         title: Text(
-          'Community',
+          L10n.getTranslatedText(context, 'Community'),
           style: GoogleFonts.lora(
             fontSize: 22,
             color: Colors.black,
@@ -36,7 +37,7 @@ class CommunityScreen extends StatelessWidget {
               ),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search anything',
+                  hintText: L10n.getTranslatedText(context, 'Search anything'),
                   hintStyle: GoogleFonts.rubik(fontSize: 14),
                   border: InputBorder.none,
                   icon: Icon(Icons.search),
@@ -51,8 +52,8 @@ class CommunityScreen extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  buildChannelItem(Icons.add, "Add\nChannel", (){}),
-                  buildChannelItem(Icons.public, "Global\nChat", (){
+                  buildChannelItem(Icons.add, L10n.getTranslatedText(context, 'Add\nChannel'), (){}),
+                  buildChannelItem(Icons.public, L10n.getTranslatedText(context, 'Global\nChat'), (){
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -62,24 +63,22 @@ class CommunityScreen extends StatelessWidget {
                   }),
                   buildChannelItem(
                     Icons.chat_bubble_outline,
-                    "Therapy\nNutshell",(){
+                    L10n.getTranslatedText(context, 'Therapy\nNutshell'),(){
 
                   }
                   ),
-                  buildChannelItem(Icons.person_outline, "Kati\nMorton", (){}),
-                  buildChannelItem(Icons.person_outline, "Angus\nMacGyver", (){}),
                   buildChannelItem(
                     Icons.self_improvement,
-                    "Mindfulness\nSpace", (){},
+                    L10n.getTranslatedText(context, 'Mindfulness\nSpace'), (){},
                   ),
-                  buildChannelItem(Icons.group, "Anxiety\nSupport", (){}),
-                  buildChannelItem(Icons.family_restroom, "Family\nMatters", (){}),
-                  buildChannelItem(Icons.school, "Student\nLife", (){}),
+                  buildChannelItem(Icons.group, L10n.getTranslatedText(context, 'Anxiety\nSupport'), (){}),
+                  buildChannelItem(Icons.family_restroom, L10n.getTranslatedText(context, 'Family\nMatters'), (){}),
+                  buildChannelItem(Icons.school, L10n.getTranslatedText(context, 'Student\nLife'), (){}),
                   buildChannelItem(
                     Icons.business_center,
-                    "Workplace\nWellness",(){},
+                    L10n.getTranslatedText(context, 'Workplace\nWellness'),(){},
                   ),
-                  buildChannelItem(Icons.healing, "Healing\nJourney", (){}),
+                  buildChannelItem(Icons.healing, L10n.getTranslatedText(context, 'Healing\nJourney'), (){}),
                 ],
               ),
             ),
@@ -103,7 +102,7 @@ class CommunityScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Write Something',
+                      L10n.getTranslatedText(context, 'Write Something'),
                       style: GoogleFonts.rubik(
                         fontSize: 14,
                         color: Colors.black54,
@@ -123,7 +122,7 @@ class CommunityScreen extends StatelessWidget {
                     ),
                     onPressed: () {},
                     child: Text(
-                      'Add Post',
+                      L10n.getTranslatedText(context, 'Add Post'),
                       style: GoogleFonts.rubik(fontSize: 14),
                     ),
                   ),
@@ -140,14 +139,14 @@ class CommunityScreen extends StatelessWidget {
                     userName: "Kati Morton",
                     time: "26 Jun. 10:14 PM",
                     text:
-                        "You deserve a love with no trauma attached to it, a love that is good for your mental health, a love that is kind to you. I'm talking about people NOT suffering from mental health issues",
+                        L10n.getTranslatedText(context, 'You deserve a love with no trauma attached to it, a love that is good for your mental health, a love that is kind to you. I\'m talking about people NOT suffering from mental health issues'),
                     imagePath: 'assets/images/love-illustration.png',
                   ),
                   buildPost(
                     userName: "Angus MacGyver",
                     time: "26 Jun. 10:14 PM",
                     text:
-                        "If you struggle with depression know that you are not alone",
+                        L10n.getTranslatedText(context, 'If you struggle with depression know that you are not alone'),
                     imagePath: 'assets/images/meditate_illustration.png',
                     isVideo: true,
                   ),
