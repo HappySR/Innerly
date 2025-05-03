@@ -108,7 +108,7 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
         startTime: TimeOfDay.fromDateTime(start),
         endTime: TimeOfDay.fromDateTime(DateTime.parse(slot['end_time']).toLocal()),
         originalDate: start,
-        targetWeekday: start.weekday - 1,
+        targetWeekday: slot['target_weekday'] as int, // Get from database
         isRecurring: slot['is_recurring'] ?? false,
       );
     }).toList();
@@ -264,6 +264,7 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
         'end_time': endDateTime.toUtc().toIso8601String(),
         'is_availability': true,
         'is_recurring': slot.isRecurring,
+        'target_weekday': slot.targetWeekday, // Add target weekday
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -304,6 +305,7 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
         'scheduled_at': startDateTime.toUtc().toIso8601String(),
         'end_time': endDateTime.toUtc().toIso8601String(),
         'is_recurring': slot.isRecurring,
+        'target_weekday': slot.targetWeekday, // Add target weekday
       }).eq('id', slot.id!);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

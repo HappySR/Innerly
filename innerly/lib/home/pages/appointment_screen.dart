@@ -15,10 +15,11 @@ class AppointmentScreen extends StatefulWidget {
 class _AppointmentScreenState extends State<AppointmentScreen> {
   final _formKey = GlobalKey<FormState>();
   DateTime? _selectedDate;
-  TimeOfDay? _selectedSlot;
+  Map<String, dynamic>? _selectedSlot;
   final _notesController = TextEditingController();
   final _supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _availabilitySlots = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -27,60 +28,81 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
   }
 
   Future<void> _loadAvailabilitySlots() async {
-    final response = await _supabase
-        .from('appointments')
-        .select()
-        .eq('therapist_id', widget.therapist['id'])
-        .eq('is_availability', true);
-
     setState(() {
-      _availabilitySlots = response.map((slot) {
-        final start = DateTime.parse(slot['scheduled_at']).toLocal();
-        final end = DateTime.parse(slot['end_time']).toLocal();
-        return {
-          'id': slot['id'],
-          'start_time': TimeOfDay.fromDateTime(start),
-          'end_time': TimeOfDay.fromDateTime(end),
-          'target_weekday': slot['target_weekday'],
-          'original_date': start,
-          'is_recurring': slot['is_recurring'] ?? false,
-        };
-      }).toList();
+      _isLoading = true;
     });
+
+    try {
+      final response = await _supabase
+          .from('appointments')
+          .select()
+          .eq('therapist_id', widget.therapist['id'])
+          .eq('is_availability', true);
+
+      setState(() {
+        _availabilitySlots = response.map((slot) {
+          final start = DateTime.parse(slot['scheduled_at']).toLocal();
+          final end = DateTime.parse(slot['end_time']).toLocal();
+
+          return {
+            'id': slot['id'],
+            'start_time': start,
+            'end_time': end,
+            'target_weekday': slot['target_weekday'] ?? start.weekday - 1,
+            'is_recurring': slot['is_recurring'] ?? false,
+          };
+        }).toList();
+
+        _isLoading = false;
+      });
+
+      // Debug info
+      print('Loaded ${_availabilitySlots.length} availability slots');
+    } catch (e) {
+      print('Error loading slots: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  List<TimeOfDay> _getSlotsForDate(DateTime date) {
-    final localDate = date.toLocal();
-    return _availabilitySlots.where((slot) {
+  List<Map<String, dynamic>> _getSlotsForDate(DateTime date) {
+    // First make sure we have the local date for comparison
+    final selectedDate = date;
+    final selectedWeekday = selectedDate.weekday - 1; // 0-based weekday (0=Monday)
+
+    print('Getting slots for date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}, weekday: $selectedWeekday');
+
+    final filteredSlots = _availabilitySlots.where((slot) {
       final isRecurring = slot['is_recurring'] as bool;
-      final originalDate = (slot['original_date'] as DateTime).toLocal();
       final targetWeekday = slot['target_weekday'] as int;
+      final originalDate = slot['start_time'] as DateTime;
 
       if (isRecurring) {
-        return localDate.weekday - 1 == targetWeekday &&
-            !localDate.isBefore(originalDate);
+        // For recurring slots, we check if the weekday matches
+        final matchesWeekday = selectedWeekday == targetWeekday;
+        // And we check if the selected date is after or on the original date
+        final isAfterStart = !selectedDate.isBefore(DateTime(
+            originalDate.year,
+            originalDate.month,
+            originalDate.day
+        ));
+
+        print('Recurring slot weekday: $targetWeekday, matches: $matchesWeekday, isAfterStart: $isAfterStart');
+        return matchesWeekday && isAfterStart;
       } else {
-        return localDate.year == originalDate.year &&
-            localDate.month == originalDate.month &&
-            localDate.day == originalDate.day;
+        // For non-recurring slots, check if it's the exact same date
+        final isSameDate = selectedDate.year == originalDate.year &&
+            selectedDate.month == originalDate.month &&
+            selectedDate.day == originalDate.day;
+
+        print('Non-recurring slot date: ${DateFormat('yyyy-MM-dd').format(originalDate)}, matches: $isSameDate');
+        return isSameDate;
       }
-    }).map((slot) {
-      final start = slot['start_time'] as TimeOfDay;
-      final end = slot['end_time'] as TimeOfDay;
-      return _generateTimeSlots(start, end);
-    }).expand((slots) => slots).toList();
-  }
+    }).toList();
 
-  List<TimeOfDay> _generateTimeSlots(TimeOfDay start, TimeOfDay end) {
-    List<TimeOfDay> slots = [];
-    DateTime temp = DateTime(0, 1, 1, start.hour, start.minute);
-    final endDt = DateTime(0, 1, end.hour > start.hour ? 1 : 2, end.hour, end.minute);
-
-    while (temp.isBefore(endDt)) {
-      slots.add(TimeOfDay.fromDateTime(temp));
-      temp = temp.add(const Duration(minutes: 15));
-    }
-    return slots;
+    print('Found ${filteredSlots.length} available slots for selected date');
+    return filteredSlots;
   }
 
   @override
@@ -93,7 +115,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         ),
         backgroundColor: const Color(0xFFFDF6F0),
       ),
-      body: Padding(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
@@ -194,7 +218,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.only(top: 20, bottom: 10),
           child: Text(
             'Available Time Slots:',
             style: GoogleFonts.montserrat(
@@ -203,34 +227,86 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             ),
           ),
         ),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: slots.map((slot) {
-            final isSelected = _selectedSlot == slot;
-            return ChoiceChip(
-              label: Text(slot.format(context)),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() => _selectedSlot = selected ? slot : null);
-              },
-              backgroundColor: Colors.white,
-              selectedColor: const Color(0xFF6FA57C),
-              labelStyle: GoogleFonts.montserrat(
-                color: isSelected ? Colors.white : Colors.black,
-              ),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: slots.length,
+          itemBuilder: (context, index) {
+            final slot = slots[index];
+            final startTime = slot['start_time'] as DateTime;
+            final endTime = slot['end_time'] as DateTime;
+            final formattedStartTime = DateFormat('h:mm a').format(startTime);
+            final formattedEndTime = DateFormat('h:mm a').format(endTime);
+
+            final isSelected = _selectedSlot != null && _selectedSlot!['id'] == slot['id'];
+
+            return Card(
+              elevation: 2,
+              margin: const EdgeInsets.only(bottom: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(
                   color: isSelected
                       ? const Color(0xFF6FA57C)
-                      : Colors.grey.shade300,
+                      : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedSlot = isSelected ? null : slot;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        color: const Color(0xFF4A707A),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        '$formattedStartTime - $formattedEndTime',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 16,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      if (slot['is_recurring'])
+                        Padding(
+                          padding: const EdgeInsets.only(left: 10),
+                          child: Chip(
+                            label: Text(
+                              'Weekly',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF7E9680),
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      const Spacer(),
+                      if (isSelected)
+                        const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF6FA57C),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );
-          }).toList(),
+          },
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
       ],
     );
   }
@@ -244,23 +320,38 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         return;
       }
 
-      final appointmentTime = DateTime(
+      // Get the start time from the selected slot
+      final slotStartTime = _selectedSlot!['start_time'] as DateTime;
+      final slotEndTime = _selectedSlot!['end_time'] as DateTime;
+
+      // Create appointment time by combining selected date with slot time
+      final appointmentTime = DateTime.utc(
         _selectedDate!.year,
         _selectedDate!.month,
         _selectedDate!.day,
-        _selectedSlot!.hour,
-        _selectedSlot!.minute,
+        slotStartTime.hour,
+        slotStartTime.minute,
+      );
+
+      // Create end time by combining selected date with slot end time
+      final endTime = DateTime.utc(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        slotEndTime.hour,
+        slotEndTime.minute,
       );
 
       try {
         await _supabase.from('appointments').insert({
           'therapist_id': widget.therapist['id'],
           'user_id': _supabase.auth.currentUser?.id,
-          'scheduled_at': appointmentTime.toUtc().toIso8601String(),
+          'scheduled_at': appointmentTime.toIso8601String(),
+          'end_time': endTime.toIso8601String(),
           'status': 'pending',
           'notes': _notesController.text,
           'is_availability': false,
-          'target_weekday': _selectedDate!.weekday - 1,
+          'target_weekday': appointmentTime.weekday - 1,
         });
 
         Navigator.pop(context);
@@ -273,12 +364,5 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         );
       }
     }
-  }
-}
-
-extension TimeOfDayExtension on TimeOfDay {
-  String format(BuildContext context) {
-    final now = DateTime.now();
-    return DateFormat('h:mm a').format(DateTime(now.year, now.month, now.day, hour, minute));
   }
 }
