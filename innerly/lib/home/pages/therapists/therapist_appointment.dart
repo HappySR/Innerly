@@ -203,7 +203,7 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
     setState(() {
       if (existingSlot != null) {
         final index = _slots[day]!.indexOf(existingSlot);
-        _slots[day]![index] = AvailabilitySlot(
+        final newSlot = AvailabilitySlot(
           id: existingSlot.id,
           startTime: pickedStart!,
           endTime: pickedEnd!,
@@ -211,18 +211,116 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
           targetWeekday: _daysOfWeek.indexOf(day),
           isRecurring: existingSlot.isRecurring,
         );
+        _slots[day]![index] = newSlot;
+        _updateSlotInDatabase(newSlot);
       } else {
-        _slots[day]!.add(AvailabilitySlot(
+        final newSlot = AvailabilitySlot(
           startTime: pickedStart!,
           endTime: pickedEnd!,
           originalDate: _nextDateForDay(day, DateTime.now()),
           targetWeekday: _daysOfWeek.indexOf(day),
           isRecurring: _allRecurring,
-        ));
+        );
+        _slots[day]!.add(newSlot);
+        _addSlotToDatabase(newSlot);
       }
       _sortSlots(day);
     });
     _updateAllRecurringState();
+  }
+
+  Future<void> _addSlotToDatabase(AvailabilitySlot slot) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final startDate = slot.originalDate;
+      DateTime endDate = startDate;
+      if (slot.endTime.hour < slot.startTime.hour ||
+          (slot.endTime.hour == slot.startTime.hour &&
+              slot.endTime.minute < slot.startTime.minute)) {
+        endDate = endDate.add(const Duration(days: 1));
+      }
+
+      final startDateTime = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+        slot.startTime.hour,
+        slot.startTime.minute,
+      );
+
+      final endDateTime = DateTime(
+        endDate.year,
+        endDate.month,
+        endDate.day,
+        slot.endTime.hour,
+        slot.endTime.minute,
+      );
+
+      await _supabase.from('appointments').insert({
+        'therapist_id': userId,
+        'scheduled_at': startDateTime.toUtc().toIso8601String(),
+        'end_time': endDateTime.toUtc().toIso8601String(),
+        'is_availability': true,
+        'is_recurring': slot.isRecurring,
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating slot: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _updateSlotInDatabase(AvailabilitySlot slot) async {
+    try {
+      if (slot.id == null) return;
+
+      final startDate = slot.originalDate;
+      DateTime endDate = startDate;
+      if (slot.endTime.hour < slot.startTime.hour ||
+          (slot.endTime.hour == slot.startTime.hour &&
+              slot.endTime.minute < slot.startTime.minute)) {
+        endDate = endDate.add(const Duration(days: 1));
+      }
+
+      final startDateTime = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+        slot.startTime.hour,
+        slot.startTime.minute,
+      );
+
+      final endDateTime = DateTime(
+        endDate.year,
+        endDate.month,
+        endDate.day,
+        slot.endTime.hour,
+        slot.endTime.minute,
+      );
+
+      await _supabase.from('appointments').update({
+        'scheduled_at': startDateTime.toUtc().toIso8601String(),
+        'end_time': endDateTime.toUtc().toIso8601String(),
+        'is_recurring': slot.isRecurring,
+      }).eq('id', slot.id!);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating slot: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _deleteSlotFromDatabase(String? slotId) async {
+    try {
+      if (slotId == null) return;
+      await _supabase.from('appointments').delete().eq('id', slotId);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting slot: ${e.toString()}')),
+      );
+    }
   }
 
   bool _isValidTimeRange(TimeOfDay start, TimeOfDay end) {
@@ -244,123 +342,22 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
     setState(() {
       _allRecurring = value;
       for (var day in _daysOfWeek) {
-        _slots[day] = _slots[day]!.map((slot) => AvailabilitySlot(
-          id: slot.id,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          originalDate: slot.originalDate,
-          targetWeekday: slot.targetWeekday,
-          isRecurring: value,
-        )).toList();
+        _slots[day] = _slots[day]!.map((slot) {
+          final updatedSlot = AvailabilitySlot(
+            id: slot.id,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            originalDate: slot.originalDate,
+            targetWeekday: slot.targetWeekday,
+            isRecurring: value,
+          );
+          if (slot.isRecurring != value) {
+            _updateSlotInDatabase(updatedSlot);
+          }
+          return updatedSlot;
+        }).toList();
       }
     });
-  }
-
-  Future<void> _submitSlots() async {
-    try {
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final existingSlots = await _getAllDatabaseSlots();
-      final List<Map<String, dynamic>> toInsert = [];
-      final List<String> toDelete = [];
-      final List<Map<String, dynamic>> toUpdate = [];
-
-      final allSlots = _slots.values.expand((x) => x).toList();
-
-      for (final newSlot in allSlots) {
-        final existing = existingSlots.firstWhere(
-              (s) => s.id == newSlot.id,
-          orElse: () => AvailabilitySlot(
-            startTime: const TimeOfDay(hour: 0, minute: 0),
-            endTime: const TimeOfDay(hour: 0, minute: 0),
-            originalDate: DateTime.now(),
-            targetWeekday: 0,
-            isRecurring: false,
-          ),
-        );
-
-        final startDate = newSlot.originalDate;
-        DateTime endDate = startDate;
-        if (newSlot.endTime.hour < newSlot.startTime.hour ||
-            (newSlot.endTime.hour == newSlot.startTime.hour &&
-                newSlot.endTime.minute < newSlot.startTime.minute)) {
-          endDate = endDate.add(const Duration(days: 1));
-        }
-
-        final startDateTime = DateTime(
-          startDate.year,
-          startDate.month,
-          startDate.day,
-          newSlot.startTime.hour,
-          newSlot.startTime.minute,
-        );
-        final endDateTime = DateTime(
-          endDate.year,
-          endDate.month,
-          endDate.day,
-          newSlot.endTime.hour,
-          newSlot.endTime.minute,
-        );
-
-        if (existing.id != null) {
-          toUpdate.add({
-            'id': existing.id,
-            'scheduled_at': startDateTime.toUtc().toIso8601String(),
-            'end_time': endDateTime.toUtc().toIso8601String(),
-            'is_recurring': newSlot.isRecurring,
-          });
-        } else {
-          toInsert.add({
-            'therapist_id': userId,
-            'user_id': null,
-            'scheduled_at': startDateTime.toUtc().toIso8601String(),
-            'end_time': endDateTime.toUtc().toIso8601String(),
-            'status': 'available',
-            'is_availability': true,
-            'is_recurring': newSlot.isRecurring,
-          });
-        }
-      }
-
-      for (final existingSlot in existingSlots) {
-        if (!allSlots.any((s) => s.id == existingSlot.id)) {
-          toDelete.add(existingSlot.id!);
-        }
-      }
-
-      if (toDelete.isNotEmpty) {
-        await _supabase
-            .from('appointments')
-            .delete()
-            .inFilter('id', toDelete);
-      }
-
-      for (final update in toUpdate) {
-        await _supabase
-            .from('appointments')
-            .update(update)
-            .eq('id', update['id']);
-      }
-
-      if (toInsert.isNotEmpty) {
-        await _supabase
-            .from('appointments')
-            .insert(toInsert);
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Slots saved successfully!')),
-      );
-    } catch (e) {
-      String errorMessage = 'Error saving slots: ${e.toString()}';
-      if (e.toString().contains('Overlapping availability')) {
-        errorMessage = 'Cannot save overlapping time slots';
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
-    }
   }
 
   DateTime _nextDateForDay(String day, DateTime from) {
@@ -401,8 +398,6 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
             _buildRecurringCheckbox(screenWidth, screenHeight),
             SizedBox(height: screenHeight * 0.02),
             ..._daysOfWeek.map((day) => _buildDayCard(day, screenWidth, screenHeight)),
-            SizedBox(height: screenHeight * 0.03),
-            _buildSubmitButton(screenWidth, screenHeight),
           ],
         ),
       ),
@@ -506,6 +501,7 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
               icon: Icon(Icons.close, size: width * 0.05, color: Colors.red[600]),
               onPressed: () {
                 setState(() => _slots[day]!.remove(slot));
+                _deleteSlotFromDatabase(slot.id);
                 _updateAllRecurringState();
               },
             ),
@@ -542,27 +538,6 @@ class _TherapistsAppointmentScreenState extends State<TherapistsAppointmentScree
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSubmitButton(double width, double height) {
-    return ElevatedButton(
-      onPressed: _submitSlots,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF6FA57C),
-        padding: EdgeInsets.symmetric(
-          vertical: height * 0.02,
-          horizontal: width * 0.15,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(width * 0.06),
-        ),
-      ),
-      child: Text('Save Schedule',
-          style: GoogleFonts.aclonica(
-            fontSize: width * 0.045,
-            color: Colors.white,
-          )),
     );
   }
 
