@@ -96,22 +96,6 @@ class OnlineTherapistsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: 'Search',
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 0),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -130,42 +114,65 @@ class OnlineTherapistsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildTherapistList(BuildContext context, List<Map<String, dynamic>> therapists, {required Color cardColor}) {
-    return Column(
-      children: therapists.map((therapist) {
-        final name = therapist['name']?.toString() ?? 'Therapist';
-        final specialization = therapist['specialization']?.toString() ?? 'Mental Health';
-        return Card(
-          color: cardColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 1,
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          child: ListTile(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TherapistDetailScreen(therapist: therapist),
+  Widget _buildTherapistList(
+      BuildContext context,
+      List<Map<String, dynamic>> therapists, {
+        required Color cardColor,
+      }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: List.generate(therapists.length, (index) {
+          final therapist = therapists[index];
+          final name = therapist['name']?.toString() ?? 'Therapist';
+          final specialization = therapist['specialization']?.toString() ?? 'Mental Health';
+          final imageUrl = therapist['photo_url'] ??
+              'https://cdn.pixabay.com/photo/2017/05/10/13/36/doctor-2300898_1280.png';
+
+          return Column(
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TherapistDetailScreen(therapist: therapist),
+                    ),
+                  );
+                },
+                leading: CircleAvatar(
+                  radius: 24,
+                  backgroundImage: NetworkImage(imageUrl),
+                  backgroundColor: Colors.grey[200],
                 ),
-              );
-            },
-            leading: CircleAvatar(
-              backgroundImage: NetworkImage(therapist['photo_url'] ?? 'https://cdn.pixabay.com/photo/2017/05/10/13/36/doctor-2300898_1280.png'), // fallback if needed
-              backgroundColor: Colors.grey[200],
-            ),
-            title: Text(name, style: GoogleFonts.rubik(fontWeight: FontWeight.w600)),
-            subtitle: Text(specialization, style: GoogleFonts.rubik(fontWeight: FontWeight.w400)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.star, color: Colors.orange, size: 18),
-                const SizedBox(width: 4),
-                const Text('5.0'),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+                title: Text(
+                  name,
+                  style: GoogleFonts.rubik(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  specialization,
+                  style: GoogleFonts.rubik(fontWeight: FontWeight.w400),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.star, color: Colors.orange, size: 18),
+                    SizedBox(width: 4),
+                    Text('5.0'),
+                  ],
+                ),
+              ),
+              // Divider except after last item
+              if (index < therapists.length - 1)
+                const Divider(height: 0.0, thickness: 1, color: Colors.white),
+            ],
+          );
+        }),
+      ),
     );
   }
 }

@@ -10,9 +10,7 @@ import 'package:Innerly/home/pages/therapists/therapist_profile.dart';
 import '../../services/role.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'community_screen.dart';
-import 'explore_view.dart';
 import 'home_view.dart';
-import 'notifications_view.dart';
 
 class BottomNav extends StatefulWidget {
   const BottomNav({super.key});
@@ -67,6 +65,8 @@ class _BottomNavState extends State<BottomNav> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
     return Consumer<BottomNavProvider>(
       builder: (context, bottomNavProvider, child) {
         return Scaffold(

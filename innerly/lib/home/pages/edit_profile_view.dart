@@ -147,6 +147,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
       keyboardType: TextInputType.number,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
+        TextInputFormatter.withFunction(
+              (oldValue, newValue) {
+            // Block if empty or starts with 0
+            if (newValue.text.isEmpty) return newValue;
+            if (newValue.text == '0') return oldValue;
+            return newValue;
+          },
+        ),
       ],
       decoration: InputDecoration(
         hintText: 'Enter your age',
@@ -160,6 +168,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
     );
   }
+
 
 
   Widget buildDropdown(String hint, List<String> options) {

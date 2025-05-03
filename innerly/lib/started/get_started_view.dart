@@ -1,8 +1,7 @@
-import 'package:Innerly/started/welcome_page.dart';
 import 'package:flutter/material.dart';
+import 'package:Innerly/started/welcome_page.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
-import '../home/pages/bottom_nav.dart';
-import '../widget/circular_progress.dart';
+import 'dart:math';
 
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key});
@@ -11,9 +10,16 @@ class OnboardingFlow extends StatefulWidget {
   State<OnboardingFlow> createState() => _OnboardingFlowState();
 }
 
-class _OnboardingFlowState extends State<OnboardingFlow> {
+class _OnboardingFlowState extends State<OnboardingFlow>
+    with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  late AnimationController _animationController;
+  late Animation<double> _progressAnimation;
+  double _progress = 0.0; // Start with 0/3 initially
+  int _step = 0;
+  final int _totalSteps = 3;
+
 
   final onboardingData = [
     {
@@ -23,7 +29,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       "imagePath": "assets/images/meditate.png",
     },
     {
-      "title": "Together, we’re building a future that puts care first.",
+      "title": "Together, we're building a future that puts care first.",
       "description":
       "With the right support, recovery is possible—and everyone has something valuable to offer.",
       "imagePath": "assets/images/well-being.png",
@@ -36,16 +42,48 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     },
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _progressAnimation = Tween<double>(
+      begin: 0,
+      end: _progress,
+    ).animate(_animationController);
+
+    _animationController.forward();
+
+  }
+
   void _onNextTap() {
-    if (_currentPage == onboardingData.length - 1) {
-      _navigateToHome();
-    } else {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
+    if (_step < _totalSteps) {
+      _step++;
+
+      if (_step < onboardingData.length) {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      }
+
+      setState(() {
+        _animateProgress(_step);
+      });
+
+      // Delay navigation until progress shows 3/3
+      if (_step == _totalSteps) {
+        _animationController.addStatusListener((status) {
+          if (status == AnimationStatus.completed && mounted) {
+            _navigateToHome();
+          }
+        });
+      }
     }
   }
+
 
   void _navigateToHome() {
     if (!mounted) return;
@@ -57,8 +95,26 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     });
   }
 
+  void _animateProgress(int step) {
+    final double newProgress = step / _totalSteps;
+
+    _progressAnimation = Tween<double>(
+      begin: _progress,
+      end: newProgress,
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _animationController
+      ..reset()
+      ..forward();
+
+    _progress = newProgress;
+  }
+
   @override
   void dispose() {
+    _animationController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -76,14 +132,17 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             Column(
               children: [
                 SizedBox(height: size.height * 0.2),
-
-                // Image
                 SizedBox(
                   height: size.height * 0.3,
                   child: PageView.builder(
                     controller: _pageController,
                     itemCount: onboardingData.length,
-                    onPageChanged: (index) => setState(() => _currentPage = index),
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentPage = index;
+                        _animateProgress(index);
+                      });
+                    },
                     physics: const BouncingScrollPhysics(),
                     itemBuilder: (context, index) {
                       return Image.asset(
@@ -94,25 +153,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
-                // Dots
                 _buildDots(),
-
                 const SizedBox(height: 24),
-
-                // Title & Description
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
-                    child: _buildTextContent(onboardingData[_currentPage], size),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: size.width * 0.08,
+                    ),
+                    child: _buildTextContent(
+                      onboardingData[_currentPage],
+                      size,
+                    ),
                   ),
                 ),
               ],
             ),
-
-            // Bottom Button
             _buildBottomButton(size),
           ],
         ),
@@ -158,7 +214,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           width: _currentPage == index ? 30 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: _currentPage == index ? InnerlyTheme.secondary : Colors.grey[300],
+            color:
+            _currentPage == index
+                ? InnerlyTheme.secondary
+                : Colors.grey[300],
             borderRadius: BorderRadius.circular(50),
           ),
         ),
@@ -171,34 +230,95 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       padding: EdgeInsets.only(bottom: size.height * 0.06),
       child: GestureDetector(
         onTap: _onNextTap,
-        child: CustomPaint(
-          painter: CircularProgress(
-            currentPage: _currentPage,
-            totalPages: onboardingData.length,
-          ),
-          child: Container(
-            width: 80,
-            height: 80,
-            alignment: Alignment.center,
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: InnerlyTheme.secondary,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+        child: AnimatedBuilder(
+          animation: _progressAnimation,
+          builder: (context, child) {
+            return CustomPaint(
+              painter: _CircularProgressPainter(
+                progress: _progressAnimation.value,
+                activeColor: InnerlyTheme.secondary,
+                inactiveColor: Colors.grey[300]!,
               ),
-              child: const Icon(Icons.arrow_forward, color: Colors.white, size: 28),
-            ),
-          ),
+              child: Container(
+                width: 80,
+                height: 80,
+                alignment: Alignment.center,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: InnerlyTheme.secondary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
+  }
+}
+
+class _CircularProgressPainter extends CustomPainter {
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  _CircularProgressPainter({
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint trackPaint =
+    Paint()
+      ..color = inactiveColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+
+    final Paint progressPaint =
+    Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 2;
+
+    // Draw track
+    canvas.drawCircle(center, radius, trackPaint);
+
+    // Draw progress
+    final sweepAngle = 2 * pi * progress;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2,
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CircularProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:Innerly/home/pages/therapists_list_view.dart';
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -137,15 +138,15 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Hello Kate",
+                            "${L10n.getTranslatedText(context, 'Hello')} Kate",
                             style: GoogleFonts.lora(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            "How are you feeling today?",
+                          Text(
+                            L10n.getTranslatedText(context, 'How are you feeling today?'),
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ],
@@ -167,10 +168,10 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const TextField(
+                    child: TextField(
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        hintText: "Search for session, journals...",
+                        hintText: "${L10n.getTranslatedText(context, 'Search for session, journals')}...",
                         hintStyle: TextStyle(color: Colors.grey),
                         icon: Icon(Icons.search),
                       ),
@@ -186,9 +187,9 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
+                            children: [
                               Text(
-                                "Daily mood log",
+                              L10n.getTranslatedText(context,'Daily mood log'),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -197,8 +198,8 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                             ],
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            "Identify and track your emotions",
+                          Text(
+                            L10n.getTranslatedText(context,'Identify and track your emotions'),
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                           const SizedBox(height: 16),
@@ -237,16 +238,16 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        "Relaxing Activities",
+                                      Text(
+                                        L10n.getTranslatedText(context,'Relaxing Activities'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text(
-                                        "Wanna know how heaven feels like? Explore more...",
+                                      Text(
+                                        "${L10n.getTranslatedText(context,'Wanna know how heaven feels like? Explore more')}...",
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Color(0XFF000000),
@@ -275,7 +276,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                             borderRadius: BorderRadius.circular(10),
                                           ),
                                           child: Text(
-                                            "Explore More",
+                                            L10n.getTranslatedText(context,'Explore More'),
                                             style: TextStyle(
                                               color: InnerlyTheme.secondary,
                                               fontWeight: FontWeight.bold,
@@ -310,16 +311,16 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        "Connect with our Experts",
+                                      Text(
+                                        L10n.getTranslatedText(context,'Connect with our Experts'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text(
-                                        "Let’s see the progress of your journey",
+                                      Text(
+                                        L10n.getTranslatedText(context,'Let’s see the progress of your journey'),
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Color(0XFF000000),
@@ -348,7 +349,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                             borderRadius: BorderRadius.circular(10),
                                           ),
                                           child: Text(
-                                            "Start Session",
+                                            L10n.getTranslatedText(context,'Start Session'),
                                             style: TextStyle(
                                               color: InnerlyTheme.secondary,
                                               fontWeight: FontWeight.bold,
@@ -369,16 +370,16 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                             ),
                           ),
                           SizedBox(height: 20,),
-                          const Text(
-                            'Daily challenge',
+                          Text(
+                            L10n.getTranslatedText(context,'Daily challenge'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           // const SizedBox(height: ),
-                          const Text(
-                            'Build your confidence and resilience',
+                          Text(
+                            L10n.getTranslatedText(context,'Build your confidence and resilience'),
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                           const SizedBox(height: 20),
@@ -403,16 +404,16 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Want to build up your confidence?',
+                                      Text(
+                                        L10n.getTranslatedText(context,'Want to build up your confidence?'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text(
-                                        'Make better yourself',
+                                      Text(
+                                        L10n.getTranslatedText(context,'Make better yourself'),
                                         style: TextStyle(
                                           fontSize: 16,
                                           color: Colors.grey,
@@ -430,7 +431,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                           ),
                                         ),
                                         child: Text(
-                                          'Start challenge',
+                                          L10n.getTranslatedText(context,'Start challenge'),
                                           style: TextStyle(
                                             color: InnerlyTheme.secondary,
                                             fontWeight: FontWeight.bold,

@@ -66,8 +66,10 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
     final bool isLocked = _attemptsLeft == 0;
-    final screenHeight = MediaQuery.of(context).size.height;
+
 
     return Scaffold(
       backgroundColor: Color(0xFFFFF7E7),
@@ -87,7 +89,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
           child: SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: screenHeight * 0.8,
+                minHeight: height * 0.8,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -95,7 +97,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                   Container(
                     padding: EdgeInsets.all(20),
                     constraints: BoxConstraints(
-                      maxHeight: screenHeight * 0.6,
+                      maxHeight: height * 0.6,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -172,7 +174,7 @@ class _UUIDInputPageState extends State<UUIDInputPage> {
                   Container(
                     padding: EdgeInsets.all(20),
                     constraints: BoxConstraints(
-                      maxHeight: screenHeight * 0.4,
+                      maxHeight: height * 0.4,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
