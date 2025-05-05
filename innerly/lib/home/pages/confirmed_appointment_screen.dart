@@ -4,10 +4,15 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:Innerly/home/pages/chat_screen.dart';
+
+import '../../localization/i10n.dart';
+import '../../services/auth_service.dart';
+import 'appointment_screen.dart';
 
 class UserAppointmentsScreen extends StatefulWidget {
   const UserAppointmentsScreen({super.key});
@@ -800,32 +805,38 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
 
   void _showRebookDialog(Map<String, dynamic> appointment) {
     final therapist = appointment['therapist'] as Map<String, dynamic>? ?? {};
+    final therapistId = appointment['therapist_id'] as String? ?? '';
     final therapistName = therapist['full_name']?.toString() ?? 'Therapist';
 
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text('Schedule New Session'),
-            content: Text(
-                'Would you like to schedule another session with $therapistName?\n\n'
-                    'You will be redirected to the booking page.'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('Not Now'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _navigateToBooking(appointment['therapist_id']);
-                },
-                child: Text('Book Session',
-                    style: TextStyle(color: const Color(0xFF6FA57C))),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text('Schedule New Session'),
+        content: Text(
+            'Would you like to schedule another session with $therapistName?\n\n'
+                'You will be redirected to the booking page.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Not Now'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              if (therapistId.isNotEmpty) {
+                _navigateToBooking(context, therapistId);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Therapist ID not found'))
+                );
+              }
+            },
+            child: Text('Book Session',
+                style: TextStyle(color: const Color(0xFF6FA57C))),
+          ),
+        ],
+      ),
     );
   }
 
@@ -860,22 +871,57 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     }
   }
 
-  void _navigateToBooking(String therapistId) {
-    // Navigate to booking screen with therapist ID
-    // This is a placeholder - implement based on your app's navigation structure
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Navigating to booking page...'),
-      ),
-    );
+  void _navigateToBooking(BuildContext context, String therapistId) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
 
-    // Example navigation (update with your actual booking screen):
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => BookingScreen(therapistId: therapistId),
-    //   ),
-    // );
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) =>
+        const Center(child: CircularProgressIndicator()),
+      );
+
+      // Fetch therapist data using the AuthService
+      final therapistData = await authService.getTherapist(therapistId);
+
+      // Close loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
+
+      if (therapistData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(L10n.getTranslatedText(context, 'Therapist not found')),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Navigate to the AppointmentScreen with the therapist data
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AppointmentScreen(
+            therapist: therapistData,
+          ),
+        ),
+      );
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (Navigator.canPop(context)) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      print('Navigation error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(L10n.getTranslatedText(context, 'Error loading therapist data')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _infoBox({
