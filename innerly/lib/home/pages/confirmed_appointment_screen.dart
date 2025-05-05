@@ -474,6 +474,8 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     final double betweenItemsSpace = min(max(screenHeight * 0.015, 8.0), 16.0);
     final double avatarRadius = min(max(screenWidth * 0.07, 24.0), 32.0);
 
+    final imageUrl = therapist['photo_url'] ?? 'https://cdn.pixabay.com/photo/2017/05/10/13/36/doctor-2300898_1280.png';
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: horizontalPadding,
@@ -498,10 +500,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
-                backgroundImage: therapist['avatar_url'] != null
-                    ? NetworkImage(therapist['avatar_url'])
-                    : const AssetImage(
-                    'assets/icons/therapist.png') as ImageProvider,
+                backgroundImage: NetworkImage(imageUrl),
                 radius: avatarRadius,
               ),
               SizedBox(width: horizontalPadding),

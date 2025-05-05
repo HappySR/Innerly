@@ -142,7 +142,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       try {
         await Future.wait(
             appointmentsNeedingMeetLink.map((appointment) async {
-              final meetLink = _generateMeetLink();
+              final meetLink = _generateJitsiMeetLink(appointment);
               await _supabase
                   .from('appointments')
                   .update({'meet_link': meetLink})
@@ -174,12 +174,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-  String _generateMeetLink() {
+  String _generateJitsiMeetLink(Map<String, dynamic> appointment) {
+    // Create a unique room name using appointment ID and a random suffix for added security
+    final appointmentId = appointment['id'].toString();
     final random = Random();
-    final code = List.generate(10, (_) =>
-    'abcdefghijklmnopqrstuvwxyz'[random.nextInt(26)]
+    final randomSuffix = List.generate(6, (_) =>
+    'abcdefghijklmnopqrstuvwxyz0123456789'[random.nextInt(36)]
     ).join();
-    return 'https://meet.google.com/$code';
+
+    final roomName = 'innerly-${appointmentId}-${randomSuffix}';
+
+    // Ensure room name is URL-friendly
+    final sanitizedRoomName = Uri.encodeComponent(roomName);
+
+    // Generate the Jitsi Meet URL
+    // The format is: https://meet.jit.si/[roomName]
+    return 'https://meet.jit.si/$sanitizedRoomName';
   }
 
   Future<void> _launchMeetLink(String url) async {
