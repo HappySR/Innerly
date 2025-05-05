@@ -1,4 +1,6 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 
 class PatientDetails extends StatelessWidget {
   const PatientDetails({super.key});
@@ -14,8 +16,8 @@ class PatientDetails extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'PATIENTS',
+        title: Text(
+          L10n.getTranslatedText(context, 'PATIENTS'),
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -50,28 +52,28 @@ class PatientDetails extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Patient Details',
+                  Text(
+                    L10n.getTranslatedText(context, 'Patient Details'),
                     style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
-                  detailRow('Name', 'User'),
-                  detailRow('Age', '24'),
+                  detailRow(L10n.getTranslatedText(context, 'Name'), L10n.getTranslatedText(context, 'User'), context),
+                  detailRow(L10n.getTranslatedText(context, 'Age'), '24', context),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Condition',
+                  Text(
+                    L10n.getTranslatedText(context, 'Condition'),
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    "I'm feeling overwhelmed by work lately, and it's been hard to relax",
+                  Text(
+                    L10n.getTranslatedText(context, 'I\'m feeling overwhelmed by work lately, and it\'s been hard to relax'),
                     style: TextStyle(fontSize: 18, color: Colors.black87),
                   ),
                   const SizedBox(height: 30),
 
                   // Records label outside
-                  const Text(
-                    'Records',
+                  Text(
+                    L10n.getTranslatedText(context, 'Records'),
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 16),
@@ -89,9 +91,9 @@ class PatientDetails extends StatelessWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'Attack Frequency: 3-4 times a week',
+                                '${L10n.getTranslatedText(context, 'Attack Frequency')}: ${L10n.getTranslatedText(context, '3-4 times a week')}',
                                 style: TextStyle(
                                   fontSize: 18,
                                   color: Colors.black87,
@@ -102,13 +104,13 @@ class PatientDetails extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Previous Diagnostics:\nMeditation and prescribed sedatives',
+                        Text(
+                          '${L10n.getTranslatedText(context, 'Previous Diagnostics')}: ${L10n.getTranslatedText(context, '\nMeditation and prescribed sedatives')}',
                           style: TextStyle(fontSize: 18, color: Colors.black87),
                         ),
                         SizedBox(height: 8),
-                        const Text(
-                          'Probable reasons:\nShock, Extreme stress, Lack of sleep.',
+                        Text(
+                          '${L10n.getTranslatedText(context, 'Probable reasons')}: ${L10n.getTranslatedText(context, '\nShock, Extreme stress, Lack of sleep.')}',
                           style: TextStyle(fontSize: 18, color: Colors.black87),
                         ),
                       ],
@@ -123,7 +125,7 @@ class PatientDetails extends StatelessWidget {
     );
   }
 
-  Widget detailRow(String title, String value) {
+  Widget detailRow(String title, String value, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -138,7 +140,7 @@ class PatientDetails extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: value == 'User' ? Colors.green : Colors.black,
+              color: value == L10n.getTranslatedText(context, 'User') ? Colors.green : Colors.black,
             ),
           ),
         ],

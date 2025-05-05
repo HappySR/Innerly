@@ -169,7 +169,19 @@ class OnlineTherapistsTab extends StatelessWidget {
               ),
               // Divider except after last item
               if (index < therapists.length - 1)
-                const Divider(height: 0.0, thickness: 1, color: Colors.white),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 330, // Adjust this value based on desired width
+                      child: Divider(
+                        height: 0.0,
+                        thickness: 1,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           );
         }),

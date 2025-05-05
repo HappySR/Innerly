@@ -110,6 +110,8 @@ flutter:
     - assets/notification/
     - assets/icons/
     - assets/l10n/
+    - assets/l10n/de.json
+    - assets/l10n/zh.json
 
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg

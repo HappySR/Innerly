@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'explore_more_games/cognitive_games_pages.dart';
@@ -35,7 +36,7 @@ class GamesPage extends StatelessWidget {
         ),
         centerTitle: true,
         title: Text(
-          'ACTIVITY',
+          L10n.getTranslatedText(context, 'ACTIVITY'),
           style: GoogleFonts.lora(
             color: Colors.black,
             fontSize: 28,
@@ -50,13 +51,13 @@ class GamesPage extends StatelessWidget {
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
           childAspectRatio: 2.5,
-          children: const [
-            GameCard(image: 'assets/icons/meditate.png', label: 'Meditate'),
-            GameCard(image: 'assets/images/sleep.png', label: 'Sleep'),
-            GameCard(image: 'assets/images/music.png', label: 'Music'),
-            GameCard(image: 'assets/images/games.png', label: 'Games'),
-            GameCard(image: 'assets/images/relax.png', label: 'Relax'),
-            GameCard(image: 'assets/icons/consult.png', label: 'Initiate'),
+          children: [
+            GameCard(image: 'assets/icons/meditate.png', type: ActivityType.meditate),
+            GameCard(image: 'assets/images/sleep.png', type: ActivityType.sleep),
+            GameCard(image: 'assets/images/music.png', type: ActivityType.music),
+            GameCard(image: 'assets/images/games.png', type: ActivityType.games),
+            GameCard(image: 'assets/images/relax.png', type: ActivityType.relax),
+            GameCard(image: 'assets/icons/consult.png', type: ActivityType.initiate),
           ],
         ),
       ),
@@ -66,55 +67,57 @@ class GamesPage extends StatelessWidget {
 
 class GameCard extends StatelessWidget {
   final String image;
-  final String label;
+  final ActivityType type;
 
-  const GameCard({super.key, required this.image, required this.label});
+  const GameCard({super.key, required this.image, required this.type});
 
   void _handleNavigation(BuildContext context) {
-    switch (label) {
-      case 'Meditate':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const MeditationPage()),
-        );
+    switch (type) {
+      case ActivityType.meditate:
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const MeditationPage()));
         break;
-      case 'Sleep':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SleepPage()),
-        );
+      case ActivityType.sleep:
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const SleepPage()));
         break;
-      case 'Music':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const MusicPage()),
-        );
+      case ActivityType.music:
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const MusicPage()));
         break;
-      case 'Games':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const GamesHub()),
-        );
+      case ActivityType.games:
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const GamesHub()));
         break;
-      case 'Relax':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const RelaxPage()),
-        );
+      case ActivityType.relax:
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const RelaxPage()));
         break;
-      case 'Initiate':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const InitiatePage()),
-        );
+      case ActivityType.initiate:
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const InitiatePage()));
         break;
-      default:
-        debugPrint('No page defined for $label');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    String label;
+    switch (type) {
+      case ActivityType.meditate:
+        label = L10n.getTranslatedText(context, 'Meditate');
+        break;
+      case ActivityType.sleep:
+        label = L10n.getTranslatedText(context, 'Sleep');
+        break;
+      case ActivityType.music:
+        label = L10n.getTranslatedText(context, 'Music');
+        break;
+      case ActivityType.games:
+        label = L10n.getTranslatedText(context, 'Games');
+        break;
+      case ActivityType.relax:
+        label = L10n.getTranslatedText(context, 'Relax');
+        break;
+      case ActivityType.initiate:
+        label = L10n.getTranslatedText(context, 'Initiate');
+        break;
+    }
+
     return GestureDetector(
       onTap: () => _handleNavigation(context),
       child: Container(
@@ -123,31 +126,17 @@ class GameCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              offset: Offset(0, 5),
-            ),
+            BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5)),
           ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.asset(
-              image,
-              height: 40,
-              width: 40,
-              fit: BoxFit.contain,
-            ),
+            Image.asset(image, height: 40, width: 40),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 label,
-                style: GoogleFonts.lora(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: GoogleFonts.lora(fontSize: 20, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -156,3 +145,7 @@ class GameCard extends StatelessWidget {
     );
   }
 }
+
+
+// Define activity types
+enum ActivityType { meditate, sleep, music, games, relax, initiate }

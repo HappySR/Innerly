@@ -1,8 +1,11 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Innerly/home/pages/therapists/therapist_patients.dart';
 import 'package:Innerly/home/pages/therapists/therapist_requests.dart';
 import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
+import 'package:provider/provider.dart';
+import '../../providers/bottom_nav_provider.dart';
 
 class HomeTherapist extends StatelessWidget {
   final VoidCallback onProfileTap;
@@ -39,7 +42,7 @@ class HomeTherapist extends StatelessWidget {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white,
-                            hintText: 'Search',
+                            hintText: L10n.getTranslatedText(context, 'Search'),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
                             ),
@@ -83,7 +86,7 @@ class HomeTherapist extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Hello, Dr.Julia',
+                    '${L10n.getTranslatedText(context, 'Hello')}, Dr.Julia',
                     style: GoogleFonts.aclonica(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
@@ -94,16 +97,16 @@ class HomeTherapist extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        '"You have 3 active clients today."',
+                        L10n.getTranslatedText(context, '"You have 3 active clients today."'),
                         style: GoogleFonts.aboreto(
-                          fontSize: 20,
+                          fontSize: 19,
                           color: const Color.fromARGB(255, 40, 39, 39),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Let's make a difference!",
-                        style: GoogleFonts.aboreto(
+                        L10n.getTranslatedText(context, 'Let\'s make a difference!'),
+                        style: GoogleFonts.actor(
                           fontSize: 20,
                           color: const Color.fromARGB(255, 17, 17, 17),
                         ),
@@ -122,7 +125,7 @@ class HomeTherapist extends StatelessWidget {
                   children: [
                     _buildHomeButton(
                       imagePath: 'assets/icons/patients.png',
-                      text: 'Patients',
+                      text: L10n.getTranslatedText(context, 'Patients'),
                       onTap: () async {
                         Navigator.push(
                           context,
@@ -135,7 +138,7 @@ class HomeTherapist extends StatelessWidget {
                     const SizedBox(height: 20),
                     _buildHomeButton(
                       imagePath: 'assets/icons/requests.png',
-                      text: 'View Requests',
+                      text: L10n.getTranslatedText(context, 'View Requests'),
                       onTap: () async {
                         Navigator.push(
                           context,
@@ -148,13 +151,18 @@ class HomeTherapist extends StatelessWidget {
                     const SizedBox(height: 20),
                     _buildHomeButton(
                       imagePath: 'assets/icons/chat.png',
-                      text: 'Go to Chats',
-                      onTap: () {},
+                      text: L10n.getTranslatedText(context, 'Go to Chats'),
+                      onTap: () {
+                        // Use the provider to change the selected tab index
+                        // This will navigate to the Community screen with bottom nav
+                        final bottomNavProvider = Provider.of<BottomNavProvider>(context, listen: false);
+                        bottomNavProvider.currentIndex = 3; // Set index to Community tab (index 3 for therapists)
+                      },
                     ),
                     const SizedBox(height: 20),
                     _buildHomeButton(
                       imagePath: 'assets/icons/schedule.png',
-                      text: 'Today\'s Schedule',
+                      text: L10n.getTranslatedText(context, 'Today\'s Schedule'),
                       onTap: () async {
                         Navigator.push(
                           context,

@@ -10,6 +10,7 @@ import 'package:Innerly/home/pages/therapists/therapist_profile.dart';
 import '../../services/role.dart';
 import '../providers/bottom_nav_provider.dart';
 import 'community_screen.dart';
+import 'confirmed_appointment_screen.dart';
 import 'home_view.dart';
 
 class BottomNav extends StatefulWidget {
@@ -21,46 +22,36 @@ class BottomNav extends StatefulWidget {
 
 class _BottomNavState extends State<BottomNav> {
   late List<Widget> _pages;
-  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _pages =
-        UserRole.isTherapist
-            ? [
-              HomeTherapist(
-                onProfileTap: () {
-                  setState(() {
-                    _selectedIndex =
-                        3; // Navigate to Profile tab when user image is tapped
-                  });
-                },
-              ),
-              const PatientsPage(),
-              PatientsRequests(),
-              CommunityScreen(),
-              TherapistProfile(),
-            ]
-            : [
-              MentalHealthHome(
-                onProfileTap: () {
-                  setState(() {
-                    _selectedIndex =
-                        3; // Navigate to Profile tab when user image is tapped
-                  });
-                },
-              ),
-              const TherapistsListScreen(),
-              CommunityScreen(),
-              const ProfileView(),
-            ];
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    UserRole.isTherapist
+        ? [
+      HomeTherapist(
+        onProfileTap: () {
+          final provider = Provider.of<BottomNavProvider>(context, listen: false);
+          provider.currentIndex = 4; // Navigate to Profile tab (index 4 for therapists)
+        },
+      ),
+      const PatientsPage(),
+      PatientsRequests(),
+      const CommunityScreen(), // Changed to const constructor
+      TherapistProfileView(),
+    ]
+        : [
+      MentalHealthHome(
+        onProfileTap: () {
+          final provider = Provider.of<BottomNavProvider>(context, listen: false);
+          provider.currentIndex = 3; // Navigate to Profile tab (index 3 for regular users)
+        },
+      ),
+      const TherapistsListScreen(),
+      UserAppointmentsScreen(),
+      const CommunityScreen(), // Changed to const constructor
+      const ProfileView(),
+    ];
   }
 
   @override
@@ -69,11 +60,17 @@ class _BottomNavState extends State<BottomNav> {
     final height = MediaQuery.of(context).size.height;
     return Consumer<BottomNavProvider>(
       builder: (context, bottomNavProvider, child) {
+        // Use the provider's current index
+        final _selectedIndex = bottomNavProvider.currentIndex;
+
         return Scaffold(
           body: _pages[_selectedIndex],
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
+            onTap: (index) {
+              // Update the provider's current index when tab is tapped
+              bottomNavProvider.currentIndex = index;
+            },
             selectedItemColor: InnerlyTheme.secondary.withAlpha(200),
             unselectedItemColor: Colors.grey,
             showUnselectedLabels: false,
@@ -163,10 +160,21 @@ class _BottomNavState extends State<BottomNav> {
               ),
               BottomNavigationBarItem(
                 icon: Image.asset(
+                  'assets/icons/calendar.png',
+                  width: 34,
+                  height: 30,
+                  color: _selectedIndex == 2
+                      ? InnerlyTheme.secondary.withAlpha(200)
+                      : Colors.grey,
+                ),
+                label: 'Clients',
+              ),
+              BottomNavigationBarItem(
+                icon: Image.asset(
                   'assets/icons/community.png',
                   width: 30,
                   height: 32,
-                  color: _selectedIndex == 2
+                  color: _selectedIndex == 3
                       ? InnerlyTheme.secondary.withAlpha(200)
                       : Colors.grey,
                 ),
@@ -177,7 +185,7 @@ class _BottomNavState extends State<BottomNav> {
                   'assets/icons/user.png',
                   width: 22,
                   height: 28,
-                  color: _selectedIndex == 3
+                  color: _selectedIndex == 4
                       ? InnerlyTheme.secondary.withAlpha(200)
                       : Colors.grey,
                 ),

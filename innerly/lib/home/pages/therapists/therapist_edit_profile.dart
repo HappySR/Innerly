@@ -1,17 +1,22 @@
-import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({Key? key}) : super(key: key);
+import '../../../localization/i10n.dart';
+
+
+class EditTherapistProfileView extends StatefulWidget {
+  const EditTherapistProfileView({Key? key}) : super(key: key);
 
   @override
-  State<EditProfilePage> createState() => _EditProfilePageState();
+  State<EditTherapistProfileView> createState() => _EditTherapistProfileViewState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _EditTherapistProfileViewState extends State<EditTherapistProfileView> {
   final List<String> _languages = ['English', 'Spanish', 'French', 'German'];
   List<String> _selectedLanguages = [];
+  int? _selectedExperience;
+  final List<int> _experienceYears = List.generate(30, (index) => index + 1);
+
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +31,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
             Navigator.pop(context);
           },
         ),
-        title: Text(
-          L10n.getTranslatedText(context, 'Edit Profile'),
+        title: const Text(
+          'Edit Profile',
           style: TextStyle(
             color: Colors.black,
             fontSize: 22,
@@ -60,31 +65,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     onPressed: () {
                       // Handle change photo
                     },
-                    child: Text(
-                      L10n.getTranslatedText(context, 'Change Photo'),
+                    child: const Text(
+                      'Change Photo',
                       style: TextStyle(color: Colors.black,
-                      fontSize: 18),
+                          fontSize: 18),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
-            buildLabel(L10n.getTranslatedText(context, 'Display Name')),
-            buildTextField('Kate'),
-            const SizedBox(height: 20),
-            buildLabel(L10n.getTranslatedText(context, 'Age')),
-            buildAgeTextField(),
-            const SizedBox(height: 20),
-            buildLabel(L10n.getTranslatedText(context, 'Bio')),
+            buildLabel('Bio'),
             buildTextField(
               '“A safe space seeker, finding\npeace in little moments.”',
               maxLines: 2,
             ),
             const SizedBox(height: 20),
+            buildLabel('Age'),
+            buildAgeTextField(),
+            const SizedBox(height: 20),
             buildLabel('Languages'),
             buildMultiSelectLanguages(),
             const SizedBox(height: 20),
+            buildLabel('Experience'),
+            buildExperienceDropdown(),
             const SizedBox(height: 40),
           ],
         ),
@@ -142,6 +146,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
     );
   }
+
 
   Widget buildAgeTextField() {
     return TextField(
@@ -202,24 +207,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: _selectedLanguages.map((language) {
-          return Chip(
-            label: Text(language),
-            deleteIcon: const Icon(Icons.close),
-            onDeleted: () {
-              setState(() {
-                _selectedLanguages.remove(language);
-              });
-            },
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          );
-        }).toList(),
-      ),
+          spacing: 8,
+          runSpacing: 8,
+          children: _selectedLanguages.map((language) {
+            return Chip(
+              label: Text(language),
+              deleteIcon: const Icon(Icons.close),
+              onDeleted: () {
+                setState(() {
+                  _selectedLanguages.remove(language);
+                });
+              },
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            );
+          }).toList(),
+        ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15),
           decoration: BoxDecoration(
@@ -249,6 +254,50 @@ class _EditProfilePageState extends State<EditProfilePage> {
         const SizedBox(height: 10),
 
       ],
+    );
+  }
+
+
+  Widget buildExperienceDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<int>(
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 14), // Adjusts vertical padding
+        ),
+        isExpanded: true,
+        icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
+        dropdownColor: Colors.white,
+        hint: const Text(
+          'Select years of experience',
+          style: TextStyle(fontSize: 16),
+        ),
+        value: _selectedExperience,
+        items: _experienceYears.map((year) {
+          return DropdownMenuItem(
+            value: year,
+            child: Text('$year years'),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            _selectedExperience = value;
+          });
+        },
+        menuMaxHeight: 250, // Limits height to ~5 items with scroll
+      ),
     );
   }
 }

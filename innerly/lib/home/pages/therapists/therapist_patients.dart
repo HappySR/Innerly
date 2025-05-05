@@ -1,4 +1,5 @@
 import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:Innerly/home/pages/therapists/therapist_patient_details.dart';
@@ -65,7 +66,7 @@ class _PatientsPageState extends State<PatientsPage>
   Future<void> _fetchData() async {
     try {
       final currentUser = _supabase.auth.currentUser;
-      if (currentUser == null) throw Exception('User not authenticated');
+      if (currentUser == null) throw Exception(L10n.getTranslatedText(context, 'User not authenticated'));
 
       // Fetch latest received messages
       final messagesResponse = await _supabase
@@ -91,7 +92,7 @@ class _PatientsPageState extends State<PatientsPage>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load data: ${e.toString()}';
+          _errorMessage = '${L10n.getTranslatedText(context, 'Failed to load data')}: ${e.toString()}';
           _isLoading = false;
         });
       }
@@ -110,7 +111,7 @@ class _PatientsPageState extends State<PatientsPage>
       final profile = (message['user_profiles'] as Map<String, dynamic>?) ?? {};
 
       final name = profile['name'] ?? 'User#${patientId.substring(0, 6)}';
-      final userIssue = profile['issue'] ?? 'Not specified';
+      final userIssue = profile['issue'] ?? L10n.getTranslatedText(context, 'Not specified');
 
       uniquePatients[patientId] = Patient(
         id: patientId,
@@ -152,9 +153,9 @@ class _PatientsPageState extends State<PatientsPage>
                     bottom: BorderSide(color: Colors.black, width: 2),
                   ),
                 ),
-                tabs: const [
-                  Tab(text: 'Latest Messages'),
-                  Tab(text: 'Chat History'),
+                tabs: [
+                  Tab(text: L10n.getTranslatedText(context, 'Latest Messages')),
+                  Tab(text: L10n.getTranslatedText(context, 'Chat History')),
                 ],
               ),
             ),
@@ -184,7 +185,7 @@ class _PatientsPageState extends State<PatientsPage>
             if (_isLoading) const Center(child: CircularProgressIndicator()),
             if (_errorMessage != null) Center(child: Text(_errorMessage!)),
             if (!_isLoading && patients.isEmpty)
-              const Center(child: Text('No conversations found')),
+              Center(child: Text(L10n.getTranslatedText(context, 'No conversations found'))),
 
             // Patient List
             if (!_isLoading && patients.isNotEmpty)
@@ -255,7 +256,7 @@ class _PatientsPageState extends State<PatientsPage>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Issue: ${patient.issue}',
+                    '${L10n.getTranslatedText(context, 'Issue')}: ${patient.issue}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -264,8 +265,8 @@ class _PatientsPageState extends State<PatientsPage>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Text(
-                        'Status: ',
+                      Text(
+                        '${L10n.getTranslatedText(context, 'Status')}: ',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.black,
@@ -282,7 +283,7 @@ class _PatientsPageState extends State<PatientsPage>
                         ),
                       ),
                       Text(
-                        patient.isActive ? 'Active' : 'Inactive',
+                        patient.isActive ? L10n.getTranslatedText(context, 'Active') : L10n.getTranslatedText(context, 'Inactive'),
                         style: TextStyle(
                           fontSize: 14,
                           color: patient.isActive ? Colors.green : Colors.grey,
@@ -328,8 +329,8 @@ class _PatientsPageState extends State<PatientsPage>
                               size: 18,
                               color: Colors.black,
                             ),
-                            label: const Text(
-                              'Message',
+                            label: Text(
+                              L10n.getTranslatedText(context, 'Message'),
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w500,
@@ -373,8 +374,8 @@ class _PatientsPageState extends State<PatientsPage>
                               size: 18,
                               color: Colors.black,
                             ),
-                            label: const Text(
-                              'Schedule',
+                            label: Text(
+                              L10n.getTranslatedText(context, 'Schedule'),
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w500,

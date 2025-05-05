@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class BottomNavProvider with ChangeNotifier {
-  int _selectedIndex = 0; // Default index (Home tab)
+class BottomNavProvider extends ChangeNotifier {
+  int _currentIndex = 0;
 
-  int get selectedIndex => _selectedIndex;
+  int get currentIndex => _currentIndex;
 
-  void setIndex(int index) {
-    _selectedIndex = index;
+  set currentIndex(int index) {
+    _currentIndex = index;
     notifyListeners();
   }
 }

@@ -6,13 +6,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'global_chat_view.dart';
 
 class CommunityScreen extends StatelessWidget {
+  const CommunityScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF7E7),
       appBar: AppBar(
         backgroundColor: InnerlyTheme.beige,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // Remove back button since we're using bottom nav
         title: Text(
           L10n.getTranslatedText(context, 'Community'),
           style: GoogleFonts.lora(
@@ -62,8 +64,8 @@ class CommunityScreen extends StatelessWidget {
                     );
                   }),
                   buildChannelItem(
-                    Icons.chat_bubble_outline,
-                    L10n.getTranslatedText(context, 'Therapy\nNutshell'),(){
+                      Icons.chat_bubble_outline,
+                      L10n.getTranslatedText(context, 'Therapy\nNutshell'),(){
 
                   }
                   ),
@@ -139,14 +141,14 @@ class CommunityScreen extends StatelessWidget {
                     userName: "Kati Morton",
                     time: "26 Jun. 10:14 PM",
                     text:
-                        L10n.getTranslatedText(context, 'You deserve a love with no trauma attached to it, a love that is good for your mental health, a love that is kind to you. I\'m talking about people NOT suffering from mental health issues'),
+                    L10n.getTranslatedText(context, 'You deserve a love with no trauma attached to it, a love that is good for your mental health, a love that is kind to you. I\'m talking about people NOT suffering from mental health issues'),
                     imagePath: 'assets/images/love-illustration.png',
                   ),
                   buildPost(
                     userName: "Angus MacGyver",
                     time: "26 Jun. 10:14 PM",
                     text:
-                        L10n.getTranslatedText(context, 'If you struggle with depression know that you are not alone'),
+                    L10n.getTranslatedText(context, 'If you struggle with depression know that you are not alone'),
                     imagePath: 'assets/images/meditate_illustration.png',
                     isVideo: true,
                   ),

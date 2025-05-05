@@ -208,7 +208,7 @@ class _ProfileViewState extends State<ProfileView> {
                                         ? _obscureUuid
                                         ? '••••••••••••••••'
                                         : _uuid!
-                                        : '${L10n.getTranslatedText(context, 'Tap to reveal')} UUID',
+                                        : '${L10n.getTranslatedText(context, 'Tap to reveal UUID')} ',
                                     style: TextStyle(
                                       fontSize: MediaQuery.of(context).size.width * 0.035,
                                       color: Colors.grey,
