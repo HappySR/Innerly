@@ -21,7 +21,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
   final _notesController = TextEditingController();
   final _supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _availabilitySlots = [];
+  List<String> _offDays = [];
   bool _isLoading = true;
+  bool _isSubmitting = false;
   Map<String, List<Map<String, dynamic>>> _existingAppointments = {};
 
   @override
@@ -30,58 +32,94 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     _loadAvailabilitySlots();
   }
 
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadAvailabilitySlots() async {
     setState(() => _isLoading = true);
 
     try {
-      // Get all availability slots for the therapist
+      // 1. Get therapist availability slots
       final response = await _supabase
           .from('therapists_availability')
           .select()
-          .eq('therapist_id', widget.therapist['id']);
+          .eq('therapist_id', widget.therapist['id'])
+          .eq('is_availability', true);
 
-      // Get existing appointments for the therapist
+      debugPrint('Found ${response.length} availability slots'); // Debug log
+
+      // 2. Get therapist's off days
+      final exceptionsResponse = await _supabase
+          .from('therapist_schedule_exceptions')
+          .select()
+          .eq('therapist_id', widget.therapist['id'])
+          .eq('is_available', false);
+
+      final offDays = exceptionsResponse.map<String>((exception) {
+        return DateFormat('yyyy-MM-dd')
+            .format(DateTime.parse(exception['exception_date']).toLocal());
+      }).toList();
+
+      debugPrint('Found ${offDays.length} off days: $offDays'); // Debug log
+
+      // 3. Get existing appointments
       final appointmentsResponse = await _supabase
           .from('appointments')
           .select()
           .eq('therapist_id', widget.therapist['id'])
           .inFilter('status', ['pending', 'confirmed']);
 
-      // Process existing appointments
+      debugPrint('Found ${appointmentsResponse.length} existing appointments'); // Debug log
+
+      // Create a map of existing appointments by date
+      final existingAppointments = <String, List<Map<String, dynamic>>>{};
       for (final appointment in appointmentsResponse) {
         final date = DateTime.parse(appointment['scheduled_at']).toLocal();
         final dateStr = DateFormat('yyyy-MM-dd').format(date);
 
-        if (!_existingAppointments.containsKey(dateStr)) {
-          _existingAppointments[dateStr] = [];
+        if (!existingAppointments.containsKey(dateStr)) {
+          existingAppointments[dateStr] = [];
         }
 
-        _existingAppointments[dateStr]!.add({
+        existingAppointments[dateStr]!.add({
           'id': appointment['id'],
           'start_time': date,
-          'end_time': DateTime.parse(appointment['end_time']).toLocal(),
+          'end_time': appointment['end_time'] != null
+              ? DateTime.parse(appointment['end_time']).toLocal()
+              : date.add(const Duration(hours: 1)),
           'user_id': appointment['user_id'],
           'availability_id': appointment['availability_id'],
         });
       }
 
-      setState(() {
-        _availabilitySlots = response.map<Map<String, dynamic>>((slot) {
-          final start = DateTime.parse(slot['scheduled_at']).toLocal();
-          final end = DateTime.parse(slot['end_time']).toLocal();
+      // 4. Process availability slots
+      final availabilitySlots = response.map<Map<String, dynamic>>((slot) {
+        // Parse dates from UTC to local
+        final start = DateTime.parse(slot['scheduled_at']).toLocal();
+        final end = DateTime.parse(slot['end_time']).toLocal();
 
-          return {
-            'id': slot['id'],
-            'start_time': start,
-            'end_time': end,
-            'target_weekday': slot['target_weekday'],
-            'is_recurring': slot['is_recurring'] ?? false,
-            'max_patients': slot['max_patients'] ?? 1,
-            'duration': slot['duration'],
-          };
-        }).toList();
+        return {
+          'id': slot['id'],
+          'start_time': start,
+          'end_time': end,
+          'target_weekday': slot['target_weekday'],
+          'is_recurring': slot['is_recurring'] ?? false,
+          'max_patients': slot['max_patients'] ?? 1,
+        };
+      }).toList();
+
+      setState(() {
+        _availabilitySlots = availabilitySlots;
+        _offDays = offDays;
+        _existingAppointments = existingAppointments;
         _isLoading = false;
       });
+
+      debugPrint('Processed ${_availabilitySlots.length} slots for UI');
+
     } catch (e) {
       debugPrint('Error loading slots: $e');
       setState(() => _isLoading = false);
@@ -89,73 +127,204 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
   }
 
   List<Map<String, dynamic>> _getSlotsForDate(DateTime date) {
-    // Convert to weekday (0-6, where 0 is Monday)
-    final selectedWeekday = date.weekday - 1;
+    // Format the date as YYYY-MM-DD string for comparison
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
 
+    // If date is in off days or in the past, return empty list
+    if (_offDays.contains(dateStr)) {
+      debugPrint('Date $dateStr is in off days');
+      return [];
+    }
+
+    // Check if date is in the past (before today)
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    if (date.isBefore(today)) {
+      debugPrint('Date $dateStr is in the past');
+      return [];
+    }
+
+    final now = DateTime.now();
+    // Using % 7 makes Sunday = 0, but we need Sunday = 7 for DB consistency
+    final selectedWeekday = date.weekday == 7 ? 0 : date.weekday;
+
+    debugPrint('Selected weekday: $selectedWeekday for date $dateStr');
+
+    // Filter slots applicable to the selected date
     final availableSlots = _availabilitySlots.where((slot) {
       final isRecurring = slot['is_recurring'] as bool;
       final targetWeekday = slot['target_weekday'] as int;
-      final originalDate = slot['start_time'] as DateTime;
+      final slotStart = slot['start_time'] as DateTime;
 
-      // For recurring slots, check if the weekday matches and the date is not before the original date
+      // For recurring slots, check if the weekday matches and if the
+      // recurring schedule has already started
       if (isRecurring) {
+        final slotStartDate = DateTime(slotStart.year, slotStart.month, slotStart.day);
+        debugPrint('Checking recurring slot: weekday=$targetWeekday, selected=$selectedWeekday');
         return selectedWeekday == targetWeekday &&
-            !date.isBefore(DateTime(originalDate.year, originalDate.month, originalDate.day));
+            (date.isAtSameMomentAs(slotStartDate) || date.isAfter(slotStartDate));
       }
 
       // For non-recurring slots, check if the date matches exactly
-      return date.year == originalDate.year &&
-          date.month == originalDate.month &&
-          date.day == originalDate.day;
+      final slotDateStr = DateFormat('yyyy-MM-dd').format(slotStart);
+      debugPrint('Checking non-recurring slot: slotDate=$slotDateStr, selected=$dateStr');
+      return slotDateStr == dateStr;
     }).toList();
 
-    // Create new slots with the selected date and filter out fully booked slots
-    return availableSlots.map((slot) {
-      final startTime = slot['start_time'] as DateTime;
-      final endTime = slot['end_time'] as DateTime;
+    debugPrint('Found ${availableSlots.length} potential slots for $dateStr');
+
+    // Now adjust the times for the specific date and filter out unavailable
+    final result = availableSlots.map((slot) {
+      final slotStart = slot['start_time'] as DateTime;
+      final slotEnd = slot['end_time'] as DateTime;
       final maxPatients = slot['max_patients'] as int;
 
-      // Create new DateTime objects with the selected date but keep the original time
-      final adjustedStartTime = DateTime(
+      // Adjust start and end times for the selected date
+      final adjustedStart = DateTime(
         date.year,
         date.month,
         date.day,
-        startTime.hour,
-        startTime.minute,
+        slotStart.hour,
+        slotStart.minute,
       );
 
-      final adjustedEndTime = DateTime(
+      var adjustedEnd = DateTime(
         date.year,
         date.month,
         date.day,
-        endTime.hour,
-        endTime.minute,
+        slotEnd.hour,
+        slotEnd.minute,
       );
 
-      // If end time is earlier than start time, it means it extends to the next day
-      if (endTime.hour < startTime.hour ||
-          (endTime.hour == startTime.hour && endTime.minute < startTime.minute)) {
-        // Create a new DateTime to avoid modifying the original
-        final nextDay = DateTime(date.year, date.month, date.day + 1, endTime.hour, endTime.minute);
-        return {
-          ...slot,
-          'start_time': adjustedStartTime,
-          'end_time': nextDay,
-          'booked_count': _getBookedCount(dateStr, slot['id']),
-        };
+      // Handle slots that cross midnight
+      if (slotEnd.hour < slotStart.hour ||
+          (slotEnd.hour == slotStart.hour && slotEnd.minute < slotStart.minute)) {
+        adjustedEnd = adjustedEnd.add(const Duration(days: 1));
+      }
+
+      // Skip slots that have already passed for today
+      if (date.year == now.year && date.month == now.month && date.day == now.day) {
+        if (adjustedStart.isBefore(now)) {
+          debugPrint('Slot ${DateFormat('HH:mm').format(adjustedStart)} - ${DateFormat('HH:mm').format(adjustedEnd)} has already passed');
+          return null;
+        }
+      }
+
+      // Count how many appointments are already booked for this slot
+      final bookedCount = _getBookedCount(dateStr, slot['id']);
+
+      // Check if the slot is fully booked
+      if (bookedCount >= maxPatients) {
+        debugPrint('Slot ${DateFormat('HH:mm').format(adjustedStart)} is fully booked ($bookedCount/$maxPatients)');
+        return null;
       }
 
       return {
         ...slot,
-        'start_time': adjustedStartTime,
-        'end_time': adjustedEndTime,
-        'booked_count': _getBookedCount(dateStr, slot['id']),
+        'start_time': adjustedStart,
+        'end_time': adjustedEnd,
+        'booked_count': bookedCount,
       };
-    }).where((slot) {
-      // Filter out fully booked slots
-      return slot['booked_count'] < slot['max_patients'];
-    }).toList();
+    })
+        .where((slot) => slot != null)
+        .toList()
+        .cast<Map<String, dynamic>>();
+
+    debugPrint('Returning ${result.length} valid slots after filtering');
+    return result;
+  }
+
+  int _getBookedCount(String dateStr, dynamic availabilityId) {
+    if (availabilityId == null || !_existingAppointments.containsKey(dateStr)) {
+      return 0;
+    }
+
+    return _existingAppointments[dateStr]!
+        .where((appt) => appt['availability_id'] == availabilityId)
+        .length;
+  }
+
+  void _submitAppointment() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedDate == null || _selectedSlot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select date and time slot'),
+          backgroundColor: Color(0xFF4A707A),
+        ),
+      );
+      return;
+    }
+
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    if (_offDays.contains(dateStr)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This day is marked as unavailable by the therapist'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final slotStart = _selectedSlot!['start_time'] as DateTime;
+      final slotEnd = _selectedSlot!['end_time'] as DateTime;
+      final success = await Provider.of<AppointmentService>(context, listen: false)
+          .bookAppointment(
+        therapistId: widget.therapist['id'],
+        appointmentTime: slotStart,
+        endTime: slotEnd,
+        notes: _notesController.text,
+        availabilityId: _selectedSlot!['id'],
+        appointmentDate: dateStr,
+      );
+
+      setState(() => _isSubmitting = false);
+
+      if (!mounted) return;
+      if (success) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              'Success!',
+              style: GoogleFonts.aclonica(color: const Color(0xFF6FA57C)),
+            ),
+            content: Text(
+              'Appointment booked successfully',
+              style: GoogleFonts.montserrat(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'OK',
+                  style: GoogleFonts.montserrat(color: const Color(0xFF6FA57C)),
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Slot no longer available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -195,7 +364,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                   labelStyle: GoogleFonts.montserrat(),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFF6FA57C), width: 2),
+                    borderSide: const BorderSide(
+                        color: Color(0xFF6FA57C), width: 2),
                   ),
                 ),
                 style: GoogleFonts.montserrat(),
@@ -203,15 +373,23 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               ),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: _submitAppointment,
+                onPressed: _isSubmitting ? null : _submitAppointment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6FA57C),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                      borderRadius: BorderRadius.circular(10)),
                 ),
-                child: Text(
+                child: _isSubmitting
+                    ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                    : Text(
                   'Book Appointment',
                   style: GoogleFonts.aclonica(
                     color: Colors.white,
@@ -253,6 +431,10 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               ),
               child: child!,
             ),
+            selectableDayPredicate: (DateTime day) {
+              final dateStr = DateFormat('yyyy-MM-dd').format(day);
+              return !_offDays.contains(dateStr);
+            },
           );
           if (pickedDate != null) {
             setState(() {
@@ -267,6 +449,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
 
   Widget _buildTimeSlots() {
     final slots = _getSlotsForDate(_selectedDate!);
+
+    debugPrint('Found ${slots.length} available slots for selected date');
 
     if (slots.isEmpty) {
       return Padding(
@@ -318,14 +502,13 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           itemCount: slots.length,
           itemBuilder: (context, index) {
             final slot = slots[index];
-            final startTime = slot['start_time'] as DateTime;
-            final endTime = slot['end_time'] as DateTime;
-            final formattedStartTime = DateFormat('h:mm a').format(startTime);
-            final formattedEndTime = DateFormat('h:mm a').format(endTime);
-            final isSelected = _selectedSlot != null && _selectedSlot!['id'] == slot['id'];
+            final start = slot['start_time'] as DateTime;
+            final end = slot['end_time'] as DateTime;
+            final formattedStart = DateFormat('h:mm a').format(start);
+            final formattedEnd = DateFormat('h:mm a').format(end);
+            final isSelected = _selectedSlot?['id'] == slot['id'];
             final maxPatients = slot['max_patients'] as int;
-            final bookedCount = slot['booked_count'] as int? ?? 0;
-            final availableSpots = maxPatients - bookedCount;
+            final available = maxPatients - (slot['booked_count'] as int);
 
             return Card(
               elevation: 2,
@@ -351,7 +534,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$formattedStartTime - $formattedEndTime',
+                            '$formattedStart - $formattedEnd',
                             style: GoogleFonts.montserrat(
                               fontSize: 16,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -359,7 +542,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                           ),
                           if (maxPatients > 1)
                             Text(
-                              '$availableSpots of $maxPatients spots available',
+                              '$available of $maxPatients spots available',
                               style: GoogleFonts.montserrat(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -394,123 +577,5 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         ),
       ],
     );
-  }
-
-  int _getBookedCount(String dateStr, String? availabilityId) {
-    if (availabilityId == null || !_existingAppointments.containsKey(dateStr)) {
-      return 0;
-    }
-
-    return _existingAppointments[dateStr]!
-        .where((appointment) => appointment['availability_id'] == availabilityId)
-        .length;
-  }
-
-  void _submitAppointment() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_selectedDate == null || _selectedSlot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select date and time slot'),
-          backgroundColor: Color(0xFF4A707A),
-        ),
-      );
-      return;
-    }
-
-    try {
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(color: Color(0xFF6FA57C)),
-        ),
-      );
-
-      final slotStart = _selectedSlot!['start_time'] as DateTime;
-      final slotEnd = _selectedSlot!['end_time'] as DateTime;
-      final availabilityId = _selectedSlot!['id'] as String?;
-
-      // Ensure we use the selected date with the slot's time
-      final appointmentTime = slotStart;
-      final endTime = slotEnd;
-
-      final appointmentData = {
-        'therapistId': widget.therapist['id'],
-        'therapistName': widget.therapist['name'],
-        'appointmentTime': appointmentTime,
-        'endTime': endTime,
-        'notes': _notesController.text,
-      };
-
-      // Add availability_id if it exists
-      if (availabilityId != null) {
-        appointmentData['availabilityId'] = availabilityId;
-      }
-
-      final success = await Provider.of<AppointmentService>(context, listen: false)
-          .bookAppointment(
-        therapistId: widget.therapist['id'],
-        therapistName: widget.therapist['name'],
-        appointmentTime: appointmentTime,
-        endTime: endTime,
-        notes: _notesController.text,
-        availabilityId: availabilityId,
-      );
-
-      // Close loading dialog
-      Navigator.pop(context);
-
-      if (success) {
-        // Show success dialog
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(
-              'Success!',
-              style: GoogleFonts.aclonica(color: const Color(0xFF6FA57C)),
-            ),
-            content: Text(
-              'Your appointment has been booked successfully.',
-              style: GoogleFonts.montserrat(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Return to previous screen
-                },
-                child: Text(
-                  'OK',
-                  style: GoogleFonts.montserrat(color: const Color(0xFF6FA57C)),
-                ),
-              ),
-            ],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to book appointment'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      // Close loading dialog if open
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 }

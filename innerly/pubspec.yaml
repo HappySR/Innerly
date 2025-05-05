@@ -63,6 +63,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   device_info_plus: ^11.4.0
   shared_preferences: ^2.5.3
+  timezone: ^0.10.1
   flutter_localizations:
     sdk: flutter
 
