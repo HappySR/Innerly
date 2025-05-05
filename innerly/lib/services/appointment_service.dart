@@ -43,7 +43,7 @@ class AppointmentService extends ChangeNotifier {
         'notes': notes,
         'status': 'pending',
         'availability_id': availabilityId,
-        'appointment_date': appointmentDate, // Add this line to include the appointment_date field
+        'appointment_date': appointmentDate,
       };
 
       final response = await _supabase.from('appointments').insert(appointmentData).select();

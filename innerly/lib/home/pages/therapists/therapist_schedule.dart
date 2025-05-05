@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -17,10 +19,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   DateTime? _focusedDay = DateTime.now();
   List<Map<String, dynamic>> _appointments = [];
   bool _isLoading = true;
+  // Timer for periodic checking of appointment status
+  Timer? _statusCheckTimer;
 
   List<Map<String, dynamic>> get upcomingAppointments {
     final upcoming = _appointments
-        .where((appt) => appt['status'] == 'approved')
+        .where((appt) => appt['status'] == 'confirmed')
         .toList();
     upcoming.sort((a, b) => DateTime.parse(a['scheduled_at'])
         .compareTo(DateTime.parse(b['scheduled_at'])));
@@ -29,7 +33,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   List<Map<String, dynamic>> get pastAppointments {
     final past = _appointments
-        .where((appt) => appt['status'] == 'done')
+        .where((appt) => appt['status'] == 'completed')
         .toList();
     past.sort((a, b) => DateTime.parse(b['scheduled_at'])
         .compareTo(DateTime.parse(a['scheduled_at'])));
@@ -41,7 +45,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchAppointments();
+      // Set up periodic status check (every minute)
+      _statusCheckTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+        _checkAppointmentStatus();
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _statusCheckTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchAppointments() async {
@@ -53,7 +67,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           .from('appointments')
           .select()
           .eq('therapist_id', userId)
-          .inFilter('status', ['approved', 'done'])
+          .inFilter('status', ['confirmed', 'completed'])
           .order('scheduled_at', ascending: true);
 
       if (appointments.isEmpty) {
@@ -85,23 +99,53 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         _appointments = List<Map<String, dynamic>>.from(combined);
         _isLoading = false;
       });
+
+      // Check status immediately after fetching
+      _checkAppointmentStatus();
     } catch (e) {
       print('Fetch error: $e');
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _markAppointmentDone(String appointmentId) async {
-    try {
-      await _supabase
-          .from('appointments')
-          .update({'status': 'done'})
-          .eq('id', appointmentId);
-      await _fetchAppointments();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update: ${e.toString()}')),
-      );
+  void _checkAppointmentStatus() async {
+    final now = DateTime.now();
+    final appointmentsNeedingUpdate = <String>[];
+
+    // Check confirmed appointments that should be completed
+    for (final appointment in _appointments) {
+      if (appointment['status'] == 'confirmed') {
+        // Calculate end time based on scheduled_at and duration
+        // Assuming appointment duration is stored in minutes in a 'duration' field
+        // If not available, assume default 60 minutes
+        final int durationMinutes = appointment['duration'] ?? 60;
+        final DateTime startTime = DateTime.parse(appointment['scheduled_at']).toLocal();
+        final DateTime endTime = startTime.add(Duration(minutes: durationMinutes));
+
+        // If end time has passed, mark for completion
+        if (now.isAfter(endTime)) {
+          appointmentsNeedingUpdate.add(appointment['id'].toString());
+        }
+      }
+    }
+
+    // Update status for appointments that need it
+    if (appointmentsNeedingUpdate.isNotEmpty) {
+      try {
+        await Future.wait(
+            appointmentsNeedingUpdate.map((id) =>
+                _supabase
+                    .from('appointments')
+                    .update({'status': 'completed'})
+                    .eq('id', id)
+            )
+        );
+
+        // Refresh appointments after updating
+        _fetchAppointments();
+      } catch (e) {
+        print('Status update error: $e');
+      }
     }
   }
 
@@ -325,6 +369,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final monthYear = DateFormat('MMMM y').format(scheduledAt);
     final time = DateFormat('h:mm a').format(scheduledAt);
 
+    // Calculate estimated end time for display
+    final int durationMinutes = appointment['duration'] ?? 60;
+    final endTime = scheduledAt.add(Duration(minutes: durationMinutes));
+    final endTimeFormatted = DateFormat('h:mm a').format(endTime);
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: screenWidth * 0.04,
@@ -376,8 +425,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     SizedBox(height: screenHeight * 0.005),
                     Row(
                       children: [
-                        Icon(Icons.circle,
-                            size: screenWidth * 0.03, color: Colors.green),
+                        Icon(
+                            Icons.circle,
+                            size: screenWidth * 0.03,
+                            color: appointment['status'] == 'completed' ? Colors.grey : Colors.green
+                        ),
                         SizedBox(width: screenWidth * 0.015),
                         Text(
                           "Status: ${appointment['status']}",
@@ -404,39 +456,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 SizedBox(width: screenWidth * 0.04),
                 _infoBox(
                   icon: Icons.access_time,
-                  label: time,
+                  label: "$time - $endTimeFormatted",
                   screenWidth: screenWidth,
                 ),
               ],
             ),
           ),
-          if (appointment['status'] == 'approved')
-            Padding(
-              padding: EdgeInsets.only(top: screenHeight * 0.015),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6FA57C),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.06,
-                      vertical: screenHeight * 0.01,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                    ),
-                  ),
-                  onPressed: () => _markAppointmentDone(appointment['id'].toString()),
-                  child: Text(
-                    'Done',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: screenWidth * 0.035,
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );

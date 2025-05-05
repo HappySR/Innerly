@@ -89,12 +89,10 @@ class _PatientsRequestsState extends State<PatientsRequests> {
 
   Future<void> _updateAppointmentStatus(String appointmentId, String status) async {
     try {
-      final response = await _supabase
+      await _supabase
           .from('appointments')
           .update({'status': status})
           .eq('id', appointmentId);
-
-      if (response.error != null) throw response.error!;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Appointment ${status.toLowerCase()} successfully')),
@@ -337,7 +335,7 @@ class _SessionCard extends StatelessWidget {
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => onUpdateStatus(appointment['id'].toString(), 'approved'),
+              onPressed: () => onUpdateStatus(appointment['id'].toString(), 'confirmed'),
               style: _buttonStyle(color: const Color(0xFF4CAF50)),
               child: Text('Accept', style: _buttonTextStyle(color: const Color(0xFF4CAF50))),
             ),
@@ -345,7 +343,7 @@ class _SessionCard extends StatelessWidget {
           SizedBox(width: screenSize.width * 0.04),
           Expanded(
             child: OutlinedButton(
-              onPressed: () => onUpdateStatus(appointment['id'].toString(), 'declined'),
+              onPressed: () => onUpdateStatus(appointment['id'].toString(), 'rejected'),
               style: _buttonStyle(color: const Color(0xFFE53935)),
               child: Text('Decline', style: _buttonTextStyle(color: const Color(0xFFE53935))),
             ),
