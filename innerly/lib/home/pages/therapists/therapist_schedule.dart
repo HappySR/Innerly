@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:Innerly/home/pages/chat_screen.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -111,13 +114,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void _checkAppointmentStatus() async {
     final now = DateTime.now();
     final appointmentsNeedingUpdate = <String>[];
+    final appointmentsNeedingMeetLink = <Map<String, dynamic>>[];
 
     // Check confirmed appointments that should be completed
     for (final appointment in _appointments) {
       if (appointment['status'] == 'confirmed') {
         // Calculate end time based on scheduled_at and duration
-        // Assuming appointment duration is stored in minutes in a 'duration' field
-        // If not available, assume default 60 minutes
         final int durationMinutes = appointment['duration'] ?? 60;
         final DateTime startTime = DateTime.parse(appointment['scheduled_at']).toLocal();
         final DateTime endTime = startTime.add(Duration(minutes: durationMinutes));
@@ -126,6 +128,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         if (now.isAfter(endTime)) {
           appointmentsNeedingUpdate.add(appointment['id'].toString());
         }
+
+        // Check if appointment is within 10 minutes of starting and needs a meet link
+        if (startTime.difference(now).inMinutes <= 10 &&
+            appointment['meet_link'] == null) {
+          appointmentsNeedingMeetLink.add(appointment);
+        }
+      }
+    }
+
+    // Generate meet links for appointments that need them
+    if (appointmentsNeedingMeetLink.isNotEmpty) {
+      try {
+        await Future.wait(
+            appointmentsNeedingMeetLink.map((appointment) async {
+              final meetLink = _generateMeetLink();
+              await _supabase
+                  .from('appointments')
+                  .update({'meet_link': meetLink})
+                  .eq('id', appointment['id']);
+            })
+        );
+      } catch (e) {
+        print('Meet link generation error: $e');
       }
     }
 
@@ -149,15 +174,52 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
+  String _generateMeetLink() {
+    final random = Random();
+    final code = List.generate(10, (_) =>
+    'abcdefghijklmnopqrstuvwxyz'[random.nextInt(26)]
+    ).join();
+    return 'https://meet.google.com/$code';
+  }
+
+  Future<void> _launchMeetLink(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+    // Calculate dynamic sizes based on screen dimensions
+    final double titleFontSize = min(screenWidth * 0.065, 28.0);
+    final double subtitleFontSize = min(screenWidth * 0.045, 20.0);
+    final double normalFontSize = min(screenWidth * 0.04, 16.0);
+    final double smallFontSize = min(screenWidth * 0.035, 14.0);
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         backgroundColor: const Color(0xFFFDF6F0),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFFDF6F0),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text(
+            "TODAY'S SCHEDULE",
+            style: GoogleFonts.aboreto(
+              fontSize: titleFontSize,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          centerTitle: true,
+        ),
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
@@ -165,28 +227,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: screenHeight * 0.04),
-                        child: Text(
-                          "TODAY'S SCHEDULE",
-                          style: GoogleFonts.aboreto(
-                            fontSize: screenWidth * 0.065,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.02),
-                    _calendar(screenWidth),
+                    _calendar(screenWidth, normalFontSize, smallFontSize),
                     SizedBox(height: screenHeight * 0.03),
                     Padding(
                       padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.02),
+                          horizontal: max(screenWidth * 0.02, 8.0)),
                       child: Text(
                         "Appointments",
                         style: GoogleFonts.montserrat(
-                          fontSize: screenWidth * 0.045,
+                          fontSize: subtitleFontSize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -204,7 +253,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         child: Text(
                           'Upcoming',
                           style: GoogleFonts.montserrat(
-                            fontSize: screenWidth * 0.04,
+                            fontSize: normalFontSize,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -213,7 +262,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         child: Text(
                           'Past',
                           style: GoogleFonts.montserrat(
-                            fontSize: screenWidth * 0.04,
+                            fontSize: normalFontSize,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -229,8 +278,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           },
           body: TabBarView(
             children: [
-              _buildAppointmentsList(upcomingAppointments, screenWidth, screenHeight),
-              _buildAppointmentsList(pastAppointments, screenWidth, screenHeight),
+              _buildAppointmentsList(
+                upcomingAppointments,
+                screenWidth,
+                screenHeight,
+                titleFontSize,
+                normalFontSize,
+                smallFontSize,
+                showMeetButton: true,
+              ),
+              _buildAppointmentsList(
+                pastAppointments,
+                screenWidth,
+                screenHeight,
+                titleFontSize,
+                normalFontSize,
+                smallFontSize,
+                showMeetButton: false,
+              ),
             ],
           ),
         ),
@@ -242,17 +307,23 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       List<Map<String, dynamic>> appointments,
       double screenWidth,
       double screenHeight,
-      ) {
+      double titleFontSize,
+      double normalFontSize,
+      double smallFontSize, {
+        required bool showMeetButton, // Moved this inside the curly braces
+      }) {
+    final padding = min(max(screenWidth * 0.04, 10.0), 20.0);
+
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
         : appointments.isEmpty
         ? Center(
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(padding),
         child: Text(
           'No appointments found',
           style: GoogleFonts.abyssinicaSil(
-            fontSize: screenWidth * 0.04,
+            fontSize: normalFontSize,
             color: Colors.grey,
           ),
         ),
@@ -260,29 +331,32 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     )
         : ListView.builder(
       padding: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.04,
-          vertical: screenHeight * 0.02),
+          horizontal: padding, vertical: screenHeight * 0.02),
       itemCount: appointments.length,
       itemBuilder: (context, index) => _appointmentCard(
         appointment: appointments[index],
         screenWidth: screenWidth,
         screenHeight: screenHeight,
+        titleFontSize: titleFontSize,
+        normalFontSize: normalFontSize,
+        smallFontSize: smallFontSize,
+        showMeetButton: showMeetButton,
       ),
     );
   }
 
-  Widget _calendar(double screenWidth) {
+  Widget _calendar(double screenWidth, double normalFontSize, double smallFontSize) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Card(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(screenWidth * 0.04)),
+              borderRadius: BorderRadius.circular(min(screenWidth * 0.04, 16.0))),
           elevation: 3,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(screenWidth * 0.04),
+            borderRadius: BorderRadius.circular(min(screenWidth * 0.04, 16.0)),
             child: Container(
               color: Colors.white,
-              padding: EdgeInsets.all(screenWidth * 0.03),
+              padding: EdgeInsets.all(min(screenWidth * 0.03, 12.0)),
               constraints: BoxConstraints(
                 minHeight: constraints.maxWidth * 0.8,
               ),
@@ -309,12 +383,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     color: const Color.fromARGB(161, 146, 240, 223),
                     shape: BoxShape.circle,
                   ),
-                  cellPadding: EdgeInsets.all(screenWidth * 0.015),
+                  cellPadding: EdgeInsets.all(min(screenWidth * 0.015, 6.0)),
                   defaultTextStyle: TextStyle(
-                    fontSize: screenWidth * 0.035,
+                    fontSize: smallFontSize,
                   ),
                   todayTextStyle: TextStyle(
-                    fontSize: screenWidth * 0.035,
+                    fontSize: smallFontSize,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -322,12 +396,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   weekdayStyle: TextStyle(
                     color: const Color(0xFF7A2DED),
                     fontWeight: FontWeight.w600,
-                    fontSize: screenWidth * 0.035,
+                    fontSize: smallFontSize,
                   ),
                   weekendStyle: TextStyle(
                     color: const Color(0xFF7A2DED),
                     fontWeight: FontWeight.w600,
-                    fontSize: screenWidth * 0.035,
+                    fontSize: smallFontSize,
                   ),
                 ),
                 headerStyle: HeaderStyle(
@@ -335,18 +409,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   titleCentered: true,
                   titleTextStyle: GoogleFonts.montserrat(
                     fontWeight: FontWeight.w600,
-                    fontSize: screenWidth * 0.045,
+                    fontSize: normalFontSize,
                   ),
                   leftChevronIcon: Icon(
                     Icons.chevron_left,
-                    size: screenWidth * 0.06,
+                    size: min(screenWidth * 0.06, 24.0),
                   ),
                   rightChevronIcon: Icon(
                     Icons.chevron_right,
-                    size: screenWidth * 0.06,
+                    size: min(screenWidth * 0.06, 24.0),
                   ),
                   headerPadding: EdgeInsets.only(
-                    bottom: screenWidth * 0.04,
+                    bottom: min(screenWidth * 0.04, 16.0),
                   ),
                 ),
               ),
@@ -361,28 +435,45 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     required Map<String, dynamic> appointment,
     required double screenWidth,
     required double screenHeight,
+    required double titleFontSize,
+    required double normalFontSize,
+    required double smallFontSize,
+    required bool showMeetButton,
   }) {
     final client = appointment['client'] as Map<String, dynamic>? ?? {};
+    final clientId = appointment['user_id'] as String? ?? '';
     final meta = client['raw_user_meta_data'] ?? {};
     final scheduledAt = DateTime.parse(appointment['scheduled_at']).toLocal();
     final date = DateFormat('d').format(scheduledAt);
     final monthYear = DateFormat('MMMM y').format(scheduledAt);
     final time = DateFormat('h:mm a').format(scheduledAt);
+    final now = DateTime.now();
+
+    // Calculate time to appointment start
+    final Duration timeToStart = scheduledAt.difference(now);
+    final bool isWithin10Min = timeToStart.inMinutes <= 10 && timeToStart.isNegative == false;
+    final bool hasStarted = timeToStart.isNegative && appointment['status'] == 'confirmed';
 
     // Calculate estimated end time for display
     final int durationMinutes = appointment['duration'] ?? 60;
     final endTime = scheduledAt.add(Duration(minutes: durationMinutes));
     final endTimeFormatted = DateFormat('h:mm a').format(endTime);
 
+    // Dynamic padding based on screen size
+    final double horizontalPadding = min(max(screenWidth * 0.04, 12.0), 20.0);
+    final double verticalPadding = min(max(screenHeight * 0.02, 12.0), 20.0);
+    final double betweenItemsSpace = min(max(screenHeight * 0.015, 8.0), 16.0);
+    final double avatarRadius = min(max(screenWidth * 0.07, 24.0), 32.0);
+
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.04,
-        vertical: screenHeight * 0.02,
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
       ),
-      margin: EdgeInsets.only(bottom: screenHeight * 0.015),
+      margin: EdgeInsets.only(bottom: betweenItemsSpace),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(screenWidth * 0.04),
+        borderRadius: BorderRadius.circular(min(screenWidth * 0.04, 16.0)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.shade200,
@@ -399,9 +490,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             children: [
               CircleAvatar(
                 backgroundImage: const AssetImage('assets/icons/user.png'),
-                radius: screenWidth * 0.07,
+                radius: avatarRadius,
               ),
-              SizedBox(width: screenWidth * 0.04),
+              SizedBox(width: horizontalPadding),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,31 +500,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     Text(
                       meta['full_name']?.toString() ?? 'Anonymous User',
                       style: GoogleFonts.montserrat(
-                        fontSize: screenWidth * 0.04,
+                        fontSize: normalFontSize,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: screenHeight * 0.005),
+                    SizedBox(height: betweenItemsSpace / 2),
                     Text(
                       "Issue: ${appointment['notes']?.toString() ?? 'General Consultation'}",
-                      style: TextStyle(fontSize: screenWidth * 0.035),
+                      style: TextStyle(fontSize: smallFontSize),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: screenHeight * 0.005),
+                    SizedBox(height: betweenItemsSpace / 2),
                     Row(
                       children: [
                         Icon(
                             Icons.circle,
-                            size: screenWidth * 0.03,
+                            size: min(screenWidth * 0.03, 12.0),
                             color: appointment['status'] == 'completed' ? Colors.grey : Colors.green
                         ),
-                        SizedBox(width: screenWidth * 0.015),
+                        SizedBox(width: horizontalPadding / 3),
                         Text(
                           "Status: ${appointment['status']}",
-                          style: TextStyle(fontSize: screenWidth * 0.035),
+                          style: TextStyle(fontSize: smallFontSize),
                         ),
                       ],
                     ),
@@ -442,7 +533,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
             ],
           ),
-          SizedBox(height: screenHeight * 0.015),
+          SizedBox(height: betweenItemsSpace),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -452,15 +543,106 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   icon: Icons.calendar_today,
                   label: "$date ${_getOrdinal(int.parse(date))} $monthYear",
                   screenWidth: screenWidth,
+                  fontSize: smallFontSize,
                 ),
-                SizedBox(width: screenWidth * 0.04),
+                SizedBox(width: horizontalPadding),
                 _infoBox(
                   icon: Icons.access_time,
                   label: "$time - $endTimeFormatted",
                   screenWidth: screenWidth,
+                  fontSize: smallFontSize,
                 ),
               ],
             ),
+          ),
+          SizedBox(height: betweenItemsSpace),
+
+          // Action Buttons (Message and Meet)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                          receiverId: clientId,
+                          receiverName: meta['full_name']?.toString() ?? 'Client',
+                          isTherapist: true,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: Icon(
+                    Icons.message,
+                    size: min(screenWidth * 0.05, 20.0),
+                    color: Colors.black,
+                  ),
+                  label: Text(
+                    'Message',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w500,
+                      fontSize: smallFontSize,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                      color: Color(0xFFCED4DA),
+                      width: 1,
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: min(screenWidth * 0.03, 12.0)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(min(screenWidth * 0.025, 10.0)),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Meet Button (Only for upcoming and within 10 minutes of start)
+              if (showMeetButton) ...[
+                SizedBox(width: horizontalPadding),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
+                        ? () => _launchMeetLink(appointment['meet_link'])
+                        : null,
+                    icon: Icon(
+                      Icons.videocam,
+                      size: min(screenWidth * 0.05, 20.0),
+                      color: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
+                          ? Colors.black
+                          : Colors.grey,
+                    ),
+                    label: Text(
+                      (isWithin10Min || hasStarted) && appointment['meet_link'] != null
+                          ? 'Join Meet'
+                          : 'Meet (${timeToStart.inMinutes > 10 ? "${timeToStart.inMinutes} mins" : "soon"})',
+                      style: TextStyle(
+                        color: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
+                            ? Colors.black
+                            : Colors.grey,
+                        fontWeight: FontWeight.w500,
+                        fontSize: smallFontSize,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
+                            ? const Color(0xFF6FA57C)
+                            : const Color(0xFFCED4DA),
+                        width: 1,
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: min(screenWidth * 0.03, 12.0)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(min(screenWidth * 0.025, 10.0)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -471,25 +653,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     required IconData icon,
     required String label,
     required double screenWidth,
+    required double fontSize,
   }) {
+    final double horizontalPadding = min(max(screenWidth * 0.04, 12.0), 20.0);
+    final double verticalPadding = min(max(screenWidth * 0.02, 8.0), 12.0);
+
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.06,
-        vertical: screenWidth * 0.02,
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
       ),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+        borderRadius: BorderRadius.circular(min(screenWidth * 0.03, 12.0)),
         border: Border.all(color: const Color(0xFF6FA57C), width: 1),
       ),
       child: Row(
         children: [
-          Icon(icon, size: screenWidth * 0.04, color: Colors.black87),
-          SizedBox(width: screenWidth * 0.015),
+          Icon(icon, size: fontSize * 1.1, color: Colors.black87),
+          SizedBox(width: horizontalPadding / 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: screenWidth * 0.035,
+              fontSize: fontSize,
               fontWeight: FontWeight.w500,
             ),
           ),
