@@ -43,6 +43,7 @@ class AppointmentService extends ChangeNotifier {
         'notes': notes,
         'status': 'pending',
         'availability_id': availabilityId,
+        'appointment_date': appointmentDate, // Add this line to include the appointment_date field
       };
 
       final response = await _supabase.from('appointments').insert(appointmentData).select();
@@ -294,6 +295,7 @@ class AppointmentService extends ChangeNotifier {
         'scheduled_at': newAppointmentTime.toUtc().toIso8601String(),
         'end_time': newEndTime.toUtc().toIso8601String(),
         'availability_id': newAvailabilityId,
+        'appointment_date': appointmentDate, // Add this line to include the appointment_date field
         'status': 'pending',  // Reset to pending on reschedule
       })
           .eq('id', appointmentId);
