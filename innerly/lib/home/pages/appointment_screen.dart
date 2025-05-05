@@ -106,7 +106,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           'start_time': start,
           'end_time': end,
           'target_weekday': slot['target_weekday'],
-          'is_recurring': slot['is_recurring'] ?? false,
+          'is_recurring': slot['is_recurring'] ?? true,
           'max_patients': slot['max_patients'] ?? 1,
         };
       }).toList();
@@ -144,35 +144,46 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     }
 
     final now = DateTime.now();
-    // Using % 7 makes Sunday = 0, but we need Sunday = 7 for DB consistency
-    final selectedWeekday = date.weekday == 7 ? 0 : date.weekday;
+
+    // Get the weekday (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
+    final selectedWeekday = (date.weekday - 1) % 7;
 
     debugPrint('Selected weekday: $selectedWeekday for date $dateStr');
 
     // Filter slots applicable to the selected date
-    final availableSlots = _availabilitySlots.where((slot) {
+    List<Map<String, dynamic>> availableSlots = [];
+
+    for (var slot in _availabilitySlots) {
       final isRecurring = slot['is_recurring'] as bool;
       final targetWeekday = slot['target_weekday'] as int;
       final slotStart = slot['start_time'] as DateTime;
 
-      // For recurring slots, check if the weekday matches and if the
-      // recurring schedule has already started
+      // For recurring slots, check if the weekday matches
       if (isRecurring) {
+        // Check if weekday matches and original slot start date is not in the future
         final slotStartDate = DateTime(slotStart.year, slotStart.month, slotStart.day);
-        debugPrint('Checking recurring slot: weekday=$targetWeekday, selected=$selectedWeekday');
-        return selectedWeekday == targetWeekday &&
-            (date.isAtSameMomentAs(slotStartDate) || date.isAfter(slotStartDate));
-      }
+        debugPrint('Checking recurring slot: target weekday=$targetWeekday, selected weekday=$selectedWeekday');
 
+        if (selectedWeekday == targetWeekday && !slotStartDate.isAfter(date)) {
+          availableSlots.add(slot);
+          debugPrint('Added recurring slot for weekday $targetWeekday');
+        }
+      }
       // For non-recurring slots, check if the date matches exactly
-      final slotDateStr = DateFormat('yyyy-MM-dd').format(slotStart);
-      debugPrint('Checking non-recurring slot: slotDate=$slotDateStr, selected=$dateStr');
-      return slotDateStr == dateStr;
-    }).toList();
+      else {
+        final slotDateStr = DateFormat('yyyy-MM-dd').format(slotStart);
+        debugPrint('Checking non-recurring slot: slotDate=$slotDateStr, selected=$dateStr');
+
+        if (slotDateStr == dateStr) {
+          availableSlots.add(slot);
+          debugPrint('Added non-recurring slot for exact date $dateStr');
+        }
+      }
+    }
 
     debugPrint('Found ${availableSlots.length} potential slots for $dateStr');
 
-    // Now adjust the times for the specific date and filter out unavailable
+    // Now adjust the times for the specific date and filter out unavailable slots
     final result = availableSlots.map((slot) {
       final slotStart = slot['start_time'] as DateTime;
       final slotEnd = slot['end_time'] as DateTime;
@@ -209,8 +220,12 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         }
       }
 
+      // For recurring slots, we need to check the specific date's bookings
+      // Get the availability ID for booking matching
+      final availabilityId = slot['id'];
+
       // Count how many appointments are already booked for this slot
-      final bookedCount = _getBookedCount(dateStr, slot['id']);
+      final bookedCount = _getBookedCountForSlot(dateStr, availabilityId, adjustedStart, adjustedEnd);
 
       // Check if the slot is fully booked
       if (bookedCount >= maxPatients) {
@@ -223,6 +238,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         'start_time': adjustedStart,
         'end_time': adjustedEnd,
         'booked_count': bookedCount,
+        'adjusted_date': dateStr, // Store the adjusted date for booking
       };
     })
         .where((slot) => slot != null)
@@ -233,14 +249,28 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     return result;
   }
 
-  int _getBookedCount(String dateStr, dynamic availabilityId) {
+  int _getBookedCountForSlot(String dateStr, dynamic availabilityId, DateTime start, DateTime end) {
     if (availabilityId == null || !_existingAppointments.containsKey(dateStr)) {
       return 0;
     }
 
-    return _existingAppointments[dateStr]!
-        .where((appt) => appt['availability_id'] == availabilityId)
-        .length;
+    // For recurring slots, we need to check all appointments for this date
+    // that match the time slot (not just the availability ID)
+    int count = 0;
+
+    for (var appt in _existingAppointments[dateStr]!) {
+      final apptStart = appt['start_time'] as DateTime;
+
+      // Check if this appointment starts at the same time as our slot
+      if (apptStart.hour == start.hour && apptStart.minute == start.minute) {
+        // If it has the same availability ID or time matches exactly, count it
+        if (appt['availability_id'] == availabilityId) {
+          count++;
+        }
+      }
+    }
+
+    return count;
   }
 
   void _submitAppointment() async {
@@ -278,7 +308,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         endTime: slotEnd,
         notes: _notesController.text,
         availabilityId: _selectedSlot!['id'],
-        appointmentDate: dateStr,
+        appointmentDate: dateStr, // Pass the actual date string for this instance
       );
 
       setState(() => _isSubmitting = false);
@@ -506,7 +536,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             final end = slot['end_time'] as DateTime;
             final formattedStart = DateFormat('h:mm a').format(start);
             final formattedEnd = DateFormat('h:mm a').format(end);
-            final isSelected = _selectedSlot?['id'] == slot['id'];
+            final isSelected = _selectedSlot?['id'] == slot['id'] &&
+                _selectedSlot?['adjusted_date'] == slot['adjusted_date'];
             final maxPatients = slot['max_patients'] as int;
             final available = maxPatients - (slot['booked_count'] as int);
 
