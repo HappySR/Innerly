@@ -806,7 +806,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(L10n.getTranslatedText(context, 'Schedule New Session')),
+        title: Text('Schedule New Session'),
         content: Text(
             'Would you like to schedule another session with $therapistName?\n\n'
                 'You will be redirected to the booking page.'
@@ -814,20 +814,20 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(L10n.getTranslatedText(context, 'Not Now')),
+            child: Text('Not Now'),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               if (therapistId.isNotEmpty) {
-                _navigateToBooking(context, therapistId);
+                _navigateToBooking(therapistId, therapist);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(L10n.getTranslatedText(context, 'Therapist ID not found')))
+                    SnackBar(content: Text('Therapist ID not found'))
                 );
               }
             },
-            child: Text(L10n.getTranslatedText(context, 'Book Session'),
+            child: Text('Book Session',
                 style: TextStyle(color: const Color(0xFF6FA57C))),
           ),
         ],
@@ -866,7 +866,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     }
   }
 
-  void _navigateToBooking(BuildContext context, String therapistId) async {
+  void _navigateToBooking(String therapistId, Map<String, dynamic>? existingTherapistData) async {
     final authService = Provider.of<AuthService>(context, listen: false);
 
     try {
@@ -874,14 +874,23 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (BuildContext dialogContext) =>
+        const Center(child: CircularProgressIndicator()),
       );
 
-      // Fetch therapist data using the AuthService
-      final therapistData = await authService.getTherapist(therapistId);
+      // If we already have complete therapist data, use it
+      // Otherwise fetch it using the AuthService
+      Map<String, dynamic> therapistData;
+      if (existingTherapistData != null &&
+          existingTherapistData.containsKey('full_name') &&
+          existingTherapistData.containsKey('specialization')) {
+        therapistData = existingTherapistData;
+      } else {
+        therapistData = await authService.getTherapist(therapistId);
+      }
 
       // Close loading dialog
-      Navigator.pop(context);
+      Navigator.of(context, rootNavigator: true).pop();
 
       if (therapistData.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -905,7 +914,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     } catch (e) {
       // Close loading dialog if still showing
       if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+        Navigator.of(context, rootNavigator: true).pop();
       }
 
       print('Navigation error: $e');
