@@ -121,7 +121,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
     final user = Supabase.instance.client.auth.currentUser!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF4E7),
+      backgroundColor: InnerlyTheme.appBackground,
       body: Stack(
         children: [
           SafeArea(

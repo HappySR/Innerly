@@ -212,12 +212,8 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
         appBar: AppBar(
           backgroundColor: const Color(0xFFFDF6F0),
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
           title: Text(
-            "MY APPOINTMENTS",
+            L10n.getTranslatedText(context, 'MY APPOINTMENTS'),
             style: GoogleFonts.aboreto(
               fontSize: titleFontSize,
               fontWeight: FontWeight.w600,
@@ -238,7 +234,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                       padding: EdgeInsets.symmetric(
                           horizontal: max(screenWidth * 0.02, 8.0)),
                       child: Text(
-                        "My Sessions",
+                        L10n.getTranslatedText(context, 'My Sessions'),
                         style: GoogleFonts.montserrat(
                           fontSize: subtitleFontSize,
                           fontWeight: FontWeight.w600,
@@ -256,7 +252,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                     tabs: [
                       Tab(
                         child: Text(
-                          'Upcoming',
+                          L10n.getTranslatedText(context, 'Upcoming'),
                           style: GoogleFonts.montserrat(
                             fontSize: normalFontSize,
                             fontWeight: FontWeight.w500,
@@ -265,7 +261,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                       ),
                       Tab(
                         child: Text(
-                          'Past',
+                          L10n.getTranslatedText(context, 'Past'),
                           style: GoogleFonts.montserrat(
                             fontSize: normalFontSize,
                             fontWeight: FontWeight.w500,
@@ -325,7 +321,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
       child: Padding(
         padding: EdgeInsets.all(padding),
         child: Text(
-          'No appointments found',
+          L10n.getTranslatedText(context, 'No appointments found'),
           style: GoogleFonts.abyssinicaSil(
             fontSize: normalFontSize,
             color: Colors.grey,
@@ -514,7 +510,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      therapist['full_name']?.toString() ?? 'Therapist',
+                      therapist['full_name']?.toString() ?? L10n.getTranslatedText(context, 'Therapist'),
                       style: GoogleFonts.montserrat(
                         fontSize: normalFontSize,
                         fontWeight: FontWeight.bold,
@@ -525,7 +521,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                     SizedBox(height: betweenItemsSpace / 2),
                     Text(
                       therapist['specialization']?.toString() ??
-                          'Mental Health Professional',
+                          L10n.getTranslatedText(context, 'Mental Health Professional'),
                       style: TextStyle(
                         fontSize: smallFontSize,
                         color: Colors.grey[700],
@@ -533,8 +529,8 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                     ),
                     SizedBox(height: betweenItemsSpace / 2),
                     Text(
-                      "Issue: ${appointment['notes']?.toString() ??
-                          'General Consultation'}",
+                      "${L10n.getTranslatedText(context, 'Issue')}: ${appointment['notes']?.toString() ??
+                          L10n.getTranslatedText(context, 'General Consultation')}",
                       style: TextStyle(fontSize: smallFontSize),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -551,8 +547,8 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                         SizedBox(width: horizontalPadding / 3),
                         Text(
                           appointment['status'] == 'completed'
-                              ? "Completed"
-                              : "Confirmed",
+                              ? L10n.getTranslatedText(context, 'Completed')
+                              : L10n.getTranslatedText(context, 'Confirmed'),
                           style: TextStyle(fontSize: smallFontSize),
                         ),
                       ],
@@ -617,8 +613,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                     size: min(screenWidth * 0.05, 20.0),
                     color: Colors.black,
                   ),
-                  label: Text(
-                    'Message',
+                  label: Text(L10n.getTranslatedText(context, 'Message'),
                     style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w500,
@@ -660,10 +655,10 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                     label: Text(
                       (isWithin10Min || hasStarted) &&
                           appointment['meet_link'] != null
-                          ? 'Join Session'
+                          ? L10n.getTranslatedText(context, 'Join Session')
                           : timeToStart.isNegative
-                          ? 'Waiting for link'
-                          : 'Session in ${timeToStart.inMinutes > 10
+                          ? L10n.getTranslatedText(context, 'Waiting for link')
+                          : '${L10n.getTranslatedText(context, 'Session in')} ${timeToStart.inMinutes > 10
                           ? "${timeToStart.inMinutes ~/ 60}h ${timeToStart
                           .inMinutes % 60}m"
                           : "${timeToStart.inMinutes}m"}',
@@ -707,7 +702,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                       color: Colors.red[700],
                     ),
                     label: Text(
-                      'Cancel',
+                      L10n.getTranslatedText(context, 'Cancel'),
                       style: TextStyle(
                         color: Colors.red[700],
                         fontWeight: FontWeight.w500,
@@ -745,7 +740,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                   color: const Color(0xFF6FA57C),
                 ),
                 label: Text(
-                  'Schedule Another Session',
+                  L10n.getTranslatedText(context, 'Schedule Another Session'),
                   style: TextStyle(
                     color: const Color(0xFF6FA57C),
                     fontWeight: FontWeight.w500,
@@ -781,7 +776,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
       context: context,
       builder: (context) =>
           AlertDialog(
-            title: Text('Cancel Appointment'),
+            title: Text(L10n.getTranslatedText(context, 'Cancel Appointment')),
             content: Text(
                 'Are you sure you want to cancel your appointment on $formattedDate at $formattedTime?\n\n'
                     'Please note that cancellations less than 24 hours before the appointment may incur a fee.'
@@ -789,14 +784,14 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('No, Keep It'),
+                child: Text(L10n.getTranslatedText(context, 'No, Keep It')),
               ),
               TextButton(
                 onPressed: () async {
                   Navigator.of(context).pop();
                   await _cancelAppointment(appointment['id']);
                 },
-                child: Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
+                child: Text(L10n.getTranslatedText(context, 'Yes, Cancel'), style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -811,7 +806,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Schedule New Session'),
+        title: Text(L10n.getTranslatedText(context, 'Schedule New Session')),
         content: Text(
             'Would you like to schedule another session with $therapistName?\n\n'
                 'You will be redirected to the booking page.'
@@ -819,7 +814,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Not Now'),
+            child: Text(L10n.getTranslatedText(context, 'Not Now')),
           ),
           TextButton(
             onPressed: () {
@@ -828,11 +823,11 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                 _navigateToBooking(context, therapistId);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Therapist ID not found'))
+                    SnackBar(content: Text(L10n.getTranslatedText(context, 'Therapist ID not found')))
                 );
               }
             },
-            child: Text('Book Session',
+            child: Text(L10n.getTranslatedText(context, 'Book Session'),
                 style: TextStyle(color: const Color(0xFF6FA57C))),
           ),
         ],
@@ -852,7 +847,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Appointment cancelled successfully'),
+          content: Text(L10n.getTranslatedText(context, 'Appointment cancelled successfully')),
           backgroundColor: Colors.green,
         ),
       );
@@ -863,7 +858,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
       print('Cancel error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to cancel appointment. Please try again.'),
+          content: Text(L10n.getTranslatedText(context, 'Failed to cancel appointment. Please try again.')),
           backgroundColor: Colors.red,
         ),
       );
@@ -914,7 +909,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
         Navigator.of(context, rootNavigator: true).pop();
       }
 
-      print('Navigation error: $e');
+      print('${L10n.getTranslatedText(context, 'Navigation error')}: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(L10n.getTranslatedText(context, 'Error loading therapist data')),

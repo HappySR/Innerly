@@ -1,3 +1,4 @@
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:confetti/confetti.dart';
@@ -123,9 +124,11 @@ class _MemoryGameScreenState extends State<MemoryGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: InnerlyTheme.appBackground,
         title: Text('Memory Therapy - Level $level',
             style: GoogleFonts.aboreto()),
       ),
+      backgroundColor: InnerlyTheme.appBackground,
       body: Stack(
         children: [
           Column(

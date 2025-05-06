@@ -1,3 +1,4 @@
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -13,49 +14,61 @@ class GamesHub extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Therapeutic Games', style: GoogleFonts.aboreto()),
+        backgroundColor: InnerlyTheme.appBackground,
+        title: Text('Therapeutic Games', style: GoogleFonts.lora(
+            fontSize: 22
+        )),
       ),
-      body: GridView.count(
-        crossAxisCount: 2,
-        children: [
-          _buildGameCard(
-            context,
-            'Breathing Exercise',
-            Icons.self_improvement,
-            Colors.blue,
-            const BreathingGameScreen(),
-          ),
-          _buildGameCard(
-            context,
-            'Stress Relief',
-            Icons.sports_esports,
-            Colors.green,
-            const WebGameScreen(gameUrl: 'https://poki.com/embed/...'),
-          ),
-          _buildGameCard(
-            context,
-            'Cognitive Training',
-            Icons.grid_4x4,
-            Colors.orange,
-            const SudokuScreen(),
-          ),
-          _buildGameCard(
-            context,
-            'Memory Boost',
-            Icons.memory,
-            Colors.purple,
-            const MemoryGameScreen(),
-          ),
-        ],
+      backgroundColor: InnerlyTheme.appBackground,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: GridView.count(
+          crossAxisCount: 2,
+          childAspectRatio: 1.0,
+          mainAxisSpacing: 16.0,
+          crossAxisSpacing: 16.0,
+          children: [
+            buildGameCard(
+              context,
+              'Breathing\nExercise',
+              Icons.self_improvement,
+              Colors.blue,
+              const BreathingGameScreen(),
+            ),
+            buildGameCard(
+              context,
+              'Stress Relief',
+              Icons.sports_esports,
+              Colors.green,
+              const WebGameScreen(gameUrl: 'https://poki.com/embed/...'),
+            ),
+            buildGameCard(
+              context,
+              'Cognitive\nTraining',
+              Icons.grid_4x4,
+              Colors.orange,
+              const SudokuScreen(),
+            ),
+            buildGameCard(
+              context,
+              'Memory Boost',
+              Icons.memory,
+              Colors.purple,
+              const MemoryGameScreen(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildGameCard(BuildContext context, String title, IconData icon,
+
+  Widget buildGameCard(BuildContext context, String title, IconData icon,
       Color color, Widget screen) {
     return Card(
+      color: Colors.white, // Set card background to white
       elevation: 4,
-      margin: const EdgeInsets.all(12),
+      // Removed individual card margins
       child: InkWell(
         onTap: () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => screen)),
@@ -66,7 +79,7 @@ class GamesHub extends StatelessWidget {
             children: [
               Icon(icon, size: 40, color: color),
               const SizedBox(height: 12),
-              Text(title, style: GoogleFonts.amita(fontSize: 18)),
+              Text(title, style: GoogleFonts.lora(fontSize: 18)),
             ],
           ),
         ),

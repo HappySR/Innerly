@@ -1,3 +1,4 @@
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -82,14 +83,18 @@ class _RelaxPageState extends State<RelaxPage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Muscle Relaxation', style: GoogleFonts.aboreto()),
+        backgroundColor: InnerlyTheme.appBackground,
+        title: Text('Muscle Relaxation', style: GoogleFonts.lora(
+          fontSize: 22
+        )),
       ),
+      backgroundColor: InnerlyTheme.appBackground,
       body: Column(
         children: [
           LinearProgressIndicator(
             value: (_currentStep + 1) / _exercises.length,
             backgroundColor: Colors.grey[200],
-            color: const Color(0xFF6C9A8B),
+            color: InnerlyTheme.secondary,
           ),
           Expanded(
             child: PageView(
@@ -103,7 +108,7 @@ class _RelaxPageState extends State<RelaxPage> with TickerProviderStateMixin {
                   children: [
                     Text(
                       exercise['title'],
-                      style: GoogleFonts.amita(
+                      style: GoogleFonts.rubik(
                           fontSize: 28,
                           fontWeight: FontWeight.w600
                       ),
@@ -117,7 +122,7 @@ class _RelaxPageState extends State<RelaxPage> with TickerProviderStateMixin {
                           width: 200,
                           height: 200,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF6C9A8B).withOpacity(0.1),
+                            color: InnerlyTheme.secondary.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -129,10 +134,10 @@ class _RelaxPageState extends State<RelaxPage> with TickerProviderStateMixin {
                             alignment: Alignment.center,
                             child: Text(
                               '$_remainingSeconds',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 40,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF6C9A8B)
+                                  color: InnerlyTheme.secondary
                               ),
                             ),
                           ),
@@ -151,10 +156,12 @@ class _RelaxPageState extends State<RelaxPage> with TickerProviderStateMixin {
                     ),
                     const SizedBox(height: 40),
                     ElevatedButton.icon(
-                      icon: Icon(_isExerciseActive ? Icons.pause : Icons.play_arrow),
-                      label: Text(_isExerciseActive ? 'PAUSE' : 'START'),
+                      icon: Icon(_isExerciseActive ? Icons.pause : Icons.play_arrow, color: Colors.white,),
+                      label: Text(_isExerciseActive ? 'PAUSE' : 'START', style: TextStyle(
+                        color: Colors.white
+                      ),),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C9A8B),
+                        backgroundColor: InnerlyTheme.secondary,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 30, vertical: 15),
                       ),
@@ -185,7 +192,7 @@ class _RelaxPageState extends State<RelaxPage> with TickerProviderStateMixin {
                 ),
                 Text(
                   'Step ${_currentStep + 1} of ${_exercises.length}',
-                  style: GoogleFonts.amita(fontSize: 18),
+                  style: GoogleFonts.lora(fontSize: 18),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
@@ -211,7 +218,7 @@ class _CirclePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF6C9A8B)
+      ..color = InnerlyTheme.secondary
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0
       ..strokeCap = StrokeCap.round;

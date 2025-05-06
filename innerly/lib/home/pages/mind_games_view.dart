@@ -36,7 +36,7 @@ class GamesPage extends StatelessWidget {
         ),
         centerTitle: true,
         title: Text(
-          L10n.getTranslatedText(context, 'ACTIVITY'),
+          L10n.getTranslatedText(context, 'Activity'),
           style: GoogleFonts.lora(
             color: Colors.black,
             fontSize: 28,

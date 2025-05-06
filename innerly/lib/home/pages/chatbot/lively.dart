@@ -795,7 +795,7 @@ class LivelyState extends State<Lively> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        backgroundColor: InnerlyTheme.appColor,
+        backgroundColor: InnerlyTheme.beige,
         elevation: 2,
         iconTheme: IconThemeData(color: Colors.white),
         automaticallyImplyLeading: false,
@@ -806,7 +806,7 @@ class LivelyState extends State<Lively> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
-                  icon: Icon(Icons.menu, size: 28, color: Colors.white),
+                  icon: Icon(Icons.menu, size: 28, color: InnerlyTheme.secondary),
                   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                 ),
               ),
@@ -814,7 +814,7 @@ class LivelyState extends State<Lively> {
                 child: Text(
                   'Lively',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: InnerlyTheme.secondary,
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
@@ -830,7 +830,7 @@ class LivelyState extends State<Lively> {
                       icon: Icon(
                         Icons.translate,
                         size: 28,
-                        color: Colors.white,
+                        color: InnerlyTheme.secondary,
                       ),
                       onPressed: _showLanguageSelection,
                     ),
@@ -841,6 +841,7 @@ class LivelyState extends State<Lively> {
           ),
         ),
       ),
+      backgroundColor: InnerlyTheme.appBackground,
 
       drawer: ChatHistoryDrawer(
         chatHistory: _chatHistory,
@@ -860,7 +861,6 @@ class LivelyState extends State<Lively> {
       ),
 
       body: chatMessages.isEmpty ? _buildInitialUI() : _buildChatUI(context),
-
       bottomNavigationBar: AnimatedPadding(
         duration: Duration(milliseconds: 300),
         padding: EdgeInsets.only(
@@ -876,7 +876,7 @@ class LivelyState extends State<Lively> {
                 child: IconButton(
                   icon: Icon(
                     Icons.attach_file,
-                    color: AcademeTheme.appColor,
+                    color: InnerlyTheme.secondary,
                     size: 27,
                   ),
                   onPressed: () {
@@ -986,7 +986,7 @@ class LivelyState extends State<Lively> {
                         onTap: _toggleRecording,
                         child: Icon(
                           _isRecording ? Icons.stop : Icons.mic,
-                          color: AcademeTheme.appColor,
+                          color: Colors.red[200]!,
                           size: 25,
                         ),
                       ),
@@ -1005,7 +1005,7 @@ class LivelyState extends State<Lively> {
                     child: IconButton(
                       icon: Icon(
                         Icons.send,
-                        color: isEmpty ? Colors.grey : AcademeTheme.appColor,
+                        color: isEmpty ?  Color(0xFFCCE1A0): InnerlyTheme.secondary,
                         size: 25,
                       ),
                       onPressed:
@@ -1160,15 +1160,15 @@ class LivelyState extends State<Lively> {
                   children: [
                     _buildButton(
                       Icons.help_outline,
-                      L10n.getTranslatedText(context, 'Clear Your Doubts'),
-                      Colors.lightBlue.shade400,
+                      L10n.getTranslatedText(context, 'Speak with me'),
+                      Colors.red[200]!,
                       width,
                     ),
                     SizedBox(width: width * 0.03),
                     _buildButton(
                       Icons.quiz,
-                      L10n.getTranslatedText(context, 'Explain / Quiz'),
-                      Colors.orange.shade400,
+                      L10n.getTranslatedText(context, 'Self-care'),
+                      Colors.orange.shade200,
                       width,
                     ),
                   ],
@@ -1178,15 +1178,15 @@ class LivelyState extends State<Lively> {
                   children: [
                     _buildButton(
                       Icons.upload_file,
-                      L10n.getTranslatedText(context, 'Upload Study Materials'),
-                      Colors.green.shade500,
+                      L10n.getTranslatedText(context, 'Journal'),
+                      InnerlyTheme.livelyJournal,
                       width,
                     ),
                     SizedBox(width: width * 0.03),
                     _buildButton(
                       Icons.more_horiz,
                       L10n.getTranslatedText(context, 'More'),
-                      Colors.grey,
+                      InnerlyTheme.livelyMore,
                       width,
                     ),
                   ],
@@ -1477,10 +1477,10 @@ class LivelyState extends State<Lively> {
         Container(
           padding: EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: AcademeTheme.appColor,
+            color: InnerlyTheme.beige,
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.chat_bubble_outline, size: 26, color: Colors.white),
+          child: Icon(Icons.chat_bubble_outline, size: 26, color: InnerlyTheme.secondary),
         ),
         Positioned(
           right: -2,
@@ -1489,12 +1489,12 @@ class LivelyState extends State<Lively> {
             width: 19,
             height: 19,
             decoration: BoxDecoration(
-              color: AcademeTheme.appColor,
+              color: InnerlyTheme.beige,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: InnerlyTheme.secondary, width: 2),
             ),
             child: Center(
-              child: Icon(Icons.add, size: 12, color: Colors.white),
+              child: Icon(Icons.add, size: 12, color: InnerlyTheme.secondary),
             ),
           ),
         ),

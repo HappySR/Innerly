@@ -1,3 +1,4 @@
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,7 +23,7 @@ class InitiatePage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Immediate Support', style: GoogleFonts.aboreto()),
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: InnerlyTheme.appBackground,
       ),
       extendBodyBehindAppBar: true,
       body: Container(
