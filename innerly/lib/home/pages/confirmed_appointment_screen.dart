@@ -874,15 +874,14 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (BuildContext dialogContext) =>
-        const Center(child: CircularProgressIndicator()),
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       // Fetch therapist data using the AuthService
       final therapistData = await authService.getTherapist(therapistId);
 
       // Close loading dialog
-      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.pop(context);
 
       if (therapistData.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -906,10 +905,10 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     } catch (e) {
       // Close loading dialog if still showing
       if (Navigator.canPop(context)) {
-        Navigator.of(context, rootNavigator: true).pop();
+        Navigator.pop(context);
       }
 
-      print('${L10n.getTranslatedText(context, 'Navigation error')}: $e');
+      print('Navigation error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(L10n.getTranslatedText(context, 'Error loading therapist data')),
