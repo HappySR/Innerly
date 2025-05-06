@@ -986,7 +986,7 @@ class LivelyState extends State<Lively> {
                         onTap: _toggleRecording,
                         child: Icon(
                           _isRecording ? Icons.stop : Icons.mic,
-                          color: Colors.red[200]!,
+                          color: InnerlyTheme.secondary,
                           size: 25,
                         ),
                       ),
@@ -1139,7 +1139,7 @@ class LivelyState extends State<Lively> {
                       TextSpan(
                         text: L10n.getTranslatedText(
                           context,
-                          ' your\npersonal tutor.',
+                          ' your\npersonal counselor.',
                         ),
                         style: _textStyle(Colors.black),
                       ),
