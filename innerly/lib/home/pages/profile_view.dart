@@ -401,7 +401,7 @@ class _ProfileViewState extends State<ProfileView> {
                                     child: Text(
                                       L10n.getTranslatedText(context, 'Message'),
                                       style: TextStyle(fontSize: 12,
-                                      color: Colors.black),
+                                          color: Colors.black),
                                     ),
                                   ),
                                 ),

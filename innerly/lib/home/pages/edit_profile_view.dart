@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({Key? key}) : super(key: key);
+  final String routeName;
+
+  const EditProfilePage({Key? key, this.routeName = '/edit_profile'}) : super(key: key);
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();

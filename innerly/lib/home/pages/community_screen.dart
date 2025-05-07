@@ -22,18 +22,18 @@ class CommunityScreen extends StatelessWidget {
         return false; // Prevent default back button behavior
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFF7E7),
+        backgroundColor: InnerlyTheme.appBackground,
         appBar: AppBar(
-          backgroundColor: InnerlyTheme.beige,
+          backgroundColor: InnerlyTheme.appBackground,
           automaticallyImplyLeading: false, // No back button in AppBar
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () {
-              // Navigate to the home page based on user role
-              final provider = Provider.of<BottomNavProvider>(context, listen: false);
-              provider.currentIndex = 0; // Home page is at index 0 for both user types
-            },
-          ),
+          // leading: IconButton(
+          //   icon: const Icon(Icons.arrow_back, color: Colors.black),
+          //   onPressed: () {
+          //     // Navigate to the home page based on user role
+          //     final provider = Provider.of<BottomNavProvider>(context, listen: false);
+          //     provider.currentIndex = 0; // Home page is at index 0 for both user types
+          //   },
+          // ),
           title: Text(
             L10n.getTranslatedText(context, 'Community'),
             style: GoogleFonts.lora(

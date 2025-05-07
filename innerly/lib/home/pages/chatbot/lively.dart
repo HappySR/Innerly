@@ -1032,7 +1032,7 @@ class LivelyState extends State<Lively> {
   }
 
   TextStyle _textStyle(Color color) {
-    return TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w600);
+    return TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w600);
   }
 
   Widget _buildButton(IconData icon, String text, Color color, double width) {
@@ -1130,16 +1130,16 @@ class LivelyState extends State<Lively> {
                           context,
                           'Hey there! I am ',
                         ),
-                        style: _textStyle(Colors.black),
+                        style: _textStyle(Colors.black,),
                       ),
                       TextSpan(
-                        text: 'Lively',
+                        text: 'Lively,\n',
                         style: _textStyle(Colors.amber[700]!),
                       ),
                       TextSpan(
                         text: L10n.getTranslatedText(
                           context,
-                          ' your\npersonal counselor.',
+                          ' your mental health companion',
                         ),
                         style: _textStyle(Colors.black),
                       ),

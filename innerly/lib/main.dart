@@ -29,7 +29,7 @@ void main() async {
         Provider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => ChatService()),
         ChangeNotifierProvider(create: (_) => AppointmentService()),
-        ChangeNotifierProvider(create: (_) => LanguageProvider()), // ✅ Add this line
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
       ],
       child: const MyApp(),
     ),

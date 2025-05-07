@@ -27,17 +27,18 @@ class TherapistsListScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: const Color(0xFFFDF5E6),
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () {
-                // When back button in AppBar is clicked, navigate to home page
-                final provider = Provider.of<BottomNavProvider>(context, listen: false);
-                provider.currentIndex = 0; // Set to home page index
-              },
-            ),
+            // leading: IconButton(
+            //   icon: const Icon(Icons.arrow_back, color: Colors.black),
+            //   onPressed: () {
+            //     // When back button in AppBar is clicked, navigate to home page
+            //     final provider = Provider.of<BottomNavProvider>(context, listen: false);
+            //     provider.currentIndex = 0; // Set to home page index
+            //   },
+            // ),
             title: Text(
               L10n.getTranslatedText(context, 'Therapists'),
-              style: GoogleFonts.lora(color: Colors.black),
+              style: GoogleFonts.lora(color: Colors.black,
+              fontSize: 22),
             ),
             centerTitle: true,
             bottom: TabBar(

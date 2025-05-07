@@ -3,10 +3,11 @@ import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 import '../../started/get_started_view.dart';
 import '../../widget/innerly_theme.dart';
 import 'chatbot/lively.dart';
-import 'global_chat_view.dart';
 import 'mind_games_view.dart';
 
 class MentalHealthHome extends StatefulWidget {
@@ -27,13 +28,16 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
 
   String? _selectedEmoji;
   int _userPoints = 0;
+  String? _lastMoodDate;
+  bool _emojiSelectedToday = false;
 
-  final Map<String, int> emojiPoints = {
-    "😄": 10,
-    "😊": 5,
-    "😐": 2,
-    "😢": 1,
-    "😡": -2,
+  // Map emojis directly to scores out of 100
+  final Map<String, int> emojiScores = {
+    "😄": 100,  // Very happy - 100%
+    "😊": 75,   // Happy - 75%
+    "😐": 50,   // Neutral - 50%
+    "😢": 25,   // Sad - 25%
+    "😡": 0,    // Angry - 0%
   };
 
   @override
@@ -50,8 +54,28 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
       curve: Curves.easeOutBack,
     ));
 
-
+    _loadUserData();
     _checkAuth();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userPoints = prefs.getInt('mental_health_score') ?? 50; // Default to neutral 50
+      _lastMoodDate = prefs.getString('last_mood_date');
+
+      // Check if emoji was selected today
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      _emojiSelectedToday = _lastMoodDate == today;
+    });
+  }
+
+  Future<void> _saveUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('mental_health_score', _userPoints);
+
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    await prefs.setString('last_mood_date', today);
   }
 
   Future<void> _checkAuth() async {
@@ -73,11 +97,37 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
   }
 
   void _onEmojiTapped(String emoji) {
+    // Check if emoji was already selected today
+    if (_emojiSelectedToday) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            L10n.getTranslatedText(context, 'You have already logged your mood for today'),
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Get score directly from emoji selection
+    final newScore = emojiScores[emoji] ?? 50; // Default to 50 if emoji not found
+
     setState(() {
       _selectedEmoji = emoji;
       _showBigEmoji = true;
-      _userPoints += emojiPoints[emoji] ?? 0;
+
+      // Set the score directly to the mapped value (out of 100)
+      _userPoints = newScore;
+
+      // Mark as selected for today
+      _emojiSelectedToday = true;
     });
+
+    // Save data to SharedPreferences
+    _saveUserData();
 
     _emojiAnimationController.forward(from: 0.0);
 
@@ -86,18 +136,32 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
         setState(() {
           _showBigEmoji = false;
         });
-        _emojiAnimationController.reset();  // <-- Important reset
+        _emojiAnimationController.reset();  // Reset animation controller
       }
     });
+
+    // Display updated score message
+    String moodDescription = "";
+    if (newScore >= 90) {
+      moodDescription = "Excellent";
+    } else if (newScore >= 70) {
+      moodDescription = "Good";
+    } else if (newScore >= 40) {
+      moodDescription = "Neutral";
+    } else if (newScore >= 20) {
+      moodDescription = "Not great";
+    } else {
+      moodDescription = "Poor";
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'You earned ${emojiPoints[emoji]} points!',
+          'Mental health score updated: $_userPoints/100 - $moodDescription',
           style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.green,
-        duration: const Duration(seconds: 1),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -154,12 +218,14 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                       GestureDetector(
                         onTap: widget.onProfileTap,
                         child:  CircleAvatar(
-                        radius: 24,
-                        backgroundImage: AssetImage('assets/user/user.png'),
-                      ),
+                          radius: 24,
+                          backgroundImage: AssetImage('assets/user/user.png'),
+                        ),
                       )],
                   ),
                   const SizedBox(height: 20),
+
+                  // Mental Health Score Display
 
                   // Search Bar
                   Container(
@@ -189,12 +255,28 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                              L10n.getTranslatedText(context,'Daily mood log'),
+                                L10n.getTranslatedText(context,'Daily mood log'),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+                              if (_emojiSelectedToday)
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    L10n.getTranslatedText(context,'Logged today'),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -214,8 +296,8 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                moodEmoji("😊"),
                                 moodEmoji("😄"),
+                                moodEmoji("😊"),
                                 moodEmoji("😐"),
                                 moodEmoji("😢"),
                                 moodEmoji("😡"),
@@ -320,7 +402,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        L10n.getTranslatedText(context,'Let’s see the progress of your journey'),
+                                        L10n.getTranslatedText(context,'Let\'s see the progress of your journey'),
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Color(0XFF000000),
@@ -480,17 +562,6 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                 );
               },
               child: Container(
-                // decoration: BoxDecoration(
-                //   color: Colors.white,
-                //   shape: BoxShape.circle,
-                //   boxShadow: [
-                //     BoxShadow(
-                //       color: Colors.black12,
-                //       blurRadius: 4,
-                //       offset: Offset(2, 2),
-                //     ),
-                //   ],
-                // ),
                 padding: const EdgeInsets.all(10),
                 child: Image.asset(
                   'assets/chat/leaf.png',
@@ -504,6 +575,34 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
       ),
     );
   }
+
+  // Helper method to get color based on score
+  Color _getHealthScoreColor(int score) {
+    if (score >= 80) {
+      return Colors.green;
+    } else if (score >= 60) {
+      return Colors.lightGreen;
+    } else if (score >= 40) {
+      return Colors.amber;
+    } else if (score >= 20) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  // Helper method to get label based on score
+  String _getHealthScoreLabel(int score) {
+    if (score >= 80) {
+      return 'Excellent';
+    } else if (score >= 60) {
+      return 'Good';
+    } else if (score >= 40) {
+      return 'Neutral';
+    } else if (score >= 20) {
+      return 'Not great';
+    } else {
+      return 'Poor';
+    }
+  }
 }
-
-
