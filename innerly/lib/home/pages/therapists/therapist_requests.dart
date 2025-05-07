@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import '../../providers/bottom_nav_provider.dart';
 
 class PatientsRequests extends StatefulWidget {
   final String status;
@@ -108,34 +110,56 @@ class _PatientsRequestsState extends State<PatientsRequests> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF6F0),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.schedule, color: Color(0xFF6FA57C)),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TherapistsAppointmentScreen()),
-            ),
+
+    // Wrap the Scaffold with WillPopScope to handle back button press
+    return WillPopScope(
+      onWillPop: () async {
+        // Navigate to the therapist's home page (index 0)
+        final provider = Provider.of<BottomNavProvider>(context, listen: false);
+        provider.currentIndex = 0; // Set to therapist's home page index
+        return false; // Prevent default back button behavior
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFDF6F0),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false, // No default back button
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF6FA57C)),
+            onPressed: () {
+              // Navigate to the therapist's home page (index 0)
+              final provider = Provider.of<BottomNavProvider>(context, listen: false);
+              provider.currentIndex = 0;
+            },
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: screenSize.width * 0.04,
-          vertical: screenSize.height * 0.02,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeaderSection(screenSize),
-            SizedBox(height: screenSize.height * 0.03),
-            _buildAppointmentsList(screenSize),
+          actions: [
+            TextButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TherapistsAppointmentScreen()),
+              ),
+              icon: const Icon(Icons.schedule, color: Color(0xFF6FA57C)),
+              label: const Text(
+                'Your Schedule',
+                style: TextStyle(color: Color(0xFF6FA57C)),
+              ),
+            )
           ],
+        ),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenSize.width * 0.04,
+            vertical: screenSize.height * 0.02,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeaderSection(screenSize),
+              SizedBox(height: screenSize.height * 0.03),
+              _buildAppointmentsList(screenSize),
+            ],
+          ),
         ),
       ),
     );

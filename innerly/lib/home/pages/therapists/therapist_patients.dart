@@ -1,9 +1,13 @@
-import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
-import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
 import 'package:Innerly/home/pages/therapists/therapist_patient_details.dart';
 import 'package:Innerly/home/pages/chat_screen.dart';
+import 'package:Innerly/localization/i10n.dart';
+import 'package:Innerly/widget/innerly_theme.dart';
+import '../../providers/bottom_nav_provider.dart';
 
 class Patient {
   final String id;
@@ -124,52 +128,81 @@ class _PatientsPageState extends State<PatientsPage>
     return uniquePatients.values.toList();
   }
 
+  // Navigate to home when back button is pressed
+  void _navigateToHome() {
+    final provider = Provider.of<BottomNavProvider>(context, listen: false);
+    provider.currentIndex = 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF6EB),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top illustration
-            Container(
-              padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
-              height: 250,
-              child: Image.asset(
-                'assets/images/patients.png',
-                fit: BoxFit.contain,
-              ),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _navigateToHome();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFDF6EB),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: _navigateToHome,
+          ),
+          title: Text(
+            L10n.getTranslatedText(context, 'Patients'),
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
             ),
-
-            // Tabs
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: Colors.black,
-                unselectedLabelColor: Colors.grey,
-                indicator: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.black, width: 2),
-                  ),
+          ),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top illustration
+              Container(
+                padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
+                height: 180, // Reduced height to accommodate AppBar
+                child: Image.asset(
+                  'assets/images/patients.png',
+                  fit: BoxFit.contain,
                 ),
-                tabs: [
-                  Tab(text: L10n.getTranslatedText(context, 'Latest Messages')),
-                  Tab(text: L10n.getTranslatedText(context, 'Chat History')),
-                ],
               ),
-            ),
 
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildContent(_patients),
-                  _buildContent(_chatHistory),
-                ],
+              // Tabs
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: InnerlyTheme.secondary,
+                  unselectedLabelColor: Colors.grey,
+                  indicator: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: InnerlyTheme.secondary, width: 2),
+                    ),
+                  ),
+                  tabs: [
+                    Tab(text: L10n.getTranslatedText(context, 'Latest Messages')),
+                    Tab(text: L10n.getTranslatedText(context, 'Chat History')),
+                  ],
+                ),
               ),
-            ),
-          ],
+
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildContent(_patients),
+                    _buildContent(_chatHistory),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

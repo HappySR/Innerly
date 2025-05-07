@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../../localization/i10n.dart';
 import '../../../localization/language_provider.dart';
 import '../../../started/welcome_page.dart';
+import '../../../home/providers/bottom_nav_provider.dart'; // Import BottomNavProvider
 
 class TherapistProfileView extends StatefulWidget {
   const TherapistProfileView({super.key});
@@ -39,7 +40,6 @@ class _TherapistProfileViewState extends State<TherapistProfileView> {
     _loadLanguage();
   }
 
-
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     final langCode = prefs.getString('language') ?? 'en';
@@ -70,406 +70,428 @@ class _TherapistProfileViewState extends State<TherapistProfileView> {
     }
   }
 
+  // Navigate to home page
+  void _navigateToHome() {
+    final provider = Provider.of<BottomNavProvider>(context, listen: false);
+    provider.currentIndex = 0; // Set index to 0 (home page)
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF4E7),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Therapist Profile Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+    return WillPopScope(
+      onWillPop: () async {
+        // Handle back button press
+        _navigateToHome();
+        // Return false to prevent the default back navigation
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFDF4E7),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: _navigateToHome,
+          ),
+          title: Text(
+            L10n.getTranslatedText(context, 'Therapist Profile'),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Therapist Profile Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _isLoadingData
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                            : Text(
+                          "$_therapistName, $_therapistTitle",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    CircleAvatar(
+                      radius: MediaQuery.of(context).size.width * 0.08,
+                      backgroundImage: const AssetImage('assets/user/user.png'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Edit Profile Button
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditTherapistProfileView(),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    side: BorderSide(color: InnerlyTheme.beige),
+                    backgroundColor: InnerlyTheme.beige,
+                  ),
+                  icon: const Icon(Icons.edit, size: 16, color: Colors.black),
+                  label: Text(L10n.getTranslatedText(context, 'Edit Profile'), style: const TextStyle(color: Colors.black)),
+                ),
+                const SizedBox(height: 20),
+
+                // Client Overview Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: InnerlyTheme.beige,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        L10n.getTranslatedText(context, 'Therapist Profile'),
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "${L10n.getTranslatedText(context, 'Client')}: $_selectedClientName",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            L10n.getTranslatedText(context, 'Updated today'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      _isLoadingData
-                          ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                          : Text(
-                        "$_therapistName, $_therapistTitle",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[700],
-                        ),
+                      const SizedBox(height: 16),
+
+                      // Client Info Row
+                      Row(
+                        children: [
+                          // Client Avatar
+                          CircleAvatar(
+                            radius: 25,
+                            backgroundImage: const AssetImage('assets/user/user.png'),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Client Metrics
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${L10n.getTranslatedText(context, 'Mental Health Score')}: $_selectedClientScore",
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Mental Health Score Progress Bar
+                                LinearProgressIndicator(
+                                  value: _selectedClientScore / 100,
+                                  backgroundColor: const Color(0xFFFEE2BE),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF6AA84F),
+                                  ),
+                                  minHeight: 6,
+                                ),
+                                const SizedBox(height: 12),
+
+                                Text(
+                                  "${L10n.getTranslatedText(context, 'Current Status')}: $_selectedClientStage",
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: MediaQuery.of(context).size.width * 0.08,
-                    backgroundImage: const AssetImage('assets/user/user.png'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Edit Profile Button
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EditTherapistProfileView(),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  side: BorderSide(color: InnerlyTheme.beige),
-                  backgroundColor: InnerlyTheme.beige,
                 ),
-                icon: const Icon(Icons.edit, size: 16, color: Colors.black),
-                label: Text(L10n.getTranslatedText(context, L10n.getTranslatedText(context, 'Edit Profile')), style: const TextStyle(color: Colors.black)),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // Client Overview Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: InnerlyTheme.beige,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Action Buttons
+                Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "${L10n.getTranslatedText(context, 'Client')}: $_selectedClientName",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6AA84F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        Text(
-                          L10n.getTranslatedText(context, 'Updated today'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Client Info Row
-                    Row(
-                      children: [
-                        // Client Avatar
-                        CircleAvatar(
-                          radius: 25,
-                          backgroundImage: const AssetImage('assets/user/user.png'),
-                        ),
-                        const SizedBox(width: 16),
-
-                        // Client Metrics
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "${L10n.getTranslatedText(context, 'Mental Health Score')}: $_selectedClientScore",
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              const SizedBox(height: 8),
-
-                              // Mental Health Score Progress Bar
-                              LinearProgressIndicator(
-                                value: _selectedClientScore / 100,
-                                backgroundColor: const Color(0xFFFEE2BE),
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF6AA84F),
-                                ),
-                                minHeight: 6,
-                              ),
-                              const SizedBox(height: 12),
-
-                              Text(
-                                  "${L10n.getTranslatedText(context, 'Current Status')}: $_selectedClientStage",
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Action Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6AA84F),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      icon: const Icon(Icons.message, size: 20),
-                      label: Text(L10n.getTranslatedText(context, 'Message')),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF6AA84F),
-                        side: const BorderSide(color: Color(0xFF6AA84F)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      icon: const Icon(Icons.calendar_month, size: 20),
-                      label: Text(L10n.getTranslatedText(context, 'Schedule Session')),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Mood Tracking History
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: InnerlyTheme.beige,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      L10n.getTranslatedText(context, 'Mood Tracking History'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        icon: const Icon(Icons.message, size: 20),
+                        label: Text(L10n.getTranslatedText(context, 'Message')),
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Weekly Mood Chart
-                    SizedBox(
-                      height: 120,
-                      child: MoodChart(),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Day labels
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _DayLabel(L10n.getTranslatedText(context, 'Mon')),
-                        _DayLabel(L10n.getTranslatedText(context, 'Tue')),
-                        _DayLabel(L10n.getTranslatedText(context, 'Wed')),
-                        _DayLabel(L10n.getTranslatedText(context, 'Thu')),
-                        _DayLabel(L10n.getTranslatedText(context, 'Fri')),
-                        _DayLabel(L10n.getTranslatedText(context, 'Sat')),
-                        _DayLabel(L10n.getTranslatedText(context, 'Sun')),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Client Progress
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: InnerlyTheme.beige,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      L10n.getTranslatedText(context, 'Client Progress'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildProgressItem(
-                      icon: Icons.check_circle_outline,
-                      title: L10n.getTranslatedText(context, 'Journals Completed'),
-                      value: "12/15",
-                    ),
-                    const Divider(height: 1, thickness: 0.5),
-                    _buildProgressItem(
-                      icon: Icons.flag_outlined,
-                      title: L10n.getTranslatedText(context, 'Challenges Achieved'),
-                      value: "5/8",
-                    ),
-                    const Divider(height: 1, thickness: 0.5),
-                    _buildProgressItem(
-                      icon: Icons.trending_up,
-                      title: L10n.getTranslatedText(context, 'Wellness Goals Met'),
-                      value: "4/5",
-                    ),
-
-                    const SizedBox(height: 16),
-                    Text(
-                      L10n.getTranslatedText(context, 'Treatment Notes:'),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      L10n.getTranslatedText(context, 'Client showing steady improvement in daily mindfulness practice. Continue monitoring sleep patterns.'),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {},
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF6AA84F),
                           side: const BorderSide(color: Color(0xFF6AA84F)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        icon: const Icon(Icons.edit_note, size: 20),
-                        label: Text(L10n.getTranslatedText(context, 'Edit Notes')),
+                        icon: const Icon(Icons.calendar_month, size: 20),
+                        label: Text(L10n.getTranslatedText(context, 'Schedule Session')),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Dashboard Stats
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.people,
-                      title: L10n.getTranslatedText(context, 'Active Clients'),
-                      value: _activeClients.toString(),
-                      color: const Color(0xFF6AA84F),
-                    ),
+                // Mood Tracking History
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: InnerlyTheme.beige,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.calendar_today,
-                      title: L10n.getTranslatedText(context, 'Sessions This Week'),
-                      value: _sessionsThisWeek.toString(),
-                      color: const Color(0xFF8BC34A),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.calendar_month,
-                      title: L10n.getTranslatedText(context, 'Next Week'),
-                      value: _sessionsNextWeek.toString(),
-                      color: const Color(0xFFAED581),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Language Selector
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Consumer<LanguageProvider>(
-                  builder: (context, provider, child) {
-                    return DropdownButton<Locale>(
-                      value: provider.locale,
-                      hint: Text(L10n.getTranslatedText(context, 'Choose Language')),
-                      isExpanded: true,
-                      onChanged: (Locale? newLocale) {
-                        if (newLocale != null) {
-                          _changeLanguage(newLocale);
-                        }
-                      },
-                      items: L10n.supportedLocales.map((Locale locale) {
-                        return DropdownMenuItem(
-                          value: locale,
-                          child: Text(L10n.getLanguageName(locale.languageCode)),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Logout Button - Moved below language dropdown
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 16.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        L10n.getTranslatedText(context, 'Mood Tracking History'),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      backgroundColor: Colors.redAccent,
+                      const SizedBox(height: 16),
+
+                      // Weekly Mood Chart
+                      SizedBox(
+                        height: 120,
+                        child: MoodChart(),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Day labels
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _DayLabel(L10n.getTranslatedText(context, 'Mon')),
+                          _DayLabel(L10n.getTranslatedText(context, 'Tue')),
+                          _DayLabel(L10n.getTranslatedText(context, 'Wed')),
+                          _DayLabel(L10n.getTranslatedText(context, 'Thu')),
+                          _DayLabel(L10n.getTranslatedText(context, 'Fri')),
+                          _DayLabel(L10n.getTranslatedText(context, 'Sat')),
+                          _DayLabel(L10n.getTranslatedText(context, 'Sun')),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Client Progress
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: InnerlyTheme.beige,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        L10n.getTranslatedText(context, 'Client Progress'),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildProgressItem(
+                        icon: Icons.check_circle_outline,
+                        title: L10n.getTranslatedText(context, 'Journals Completed'),
+                        value: "12/15",
+                      ),
+                      const Divider(height: 1, thickness: 0.5),
+                      _buildProgressItem(
+                        icon: Icons.flag_outlined,
+                        title: L10n.getTranslatedText(context, 'Challenges Achieved'),
+                        value: "5/8",
+                      ),
+                      const Divider(height: 1, thickness: 0.5),
+                      _buildProgressItem(
+                        icon: Icons.trending_up,
+                        title: L10n.getTranslatedText(context, 'Wellness Goals Met'),
+                        value: "4/5",
+                      ),
+
+                      const SizedBox(height: 16),
+                      Text(
+                        L10n.getTranslatedText(context, 'Treatment Notes:'),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        L10n.getTranslatedText(context, 'Client showing steady improvement in daily mindfulness practice. Continue monitoring sleep patterns.'),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {},
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF6AA84F),
+                            side: const BorderSide(color: Color(0xFF6AA84F)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.edit_note, size: 20),
+                          label: Text(L10n.getTranslatedText(context, 'Edit Notes')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Dashboard Stats
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        icon: Icons.people,
+                        title: L10n.getTranslatedText(context, 'Active Clients'),
+                        value: _activeClients.toString(),
+                        color: const Color(0xFF6AA84F),
+                      ),
                     ),
-                    onPressed: () async {
-                      await Supabase.instance.client.auth.signOut();
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const WelcomePage()),
-                            (route) => false,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        icon: Icons.calendar_today,
+                        title: L10n.getTranslatedText(context, 'Sessions This Week'),
+                        value: _sessionsThisWeek.toString(),
+                        color: const Color(0xFF8BC34A),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        icon: Icons.calendar_month,
+                        title: L10n.getTranslatedText(context, 'Next Week'),
+                        value: _sessionsNextWeek.toString(),
+                        color: const Color(0xFFAED581),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Language Selector
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Consumer<LanguageProvider>(
+                    builder: (context, provider, child) {
+                      return DropdownButton<Locale>(
+                        value: provider.locale,
+                        hint: Text(L10n.getTranslatedText(context, 'Choose Language')),
+                        isExpanded: true,
+                        onChanged: (Locale? newLocale) {
+                          if (newLocale != null) {
+                            _changeLanguage(newLocale);
+                          }
+                        },
+                        items: L10n.supportedLocales.map((Locale locale) {
+                          return DropdownMenuItem(
+                            value: locale,
+                            child: Text(L10n.getLanguageName(locale.languageCode)),
+                          );
+                        }).toList(),
                       );
                     },
-                    child: Text(
-                      L10n.getTranslatedText(context, 'Logout'),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Logout Button - Moved below language dropdown
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                      onPressed: () async {
+                        await Supabase.instance.client.auth.signOut();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WelcomePage()),
+                              (route) => false,
+                        );
+                      },
+                      child: Text(
+                        L10n.getTranslatedText(context, 'Logout'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-            ],
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         ),
       ),
@@ -631,4 +653,3 @@ class MoodChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
-

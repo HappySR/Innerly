@@ -2,6 +2,9 @@ import 'package:Innerly/localization/i10n.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/bottom_nav_provider.dart';
+import '../../services/role.dart'; // Import the UserRole class
 
 import 'global_chat_view.dart';
 
@@ -10,152 +13,169 @@ class CommunityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF7E7),
-      appBar: AppBar(
-        backgroundColor: InnerlyTheme.beige,
-        automaticallyImplyLeading: false, // Remove back button since we're using bottom nav
-        title: Text(
-          L10n.getTranslatedText(context, 'Community'),
-          style: GoogleFonts.lora(
-            fontSize: 22,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () async {
+        // When back button is pressed, navigate to home page
+        final provider = Provider.of<BottomNavProvider>(context, listen: false);
+        // Home page index is 0 for both user types
+        provider.currentIndex = 0;
+        return false; // Prevent default back button behavior
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFF7E7),
+        appBar: AppBar(
+          backgroundColor: InnerlyTheme.beige,
+          automaticallyImplyLeading: false, // No back button in AppBar
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              // Navigate to the home page based on user role
+              final provider = Provider.of<BottomNavProvider>(context, listen: false);
+              provider.currentIndex = 0; // Home page is at index 0 for both user types
+            },
           ),
+          title: Text(
+            L10n.getTranslatedText(context, 'Community'),
+            style: GoogleFonts.lora(
+              fontSize: 22,
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Search Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: L10n.getTranslatedText(context, 'Search anything'),
-                  hintStyle: GoogleFonts.rubik(fontSize: 14),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search),
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Search Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: L10n.getTranslatedText(context, 'Search anything'),
+                    hintStyle: GoogleFonts.rubik(fontSize: 14),
+                    border: InputBorder.none,
+                    icon: Icon(Icons.search),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Channel List
-            SizedBox(
-              height: 100, // Increased height for text + icons
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  buildChannelItem(Icons.add, L10n.getTranslatedText(context, 'Add\nChannel'), (){}),
-                  buildChannelItem(Icons.public, L10n.getTranslatedText(context, 'Global\nChat'), (){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const GlobalChatScreen(),
-                      ),
-                    );
-                  }),
-                  buildChannelItem(
-                      Icons.chat_bubble_outline,
-                      L10n.getTranslatedText(context, 'Therapy\nNutshell'),(){
+              // Channel List
+              SizedBox(
+                height: 100, // Increased height for text + icons
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    buildChannelItem(Icons.add, L10n.getTranslatedText(context, 'Add\nChannel'), (){}),
+                    buildChannelItem(Icons.public, L10n.getTranslatedText(context, 'Global\nChat'), (){
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GlobalChatScreen(),
+                        ),
+                      );
+                    }),
+                    buildChannelItem(
+                        Icons.chat_bubble_outline,
+                        L10n.getTranslatedText(context, 'Therapy\nNutshell'),(){
 
-                  }
-                  ),
-                  buildChannelItem(
-                    Icons.self_improvement,
-                    L10n.getTranslatedText(context, 'Mindfulness\nSpace'), (){},
-                  ),
-                  buildChannelItem(Icons.group, L10n.getTranslatedText(context, 'Anxiety\nSupport'), (){}),
-                  buildChannelItem(Icons.family_restroom, L10n.getTranslatedText(context, 'Family\nMatters'), (){}),
-                  buildChannelItem(Icons.school, L10n.getTranslatedText(context, 'Student\nLife'), (){}),
-                  buildChannelItem(
-                    Icons.business_center,
-                    L10n.getTranslatedText(context, 'Workplace\nWellness'),(){},
-                  ),
-                  buildChannelItem(Icons.healing, L10n.getTranslatedText(context, 'Healing\nJourney'), (){}),
-                ],
+                    }
+                    ),
+                    buildChannelItem(
+                      Icons.self_improvement,
+                      L10n.getTranslatedText(context, 'Mindfulness\nSpace'), (){},
+                    ),
+                    buildChannelItem(Icons.group, L10n.getTranslatedText(context, 'Anxiety\nSupport'), (){}),
+                    buildChannelItem(Icons.family_restroom, L10n.getTranslatedText(context, 'Family\nMatters'), (){}),
+                    buildChannelItem(Icons.school, L10n.getTranslatedText(context, 'Student\nLife'), (){}),
+                    buildChannelItem(
+                      Icons.business_center,
+                      L10n.getTranslatedText(context, 'Workplace\nWellness'),(){},
+                    ),
+                    buildChannelItem(Icons.healing, L10n.getTranslatedText(context, 'Healing\nJourney'), (){}),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Write Post
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.grey.shade300,
-                    radius: 20,
-                    child: Icon(Icons.edit, color: Colors.black),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      L10n.getTranslatedText(context, 'Write Something'),
-                      style: GoogleFonts.rubik(
-                        fontSize: 14,
-                        color: Colors.black54,
+              // Write Post
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.grey.shade300,
+                      radius: 20,
+                      child: Icon(Icons.edit, color: Colors.black),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        L10n.getTranslatedText(context, 'Write Something'),
+                        style: GoogleFonts.rubik(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
                       ),
                     ),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF719E07),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF719E07),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      onPressed: () {},
+                      child: Text(
+                        L10n.getTranslatedText(context, 'Add Post'),
+                        style: GoogleFonts.rubik(fontSize: 14),
                       ),
                     ),
-                    onPressed: () {},
-                    child: Text(
-                      L10n.getTranslatedText(context, 'Add Post'),
-                      style: GoogleFonts.rubik(fontSize: 14),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Posts List
-            Expanded(
-              child: ListView(
-                children: [
-                  buildPost(
-                    userName: "Kati Morton",
-                    time: "26 Jun. 10:14 PM",
-                    text:
-                    L10n.getTranslatedText(context, 'You deserve a love with no trauma attached to it, a love that is good for your mental health, a love that is kind to you. I\'m talking about people NOT suffering from mental health issues'),
-                    imagePath: 'assets/images/love-illustration.png',
-                  ),
-                  buildPost(
-                    userName: "Angus MacGyver",
-                    time: "26 Jun. 10:14 PM",
-                    text:
-                    L10n.getTranslatedText(context, 'If you struggle with depression know that you are not alone'),
-                    imagePath: 'assets/images/meditate_illustration.png',
-                    isVideo: true,
-                  ),
-                ],
+              // Posts List
+              Expanded(
+                child: ListView(
+                  children: [
+                    buildPost(
+                      userName: "Kati Morton",
+                      time: "26 Jun. 10:14 PM",
+                      text:
+                      L10n.getTranslatedText(context, 'You deserve a love with no trauma attached to it, a love that is good for your mental health, a love that is kind to you. I\'m talking about people NOT suffering from mental health issues'),
+                      imagePath: 'assets/images/love-illustration.png',
+                    ),
+                    buildPost(
+                      userName: "Angus MacGyver",
+                      time: "26 Jun. 10:14 PM",
+                      text:
+                      L10n.getTranslatedText(context, 'If you struggle with depression know that you are not alone'),
+                      imagePath: 'assets/images/meditate_illustration.png',
+                      isVideo: true,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

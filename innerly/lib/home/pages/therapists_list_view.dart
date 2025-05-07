@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import '../providers/bottom_nav_provider.dart';
 import 'chat_screen.dart';
 import 'appointment_screen.dart';
 
@@ -12,37 +13,49 @@ class TherapistsListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFDF5E6),
-        appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        // When back button is pressed, navigate to home page (index 0)
+        final provider = Provider.of<BottomNavProvider>(context, listen: false);
+        provider.currentIndex = 0; // Set to home page index
+        return false; // Prevent default back button behavior
+      },
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
           backgroundColor: const Color(0xFFFDF5E6),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFFDF5E6),
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () {
+                // When back button in AppBar is clicked, navigate to home page
+                final provider = Provider.of<BottomNavProvider>(context, listen: false);
+                provider.currentIndex = 0; // Set to home page index
+              },
+            ),
+            title: Text(
+              L10n.getTranslatedText(context, 'Therapists'),
+              style: GoogleFonts.lora(color: Colors.black),
+            ),
+            centerTitle: true,
+            bottom: TabBar(
+              tabs: [
+                Tab(text: L10n.getTranslatedText(context, 'Available')),
+                Tab(text: L10n.getTranslatedText(context, 'Chat History')),
+              ],
+              labelColor: Colors.black,
+              indicatorColor: Colors.black,
+              labelStyle: GoogleFonts.rubik(fontWeight: FontWeight.w500),
+            ),
           ),
-          title: Text(
-            L10n.getTranslatedText(context, 'Therapists'),
-            style: GoogleFonts.lora(color: Colors.black),
-          ),
-          centerTitle: true,
-          bottom: TabBar(
-            tabs: [
-              Tab(text: L10n.getTranslatedText(context, 'Available')),
-              Tab(text: L10n.getTranslatedText(context, 'Chat History')),
+          body: const TabBarView(
+            children: [
+              OnlineTherapistsTab(),
+              ChatHistoryTab(),
             ],
-            labelColor: Colors.black,
-            indicatorColor: Colors.black,
-            labelStyle: GoogleFonts.rubik(fontWeight: FontWeight.w500),
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            OnlineTherapistsTab(),
-            ChatHistoryTab(),
-          ],
         ),
       ),
     );
