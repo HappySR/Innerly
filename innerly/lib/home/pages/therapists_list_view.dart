@@ -350,10 +350,12 @@ class TherapistDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: InnerlyTheme.appBackground,
         title: Text(L10n.getTranslatedText(context, 'Therapist Profile')),
         centerTitle: true,
         elevation: 0,
       ),
+      backgroundColor: InnerlyTheme.appBackground,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -472,9 +474,11 @@ class TherapistDetailScreen extends StatelessWidget {
                 children: [
                   FilledButton.icon(
                     icon: const Icon(Icons.chat, size: 20),
-                    label: Text(L10n.getTranslatedText(context, 'Start Chat')),
+                    label: const Text('Message Now'),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(200, 48),
+                      backgroundColor: InnerlyTheme.secondary, // ✅ Custom background color
+                      foregroundColor: Colors.white, // ✅ Text/icon color
                     ),
                     onPressed: isOnline
                         ? () => _navigateToChat(context)
@@ -483,9 +487,11 @@ class TherapistDetailScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.calendar_today, size: 20),
-                    label: Text(L10n.getTranslatedText(context, 'Book Appointment')),
+                    label: const Text('Schedule Session'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(200, 48),
+                      side: BorderSide(color: InnerlyTheme.secondary), // ✅ Border color
+                      foregroundColor: InnerlyTheme.secondary, // ✅ Text/icon color
                     ),
                     onPressed: () => _navigateToAppointment(context),
                   ),
@@ -565,6 +571,7 @@ class TherapistDetailScreen extends StatelessWidget {
               children: children,
             ),
           ),
+          color: InnerlyTheme.beige,
         ),
       ],
     );
