@@ -12,8 +12,10 @@ import 'mind_games_view.dart';
 
 class MentalHealthHome extends StatefulWidget {
   final VoidCallback onProfileTap;
+  final VoidCallback goToTherapist;
 
-  const MentalHealthHome({super.key, required this.onProfileTap});
+  const MentalHealthHome({super.key, required this.onProfileTap,
+  required this.goToTherapist});
 
   @override
   State<MentalHealthHome> createState() => _MentalHealthHomeState();
@@ -410,14 +412,7 @@ class _MentalHealthHomeState extends State<MentalHealthHome> with TickerProvider
                                       ),
                                       const SizedBox(height: 20),
                                       InkWell(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => const TherapistsListScreen(),
-                                            ),
-                                          );
-                                        },
+                                        onTap: widget.goToTherapist,
                                         borderRadius: BorderRadius.circular(10),
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(

@@ -28,7 +28,7 @@ class GamesPage extends StatelessWidget {
             } else {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) =>  MentalHealthHome(onProfileTap: () {  },)),
+                MaterialPageRoute(builder: (context) =>  MentalHealthHome(onProfileTap: () {  }, goToTherapist: () {  },)),
               );
             }
           },

@@ -30,10 +30,18 @@ class _BottomNavState extends State<BottomNav> {
     UserRole.isTherapist
         ? [
       HomeTherapist(
-        onProfileTap: () {
-          final provider = Provider.of<BottomNavProvider>(context, listen: false);
-          provider.currentIndex = 4; // Navigate to Profile tab (index 4 for therapists)
-        },
+          onProfileTap: () {
+            final provider = Provider.of<BottomNavProvider>(context, listen: false);
+            provider.currentIndex = 4; // Navigate to Profile tab (index 4 for therapists)
+          },
+          goToPatients: () {
+            final provider = Provider.of<BottomNavProvider>(context, listen: false);
+            provider.currentIndex = 1;
+          },
+          goToRequest:(){
+            final provider = Provider.of<BottomNavProvider>(context, listen: false);
+            provider.currentIndex = 2;
+          }
       ),
       const PatientsPage(),
       PatientsRequests(),
@@ -44,8 +52,13 @@ class _BottomNavState extends State<BottomNav> {
       MentalHealthHome(
         onProfileTap: () {
           final provider = Provider.of<BottomNavProvider>(context, listen: false);
-          provider.currentIndex = 3; // Navigate to Profile tab (index 3 for regular users)
+          provider.currentIndex = 4; // Navigate to Profile tab (index 3 for regular users)
         },
+          goToTherapist: () {
+            final provider = Provider.of<BottomNavProvider>(context, listen: false);
+            provider.currentIndex = 1;
+          }
+
       ),
       const TherapistsListScreen(),
       UserAppointmentsScreen(),

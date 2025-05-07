@@ -125,14 +125,14 @@ class _PatientsRequestsState extends State<PatientsRequests> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           automaticallyImplyLeading: false, // No default back button
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF6FA57C)),
-            onPressed: () {
-              // Navigate to the therapist's home page (index 0)
-              final provider = Provider.of<BottomNavProvider>(context, listen: false);
-              provider.currentIndex = 0;
-            },
-          ),
+          // leading: IconButton(
+          //   icon: const Icon(Icons.arrow_back, color: Color(0xFF6FA57C)),
+          //   onPressed: () {
+          //     // Navigate to the therapist's home page (index 0)
+          //     final provider = Provider.of<BottomNavProvider>(context, listen: false);
+          //     provider.currentIndex = 0;
+          //   },
+          // ),
           actions: [
             TextButton.icon(
               onPressed: () => Navigator.push(

@@ -10,8 +10,11 @@ import '../../providers/bottom_nav_provider.dart';
 
 class HomeTherapist extends StatelessWidget {
   final VoidCallback onProfileTap;
+  final VoidCallback goToPatients;
+  final VoidCallback goToRequest;
 
-  HomeTherapist({super.key, required this.onProfileTap});
+  HomeTherapist({super.key, required this.onProfileTap,
+    required this.goToPatients, required this.goToRequest});
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +129,7 @@ class HomeTherapist extends StatelessWidget {
 
                 const SizedBox(height: 60),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 15.0,
                   ), // <-- adjust here
                   child: Column(
@@ -134,27 +137,13 @@ class HomeTherapist extends StatelessWidget {
                       _buildHomeButton(
                         imagePath: 'assets/icons/patients.png',
                         text: L10n.getTranslatedText(context, 'Patients'),
-                        onTap: () async {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PatientsPage(),
-                            ),
-                          );
-                        },
+                          onTap: goToPatients
                       ),
                       const SizedBox(height: 20),
                       _buildHomeButton(
                         imagePath: 'assets/icons/requests.png',
                         text: L10n.getTranslatedText(context, 'View Requests'),
-                        onTap: () async {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PatientsRequests(),
-                            ),
-                          );
-                        },
+                        onTap: goToRequest
                       ),
                       const SizedBox(height: 20),
                       _buildHomeButton(

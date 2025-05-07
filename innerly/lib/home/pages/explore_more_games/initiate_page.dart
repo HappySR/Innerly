@@ -21,17 +21,19 @@ class InitiatePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Immediate Support', style: GoogleFonts.aboreto()),
+        title: Text('Immediate Support', style: GoogleFonts.lora(
+          fontSize: 22
+        )),
         elevation: 0,
         backgroundColor: InnerlyTheme.appBackground,
       ),
       extendBodyBehindAppBar: true,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF5F7FA), Color(0xFFE4E8F0)],
+            colors: [InnerlyTheme.appBackground, InnerlyTheme.appBackground],
           ),
         ),
         child: SafeArea(
@@ -81,7 +83,7 @@ class InitiatePage extends StatelessWidget {
                 SizedBox(height: isSmallScreen ? 24 : 30),
                 Text(
                   'Additional Resources:',
-                  style: GoogleFonts.amita(
+                  style: GoogleFonts.lora(
                     fontSize: isSmallScreen ? 18 : 22,
                     color: Colors.black87,
                   ),
@@ -170,7 +172,7 @@ class InitiatePage extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.amita(
+                      style: GoogleFonts.rubik(
                         fontSize: isSmallScreen ? 16 : 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -246,7 +248,7 @@ class InitiatePage extends StatelessWidget {
         SizedBox(height: isSmallScreen ? 12 : 16),
         Text(
           'You are not alone. Help is available.',
-          style: GoogleFonts.amita(
+          style: GoogleFonts.lora(
             fontSize: isSmallScreen ? 16 : 18,
             color: Colors.black87,
           ),

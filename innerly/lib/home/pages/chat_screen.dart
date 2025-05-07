@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -769,6 +770,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: InnerlyTheme.beige,
         title: Text(widget.receiverName),
         actions: [
           IconButton(
@@ -778,6 +780,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+      backgroundColor: InnerlyTheme.appBackground,
       body: Column(
         children: [
           Expanded(
@@ -827,8 +830,25 @@ class _ChatScreenState extends State<ChatScreen> {
                     decoration: InputDecoration(
                       hintText: 'Type your message...',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide(
+                          color: Colors.grey,
+                          width: 1.5,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide(
+                          color: Colors.grey,
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
                       ),
                       filled: true,
                       contentPadding: const EdgeInsets.symmetric(
