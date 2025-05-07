@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +13,7 @@ import 'package:Innerly/home/pages/chat_screen.dart';
 
 import '../../localization/i10n.dart';
 import '../../services/auth_service.dart';
+import '../providers/bottom_nav_provider.dart';
 import 'appointment_screen.dart';
 
 class UserAppointmentsScreen extends StatefulWidget {
@@ -205,99 +207,105 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     final double normalFontSize = min(screenWidth * 0.04, 16.0);
     final double smallFontSize = min(screenWidth * 0.035, 14.0);
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFDF6F0),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFFFDF6F0),
-          elevation: 0,
-          title: Text(
-            L10n.getTranslatedText(context, 'MY APPOINTMENTS'),
-            style: GoogleFonts.aboreto(
-              fontSize: titleFontSize,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          centerTitle: true,
-        ),
-        body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _calendar(screenWidth, normalFontSize, smallFontSize),
-                    SizedBox(height: screenHeight * 0.03),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: max(screenWidth * 0.02, 8.0)),
-                      child: Text(
-                        L10n.getTranslatedText(context, 'My Sessions'),
-                        style: GoogleFonts.montserrat(
-                          fontSize: subtitleFontSize,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.015),
-                  ],
-                ),
+    return WillPopScope(
+      onWillPop: () async {
+        // When back button is pressed, navigate to therapist's home (index 0)
+        Provider.of<BottomNavProvider>(context, listen: false).currentIndex = 0;
+        return false; // Prevent default back behavior
+      },
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          backgroundColor: InnerlyTheme.appBackground,
+          appBar: AppBar(
+            backgroundColor: InnerlyTheme.appBackground,
+            elevation: 0,
+            title: Text(
+              L10n.getTranslatedText(context, 'MY APPOINTMENTS'),
+              style: GoogleFonts.aboreto(
+                fontSize: titleFontSize,
+                fontWeight: FontWeight.w600,
               ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _StickyTabBarDelegate(
-                  child: TabBar(
-                    tabs: [
-                      Tab(
-                        child: Text(
-                          L10n.getTranslatedText(context, 'Upcoming'),
-                          style: GoogleFonts.montserrat(
-                            fontSize: normalFontSize,
-                            fontWeight: FontWeight.w500,
+            ),
+            centerTitle: true,
+          ),
+          body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _calendar(screenWidth, normalFontSize, smallFontSize),
+                        SizedBox(height: screenHeight * 0.03),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: max(screenWidth * 0.02, 8.0)),
+                          child: Text(
+                            L10n.getTranslatedText(context, 'My Sessions'),
+                            style: GoogleFonts.montserrat(
+                              fontSize: subtitleFontSize,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                      Tab(
-                        child: Text(
-                          L10n.getTranslatedText(context, 'Past'),
-                          style: GoogleFonts.montserrat(
-                            fontSize: normalFontSize,
-                            fontWeight: FontWeight.w500,
+                        SizedBox(height: screenHeight * 0.015),
+                      ],
+                    )),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyTabBarDelegate(
+                    child: TabBar(
+                      tabs: [
+                        Tab(
+                          child: Text(
+                            L10n.getTranslatedText(context, 'Upcoming'),
+                            style: GoogleFonts.montserrat(
+                              fontSize: normalFontSize,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                    indicatorColor: const Color(0xFF6FA57C),
-                    labelColor: Colors.black,
-                    unselectedLabelColor: Colors.grey,
+                        Tab(
+                          child: Text(
+                            L10n.getTranslatedText(context, 'Past'),
+                            style: GoogleFonts.montserrat(
+                              fontSize: normalFontSize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                      indicatorColor: const Color(0xFF6FA57C),
+                      labelColor: InnerlyTheme.secondary,
+                      unselectedLabelColor: Colors.grey,
+                    ),
                   ),
                 ),
-              ),
-            ];
-          },
-          body: TabBarView(
-            children: [
-              _buildAppointmentsList(
-                upcomingAppointments,
-                screenWidth,
-                screenHeight,
-                titleFontSize,
-                normalFontSize,
-                smallFontSize,
-                showMeetButton: true,
-              ),
-              _buildAppointmentsList(
-                pastAppointments,
-                screenWidth,
-                screenHeight,
-                titleFontSize,
-                normalFontSize,
-                smallFontSize,
-                showMeetButton: false,
-              ),
-            ],
+              ];
+            },
+            body: TabBarView(
+              children: [
+                _buildAppointmentsList(
+                  upcomingAppointments,
+                  screenWidth,
+                  screenHeight,
+                  titleFontSize,
+                  normalFontSize,
+                  smallFontSize,
+                  showMeetButton: true,
+                ),
+                _buildAppointmentsList(
+                  pastAppointments,
+                  screenWidth,
+                  screenHeight,
+                  titleFontSize,
+                  normalFontSize,
+                  smallFontSize,
+                  showMeetButton: false,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -971,7 +979,7 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: const Color(0xFFFDF6F0),
+      color: InnerlyTheme.appBackground,
       child: child,
     );
   }
