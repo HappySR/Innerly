@@ -504,7 +504,29 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                       ],
                     )),
-
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Consumer<LanguageProvider>(
+                    builder: (context, provider, child) {
+                      return DropdownButton<Locale>(
+                        value: provider.locale,
+                        hint: Text(L10n.getTranslatedText(context, 'Choose Language')),
+                        isExpanded: true,
+                        onChanged: (Locale? newLocale) {
+                          if (newLocale != null) {
+                            _changeLanguage(newLocale); // Call the function
+                          }
+                        },
+                        items: L10n.supportedLocales.map((Locale locale) {
+                          return DropdownMenuItem(
+                            value: locale,
+                            child: Text(L10n.getLanguageName(locale.languageCode)),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0), // Margin around button
                   child: SizedBox(
@@ -534,29 +556,6 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                       ),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Consumer<LanguageProvider>(
-                    builder: (context, provider, child) {
-                      return DropdownButton<Locale>(
-                        value: provider.locale,
-                        hint: Text(L10n.getTranslatedText(context, 'Choose Language')),
-                        isExpanded: true,
-                        onChanged: (Locale? newLocale) {
-                          if (newLocale != null) {
-                            _changeLanguage(newLocale); // Call the function
-                          }
-                        },
-                        items: L10n.supportedLocales.map((Locale locale) {
-                          return DropdownMenuItem(
-                            value: locale,
-                            child: Text(L10n.getLanguageName(locale.languageCode)),
-                          );
-                        }).toList(),
-                      );
-                    },
                   ),
                 ),
               ],
