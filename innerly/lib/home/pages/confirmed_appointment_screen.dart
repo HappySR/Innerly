@@ -703,7 +703,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
                 SizedBox(width: horizontalPadding),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _showCancellationDialog(appointment),
+                    onPressed: () => showCancellationDialog(appointment),
                     icon: Icon(
                       Icons.cancel_outlined,
                       size: min(screenWidth * 0.05, 20.0),
@@ -775,34 +775,42 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     );
   }
 
-  void _showCancellationDialog(Map<String, dynamic> appointment) {
+  void showCancellationDialog(Map<String, dynamic> appointment) {
     final scheduledAt = DateTime.parse(appointment['scheduled_at']).toLocal();
     final formattedDate = DateFormat('MMMM d, yyyy').format(scheduledAt);
     final formattedTime = DateFormat('h:mm a').format(scheduledAt);
 
+    // Debug print to see the appointment ID and its type
+    print('Appointment ID: ${appointment['id']}');
+    print('Appointment ID type: ${appointment['id'].runtimeType}');
+
+    // Make sure id is cast as String
+    final appointmentId = appointment['id'].toString();
+
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text(L10n.getTranslatedText(context, 'Cancel Appointment')),
-            content: Text(
-                'Are you sure you want to cancel your appointment on $formattedDate at $formattedTime?\n\n'
-                    'Please note that cancellations less than 24 hours before the appointment may incur a fee.'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(L10n.getTranslatedText(context, 'No, Keep It')),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await _cancelAppointment(appointment['id']);
-                },
-                child: Text(L10n.getTranslatedText(context, 'Yes, Cancel'), style: TextStyle(color: Colors.red)),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text(L10n.getTranslatedText(context, 'Cancel Appointment')),
+        content: Text(
+            'Are you sure you want to cancel your appointment on $formattedDate at $formattedTime?\n\n'
+                'Please note that cancellations less than 24 hours before the appointment may incur a fee.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(L10n.getTranslatedText(context, 'No, Keep It')),
           ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Print before passing to the cancel method
+              print('About to cancel appointment with ID: $appointmentId');
+              await _cancelAppointment(appointmentId);
+            },
+            child: Text(L10n.getTranslatedText(context, 'Yes, Cancel'), style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -843,14 +851,63 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
     );
   }
 
-  Future<void> _cancelAppointment(int appointmentId) async {
+  Future<void> _cancelAppointment(String appointmentId) async {
     try {
       setState(() => _isLoading = true);
 
-      await _supabase
+      print('Attempting to cancel appointment with ID: $appointmentId');
+
+      // First check if the appointment exists
+      final appointmentCheck = await _supabase
+          .from('appointments')
+          .select()
+          .eq('id', appointmentId)
+          .single();
+
+      if (appointmentCheck == null) {
+        throw Exception('Appointment not found');
+      }
+
+      // Update appointment status to cancelled
+      final updateResponse = await _supabase
           .from('appointments')
           .update({'status': 'cancelled'})
           .eq('id', appointmentId);
+
+      print('Successfully updated appointment status');
+
+      // Get appointment details for notification
+      final appointments = await _supabase
+          .from('appointments')
+          .select()
+          .eq('id', appointmentId);
+
+      if (appointments.isNotEmpty) {
+        final appointment = appointments[0];
+
+        // Send notification to therapist about the cancellation
+        final userId = _supabase.auth.currentUser?.id;
+        final therapistId = appointment['therapist_id'];
+
+        if (userId != null && therapistId != null) {
+          try {
+            // Create notification
+            await _supabase.from('notifications').insert({
+              'recipient_id': therapistId,
+              'sender_id': userId,
+              'type': 'cancellation',
+              'content': 'A patient has cancelled their appointment scheduled for ${DateFormat('MMMM d, yyyy').format(DateTime.parse(appointment['scheduled_at']))} at ${DateFormat('h:mm a').format(DateTime.parse(appointment['scheduled_at']))}',
+              'read': false,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+
+            print('Successfully created notification for therapist');
+          } catch (notificationError) {
+            print('Failed to create notification: $notificationError');
+            // Continue execution even if notification fails
+          }
+        }
+      }
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -870,6 +927,7 @@ class _UserAppointmentsScreenState extends State<UserAppointmentsScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
       setState(() => _isLoading = false);
     }
   }

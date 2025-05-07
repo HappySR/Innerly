@@ -114,10 +114,6 @@ class _ProfileViewState extends State<ProfileView> {
     _loadLanguage();
   }
 
-
-
-
-
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     final langCode = prefs.getString('language') ?? 'en';
