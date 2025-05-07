@@ -125,7 +125,7 @@ class _BottomNavState extends State<BottomNav> {
               ),
               BottomNavigationBarItem(
                 icon: Image.asset(
-                  'assets/icons/user.png',
+                  'assets/icons/profile.png',
                   width: 22,
                   height: 28,
                   color: _selectedIndex == 4
@@ -182,7 +182,7 @@ class _BottomNavState extends State<BottomNav> {
               ),
               BottomNavigationBarItem(
                 icon: Image.asset(
-                  'assets/icons/user.png',
+                  'assets/icons/profile.png',
                   width: 22,
                   height: 28,
                   color: _selectedIndex == 4
