@@ -8,6 +8,7 @@ import 'package:local_auth/local_auth.dart';
 import '../../localization/i10n.dart';
 import '../../localization/language_provider.dart';
 import '../../started/welcome_page.dart';
+import '../providers/bottom_nav_provider.dart';
 import 'edit_profile_view.dart';
 
 class ProfileView extends StatefulWidget {
@@ -146,416 +147,420 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF4E7),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Modified Profile Section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+    return WillPopScope(
+      onWillPop: () async {
+        // When back button is pressed, navigate to therapist's home (index 0)
+        Provider.of<BottomNavProvider>(context, listen: false).currentIndex = 0;
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFDF4E7),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Modified Profile Section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${L10n.getTranslatedText(context, 'Hello')}, Kate",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () async {
+                            if (_isLoadingUuid) return;
+
+                            if (_uuid == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(L10n.getTranslatedText(context, 'UUID not available'))),
+                              );
+                              return;
+                            }
+
+                            if (!_isUuidRevealed) {
+                              await _authenticate();
+                            } else {
+                              _copyToClipboard();
+                            }
+                          },
+                          child: Container(
+                            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_isLoadingUuid)
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                else
+                                  Flexible(
+                                    child: Text(
+                                      _isUuidRevealed && _uuid != null
+                                          ? _obscureUuid
+                                          ? '••••••••••••••••'
+                                          : _uuid!
+                                          : '${L10n.getTranslatedText(context, 'Tap to reveal UUID')} ',
+                                      style: TextStyle(
+                                        fontSize: MediaQuery.of(context).size.width * 0.035,
+                                        color: Colors.grey,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                if (_isUuidRevealed && _uuid != null && !_isLoadingUuid)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
+                                        child: GestureDetector(
+                                          onTap: _copyToClipboard,
+                                          child: Icon(
+                                            Icons.copy,
+                                            size: MediaQuery.of(context).size.width * 0.045,
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _isUuidRevealed = false;
+                                              _obscureUuid = true;
+                                            });
+                                          },
+                                          child: Icon(
+                                            Icons.visibility_off,
+                                            size: MediaQuery.of(context).size.width * 0.045,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    CircleAvatar(
+                      radius: MediaQuery.of(context).size.width * 0.08,
+                      backgroundImage: const AssetImage('assets/user/user.png'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Edit Profile Button
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfilePage(),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    side: BorderSide(color: InnerlyTheme.beige),
+                    backgroundColor: InnerlyTheme.beige,
+                  ),
+                  icon: const Icon(Icons.edit, size: 16, color: Colors.black,),
+                  label: Text(L10n.getTranslatedText(context, 'Edit Profile'), style: TextStyle(color: Colors.black),),
+                ),
+                const SizedBox(height: 20),
+
+                // Mood Tracker Summary
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: InnerlyTheme.beige,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${L10n.getTranslatedText(context, 'Hello')}, Kate",
+                        L10n.getTranslatedText(context, 'Mood Tracker Summary'),
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      GestureDetector(
-                        onTap: () async {
-                          if (_isLoadingUuid) return;
+                      const SizedBox(height: 12),
 
-                          if (_uuid == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(L10n.getTranslatedText(context, 'UUID not available'))),
-                            );
-                            return;
-                          }
+                      // Progress Bar
+                      LinearProgressIndicator(
+                        value: 0.3,
+                        backgroundColor: Color(0xFFFEE2BE),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.green,
+                        ),
+                        minHeight: 6,
+                      ),
+                      const SizedBox(height: 16),
 
-                          if (!_isUuidRevealed) {
-                            await _authenticate();
-                          } else {
-                            _copyToClipboard();
-                          }
-                        },
-                        child: Container(
-                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.6),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_isLoadingUuid)
-                                const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              else
-                                Flexible(
-                                  child: Text(
-                                    _isUuidRevealed && _uuid != null
-                                        ? _obscureUuid
-                                        ? '••••••••••••••••'
-                                        : _uuid!
-                                        : '${L10n.getTranslatedText(context, 'Tap to reveal UUID')} ',
-                                    style: TextStyle(
-                                      fontSize: MediaQuery.of(context).size.width * 0.035,
-                                      color: Colors.grey,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                      // Mood Icons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _MoodIcon(emoji: "😢", label: L10n.getTranslatedText(context, 'Low')),
+                          _MoodIcon(emoji: "😐", label: L10n.getTranslatedText(context, 'Neutral')),
+                          _MoodIcon(emoji: "😊", label: L10n.getTranslatedText(context, 'Happy')),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Personal Growth Section
+                Text(
+                  L10n.getTranslatedText(context, 'Personal Growth'),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _buildGrowthItem(
+                  emoji: '📝',
+                  title: L10n.getTranslatedText(context, 'Journals Completed'),
+                  value: "12",
+                ),
+                _buildGrowthItem(
+                  emoji: '🎯',
+                  title: L10n.getTranslatedText(context, 'Challenges Achieved'),
+                  value: "5",
+                ),
+                _buildGrowthItem(
+                  emoji: '🔥',
+                  title: L10n.getTranslatedText(context, 'Current Journey Stage'),
+                  value: "Stage 3",
+                ),
+                const SizedBox(height: 24),
+
+                // Therapist and Community Section
+                IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildCard(
+                            title: L10n.getTranslatedText(context, 'Therapist'),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: AssetImage(
+                                    'assets/user/user.png',
+                                  ), // therapist image
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  "Jane Tanner, PhD",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const Text(
+                                  "CBT",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
                                   ),
                                 ),
-                              if (_isUuidRevealed && _uuid != null && !_isLoadingUuid)
+                                const SizedBox(height: 12),
                                 Row(
-                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Padding(
-                                      padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
-                                      child: GestureDetector(
-                                        onTap: _copyToClipboard,
-                                        child: Icon(
-                                          Icons.copy,
-                                          size: MediaQuery.of(context).size.width * 0.045,
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {},
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                            horizontal: 10,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ), // <-- added this
+                                          ),
+                                        ),
+                                        child: Text(
+                                          L10n.getTranslatedText(context, 'Message'),
+                                          style: TextStyle(fontSize: 12,
+                                              color: Colors.black),
                                         ),
                                       ),
                                     ),
-                                    Padding(
-                                      padding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _isUuidRevealed = false;
-                                            _obscureUuid = true;
-                                          });
-                                        },
-                                        child: Icon(
-                                          Icons.visibility_off,
-                                          size: MediaQuery.of(context).size.width * 0.045,
-                                          color: Colors.grey,
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {},
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 8,
+                                            horizontal: 10,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ), // <-- added this
+                                          ),
+                                        ),
+                                        child: Text(
+                                          L10n.getTranslatedText(context, 'Book Session'),
+                                          style: TextStyle(fontSize: 12,
+                                              color: Colors.black),
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                            ],
-                          ),
-                        ),
+                              ],
+                            )),
                       ),
-                    ],
-                  ),
-                  CircleAvatar(
-                    radius: MediaQuery.of(context).size.width * 0.08,
-                    backgroundImage: const AssetImage('assets/user/user.png'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Edit Profile Button
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EditProfilePage(),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  side: BorderSide(color: InnerlyTheme.beige),
-                  backgroundColor: InnerlyTheme.beige,
-                ),
-                icon: const Icon(Icons.edit, size: 16, color: Colors.black,),
-                label: Text(L10n.getTranslatedText(context, 'Edit Profile'), style: TextStyle(color: Colors.black),),
-              ),
-              const SizedBox(height: 20),
-
-              // Mood Tracker Summary
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: InnerlyTheme.beige,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      L10n.getTranslatedText(context, 'Mood Tracker Summary'),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Progress Bar
-                    LinearProgressIndicator(
-                      value: 0.3,
-                      backgroundColor: Color(0xFFFEE2BE),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.green,
-                      ),
-                      minHeight: 6,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Mood Icons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _MoodIcon(emoji: "😢", label: L10n.getTranslatedText(context, 'Low')),
-                        _MoodIcon(emoji: "😐", label: L10n.getTranslatedText(context, 'Neutral')),
-                        _MoodIcon(emoji: "😊", label: L10n.getTranslatedText(context, 'Happy')),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Personal Growth Section
-              Text(
-                L10n.getTranslatedText(context, 'Personal Growth'),
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _buildGrowthItem(
-                emoji: '📝',
-                title: L10n.getTranslatedText(context, 'Journals Completed'),
-                value: "12",
-              ),
-              _buildGrowthItem(
-                emoji: '🎯',
-                title: L10n.getTranslatedText(context, 'Challenges Achieved'),
-                value: "5",
-              ),
-              _buildGrowthItem(
-                emoji: '🔥',
-                title: L10n.getTranslatedText(context, 'Current Journey Stage'),
-                value: "Stage 3",
-              ),
-              const SizedBox(height: 24),
-
-              // Therapist and Community Section
-              IntrinsicHeight(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildCard(
-                        title: L10n.getTranslatedText(context, 'Therapist'),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const CircleAvatar(
-                              radius: 20,
-                              backgroundImage: AssetImage(
-                                'assets/user/user.png',
-                              ), // therapist image
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              "Jane Tanner, PhD",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const Text(
-                              "CBT",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildCard(
+                            title: L10n.getTranslatedText(context, 'My Community Posts'),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                        horizontal: 10,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12,
-                                        ), // <-- added this
-                                      ),
-                                    ),
-                                    child: Text(
-                                      L10n.getTranslatedText(context, 'Message'),
-                                      style: TextStyle(fontSize: 12,
-                                          color: Colors.black),
-                                    ),
+                                Text(
+                                  "12 ${L10n.getTranslatedText(context, 'posts')} . 45 ${L10n.getTranslatedText(context, 'comments')}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                        horizontal: 10,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12,
-                                        ), // <-- added this
-                                      ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "56 ${L10n.getTranslatedText(context, 'Followers')} . 45 ${L10n.getTranslatedText(context, 'comments')}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                      horizontal: 10,
                                     ),
-                                    child: Text(
-                                      L10n.getTranslatedText(context, 'Book Session'),
-                                      style: TextStyle(fontSize: 12,
-                                          color: Colors.black),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        12,
+                                      ), // <-- added this
                                     ),
+                                  ),
+                                  child: Text(
+                                    L10n.getTranslatedText(context, 'View my posts'),
+                                    style: TextStyle(fontSize: 12,
+                                        color: Colors.black),
                                   ),
                                 ),
                               ],
-                            ),
-                          ],
-                        ),
+                            )),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildCard(
-                        title: L10n.getTranslatedText(context, 'My Community Posts'),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "12 ${L10n.getTranslatedText(context, 'posts')} . 45 ${L10n.getTranslatedText(context, 'comments')}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "56 ${L10n.getTranslatedText(context, 'Followers')} . 45 ${L10n.getTranslatedText(context, 'comments')}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                  horizontal: 10,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    12,
-                                  ), // <-- added this
-                                ),
-                              ),
-                              child: Text(
-                                L10n.getTranslatedText(context, 'View my posts'),
-                                style: TextStyle(fontSize: 12,
-                                    color: Colors.black),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Wellness Goals
-              _buildCard(
-                title: L10n.getTranslatedText(context, 'Wellness Goals'),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _GoalItem(
-                      goal: L10n.getTranslatedText(context, 'Meditate 5 times this week'),
-                      isCompleted: true,
-                    ),
-                    _GoalItem(goal: L10n.getTranslatedText(context, 'Log mood daily'), isCompleted: true),
-                    _GoalItem(
-                      goal: L10n.getTranslatedText(context, 'Eat 2 healthy meals daily'),
-                      isCompleted: true,
-                    ),
-                  ],
-                ),
-              ),
+                // Wellness Goals
+                _buildCard(
+                    title: L10n.getTranslatedText(context, 'Wellness Goals'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _GoalItem(
+                          goal: L10n.getTranslatedText(context, 'Meditate 5 times this week'),
+                          isCompleted: true,
+                        ),
+                        _GoalItem(goal: L10n.getTranslatedText(context, 'Log mood daily'), isCompleted: true),
+                        _GoalItem(
+                          goal: L10n.getTranslatedText(context, 'Eat 2 healthy meals daily'),
+                          isCompleted: true,
+                        ),
+                      ],
+                    )),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0), // Margin around button
-                child: SizedBox(
-                  width: double.infinity, // Full width
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0), // Padding inside button
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12), // Rounded corners
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0), // Margin around button
+                  child: SizedBox(
+                    width: double.infinity, // Full width
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0), // Padding inside button
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12), // Rounded corners
+                        ),
+                        backgroundColor: Colors.redAccent, // Button color (optional, can remove if you want default color)
                       ),
-                      backgroundColor: Colors.redAccent, // Button color (optional, can remove if you want default color)
-                    ),
-                    onPressed: () async {
-                      await Supabase.instance.client.auth.signOut();
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const WelcomePage()),
-                            (route) => false,
-                      );
-                    },
-                    child: Text(
-                      L10n.getTranslatedText(context, 'Logout'),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white, // Text color
+                      onPressed: () async {
+                        await Supabase.instance.client.auth.signOut();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WelcomePage()),
+                              (route) => false,
+                        );
+                      },
+                      child: Text(
+                        L10n.getTranslatedText(context, 'Logout'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white, // Text color
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Consumer<LanguageProvider>(
-                  builder: (context, provider, child) {
-                    return DropdownButton<Locale>(
-                      value: provider.locale,
-                      hint: Text(L10n.getTranslatedText(context, 'Choose Language')),
-                      isExpanded: true,
-                      onChanged: (Locale? newLocale) {
-                        if (newLocale != null) {
-                          _changeLanguage(newLocale); // Call the function
-                        }
-                      },
-                      items: L10n.supportedLocales.map((Locale locale) {
-                        return DropdownMenuItem(
-                          value: locale,
-                          child: Text(L10n.getLanguageName(locale.languageCode)),
-                        );
-                      }).toList(),
-                    );
-                  },
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Consumer<LanguageProvider>(
+                    builder: (context, provider, child) {
+                      return DropdownButton<Locale>(
+                        value: provider.locale,
+                        hint: Text(L10n.getTranslatedText(context, 'Choose Language')),
+                        isExpanded: true,
+                        onChanged: (Locale? newLocale) {
+                          if (newLocale != null) {
+                            _changeLanguage(newLocale); // Call the function
+                          }
+                        },
+                        items: L10n.supportedLocales.map((Locale locale) {
+                          return DropdownMenuItem(
+                            value: locale,
+                            child: Text(L10n.getLanguageName(locale.languageCode)),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

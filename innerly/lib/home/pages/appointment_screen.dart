@@ -25,17 +25,45 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   Map<String, List<Map<String, dynamic>>> _existingAppointments = {};
+  int _userBookingsToday = 0;
+  final int _maxBookingsPerDay = 3;
 
   @override
   void initState() {
     super.initState();
     _loadAvailabilitySlots();
+    _getUserBookingsCount();
   }
 
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _getUserBookingsCount() async {
+    try {
+      // Get current user
+      final user = _supabase.auth.currentUser;
+      if (user == null) return;
+
+      // Get user's booking count
+      final response = await _supabase
+          .from('users')
+          .select('number_of_bookings')
+          .eq('id', user.id)
+          .single();
+
+      if (mounted) {
+        setState(() {
+          _userBookingsToday = response['number_of_bookings'] ?? 0;
+        });
+      }
+
+      debugPrint('User has $_userBookingsToday bookings today');
+    } catch (e) {
+      debugPrint('Error fetching user booking count: $e');
+    }
   }
 
   Future<void> _loadAvailabilitySlots() async {
@@ -273,6 +301,27 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     return count;
   }
 
+  Future<void> _incrementUserBookingCount() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return;
+
+      // Increment the number_of_bookings for the user
+      await _supabase
+          .from('users')
+          .update({'number_of_bookings': _userBookingsToday + 1})
+          .eq('id', user.id);
+
+      setState(() {
+        _userBookingsToday += 1;
+      });
+
+      debugPrint('Incremented user booking count to $_userBookingsToday');
+    } catch (e) {
+      debugPrint('Error incrementing booking count: $e');
+    }
+  }
+
   void _submitAppointment() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDate == null || _selectedSlot == null) {
@@ -280,6 +329,17 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         const SnackBar(
           content: Text('Please select date and time slot'),
           backgroundColor: Color(0xFF4A707A),
+        ),
+      );
+      return;
+    }
+
+    // Check if user has reached the booking limit
+    if (_userBookingsToday >= _maxBookingsPerDay) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You have reached the maximum limit of 3 bookings for today'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -315,6 +375,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
 
       if (!mounted) return;
       if (success) {
+        // Increment the user's booking count
+        await _incrementUserBookingCount();
+
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -322,9 +385,23 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               'Success!',
               style: GoogleFonts.aclonica(color: const Color(0xFF6FA57C)),
             ),
-            content: Text(
-              'Appointment booked successfully',
-              style: GoogleFonts.montserrat(),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Appointment booked successfully',
+                  style: GoogleFonts.montserrat(),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'You have used ${_userBookingsToday} of $_maxBookingsPerDay bookings today',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
             actions: [
               TextButton(
@@ -381,6 +458,47 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              // Booking limit indicator
+              if (_userBookingsToday > 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Card(
+                    color: _userBookingsToday >= _maxBookingsPerDay
+                        ? const Color(0xFFFFEBEE) // Light red background if at limit
+                        : const Color(0xFFE8F5E9), // Light green background
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _userBookingsToday >= _maxBookingsPerDay
+                                ? Icons.warning_amber_rounded
+                                : Icons.info_outline,
+                            color: _userBookingsToday >= _maxBookingsPerDay
+                                ? Colors.red[700]
+                                : const Color(0xFF6FA57C),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _userBookingsToday >= _maxBookingsPerDay
+                                  ? 'You have reached your daily booking limit (3)'
+                                  : 'You have used $_userBookingsToday of $_maxBookingsPerDay bookings today',
+                              style: GoogleFonts.montserrat(
+                                color: _userBookingsToday >= _maxBookingsPerDay
+                                    ? Colors.red[700]
+                                    : Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               _buildDatePicker(),
               if (_selectedDate != null) _buildTimeSlots(),
               const SizedBox(height: 20),
@@ -403,12 +521,15 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               ),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitAppointment,
+                onPressed: (_isSubmitting || _userBookingsToday >= _maxBookingsPerDay)
+                    ? null
+                    : _submitAppointment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6FA57C),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
+                  disabledBackgroundColor: Colors.grey,
                 ),
                 child: _isSubmitting
                     ? const SizedBox(
@@ -420,7 +541,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                   ),
                 )
                     : Text(
-                  'Book Appointment',
+                  _userBookingsToday >= _maxBookingsPerDay
+                      ? 'Daily Limit Reached'
+                      : 'Book Appointment',
                   style: GoogleFonts.aclonica(
                     color: Colors.white,
                     fontSize: 16,
