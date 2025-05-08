@@ -619,6 +619,15 @@ class LivelyState extends State<Lively> {
       _currentChatId = newChat['id'] as String;
     }
 
+    // Save user message to database
+    final userMessageData = {
+      'chat_id': _currentChatId,
+      'user_id': userId,
+      'role': 'user',
+      'content': message,
+    };
+    await supabase.from('messages').insert(userMessageData);
+
     // Add user message to UI immediately
     setState(() {
       chatMessages.add({
