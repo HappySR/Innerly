@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -389,8 +390,8 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    decoration: const InputDecoration(
-                      hintText: 'Type your message...',
+                    decoration: InputDecoration(
+                      hintText: L10n.getTranslatedText(context, 'Type your message...'),
                       border: OutlineInputBorder(),
                     ),
                     maxLength: 500,
@@ -851,7 +852,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           backgroundColor: Colors.black,
           appBar: AppBar(
             backgroundColor: Colors.black,
-            title: const Text('Video Player'),
+            title: Text(L10n.getTranslatedText(context, 'Video Player')),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {

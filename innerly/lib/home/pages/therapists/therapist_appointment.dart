@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -81,7 +82,7 @@ class _TherapistsAppointmentScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading availability: ${e.toString()}'),
+            content: Text('${L10n.getTranslatedText(context, 'Error loading availability')}: ${e.toString()}'),
           ),
         );
       }
@@ -142,7 +143,7 @@ class _TherapistsAppointmentScreenState
           _slots[day]!.add(slot);
         }
       } catch (e) {
-        debugPrint('Error processing slot: $e');
+        debugPrint('${L10n.getTranslatedText(context, 'Error processing slot')}: $e');
       }
     }
 
@@ -178,7 +179,7 @@ class _TherapistsAppointmentScreenState
         );
       }).toList();
     } catch (e) {
-      debugPrint('Error fetching availability slots: $e');
+      debugPrint('${L10n.getTranslatedText(context, 'Error fetching availability slots')}: $e');
       return [];
     }
   }
@@ -259,7 +260,7 @@ class _TherapistsAppointmentScreenState
         (pickedStart.hour * 60 + pickedStart.minute);
     if (durationMinutes < minDuration) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Minimum slot duration is 15 minutes')),
+        SnackBar(content: Text(L10n.getTranslatedText(context, 'Minimum slot duration is 15 minutes'))),
       );
       return;
     }
@@ -268,14 +269,14 @@ class _TherapistsAppointmentScreenState
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Maximum Patients', style: GoogleFonts.montserrat()),
+            title: Text(L10n.getTranslatedText(context, 'Maximum Patients'), style: GoogleFonts.montserrat()),
             content: StatefulBuilder(
               builder: (context, setStateDialog) {
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'How many patients can you see during this time slot?',
+                      L10n.getTranslatedText(context, 'How many patients can you see during this time slot?'),
                       style: GoogleFonts.montserrat(),
                     ),
                     const SizedBox(height: 20),
@@ -312,11 +313,11 @@ class _TherapistsAppointmentScreenState
             ),
             actions: [
               TextButton(
-                child: Text('Cancel', style: GoogleFonts.montserrat()),
+                child: Text(L10n.getTranslatedText(context, 'Cancel'), style: GoogleFonts.montserrat()),
                 onPressed: () => Navigator.of(context).pop(false),
               ),
               TextButton(
-                child: Text('Confirm', style: GoogleFonts.montserrat()),
+                child: Text(L10n.getTranslatedText(context, 'Confirm'), style: GoogleFonts.montserrat()),
                 onPressed: () => Navigator.of(context).pop(true),
               ),
             ],
@@ -339,8 +340,8 @@ class _TherapistsAppointmentScreenState
 
       if (_hasTimeOverlap(allSlotsSameDay, pickedStart!, pickedEnd!)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This slot overlaps with an existing slot'),
+          SnackBar(
+            content: Text(L10n.getTranslatedText(context, 'This slot overlaps with an existing slot')),
           ),
         );
         return;
@@ -420,7 +421,7 @@ class _TherapistsAppointmentScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating slot: ${e.toString()}')),
+          SnackBar(content: Text('${L10n.getTranslatedText(context, 'Error creating slot')}: ${e.toString()}')),
         );
       }
     }
@@ -467,7 +468,7 @@ class _TherapistsAppointmentScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating slot: ${e.toString()}')),
+          SnackBar(content: Text('${L10n.getTranslatedText(context, 'Error updating slot')}: ${e.toString()}')),
         );
       }
     }
@@ -480,7 +481,7 @@ class _TherapistsAppointmentScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting slot: ${e.toString()}')),
+          SnackBar(content: Text('${L10n.getTranslatedText(context, 'Error deleting slot')}: ${e.toString()}')),
         );
       }
     }
@@ -527,19 +528,19 @@ class _TherapistsAppointmentScreenState
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Set Exception', style: GoogleFonts.montserrat()),
+            title: Text(L10n.getTranslatedText(context, 'Set Exception'), style: GoogleFonts.montserrat()),
             content: Text(
-              'Do you want to mark ${DateFormat('EEEE, MMMM d, yyyy').format(result)} as unavailable? This will override your regular schedule for this day.',
+              '${L10n.getTranslatedText(context, 'Do you want to mark')} ${DateFormat('EEEE, MMMM d, yyyy').format(result)} as unavailable? This will override your regular schedule for this day.',
               style: GoogleFonts.montserrat(),
             ),
             actions: [
               TextButton(
-                child: Text('Cancel', style: GoogleFonts.montserrat()),
+                child: Text(L10n.getTranslatedText(context, 'Cancel'), style: GoogleFonts.montserrat()),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               TextButton(
                 child: Text(
-                  'Mark as Unavailable',
+                  L10n.getTranslatedText(context, 'Mark as Unavailable'),
                   style: GoogleFonts.montserrat(color: Colors.red[700]),
                 ),
                 onPressed: () async {
@@ -583,7 +584,7 @@ class _TherapistsAppointmentScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Successfully marked ${DateFormat('MMM d, yyyy').format(exceptionDate)} as unavailable',
+              '${L10n.getTranslatedText(context, 'Successfully marked')} ${DateFormat('MMM d, yyyy').format(exceptionDate)} as unavailable',
             ),
           ),
         );
@@ -591,7 +592,7 @@ class _TherapistsAppointmentScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating exception: ${e.toString()}')),
+          SnackBar(content: Text('${L10n.getTranslatedText(context, 'Error creating exception')}: ${e.toString()}')),
         );
       }
     }
@@ -613,7 +614,7 @@ class _TherapistsAppointmentScreenState
       backgroundColor: const Color(0xFFFDF6F0),
       appBar: AppBar(
         title: Text(
-          'Weekly Availability',
+          L10n.getTranslatedText(context, 'Weekly Availability'),
           style: GoogleFonts.aclonica(color: Colors.black54),
         ),
         backgroundColor: Colors.transparent,
@@ -633,7 +634,7 @@ class _TherapistsAppointmentScreenState
                 ),
               );
             },
-            tooltip: 'Manage Days Off',
+            tooltip: L10n.getTranslatedText(context, 'Manage Days Off'),
           ),
         ],
       ),
@@ -703,7 +704,7 @@ class _TherapistsAppointmentScreenState
                     size: 20,
                   ),
                   onPressed: () => _showExceptionOptions(day),
-                  tooltip: 'Add exception for this day',
+                  tooltip: L10n.getTranslatedText(context, 'Add exception for this day'),
                 ),
                 Icon(
                   isExpanded ? Icons.expand_less : Icons.expand_more,
@@ -772,7 +773,7 @@ class _TherapistsAppointmentScreenState
           style: GoogleFonts.montserrat(fontSize: width * 0.035),
         ),
         subtitle: Text(
-          'Max Patients: ${slot.maxPatients}',
+          '${L10n.getTranslatedText(context, 'Max Patients')}: ${slot.maxPatients}',
           style: GoogleFonts.montserrat(fontSize: width * 0.03),
         ),
         trailing: Row(
@@ -828,7 +829,7 @@ class _TherapistsAppointmentScreenState
               ),
               SizedBox(width: width * 0.02),
               Text(
-                'Add Time Slot',
+                L10n.getTranslatedText(context, 'Add Time Slot'),
                 style: GoogleFonts.montserrat(
                   color: const Color(0xFF6FA57C),
                   fontWeight: FontWeight.w500,
@@ -929,7 +930,7 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
               )
               .toList();
     } catch (e) {
-      debugPrint('Error loading exceptions: $e');
+      debugPrint('${L10n.getTranslatedText(context, 'Error loading exceptions')}: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -966,7 +967,7 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Exception for ${DateFormat('MMM d, yyyy').format(result)} already exists',
+            '${L10n.getTranslatedText(context, 'Exception for')} ${DateFormat('MMM d, yyyy').format(result)} ${L10n.getTranslatedText(context, 'already exists')}',
           ),
         ),
       );
@@ -977,19 +978,19 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Set Exception', style: GoogleFonts.montserrat()),
+            title: Text(L10n.getTranslatedText(context, 'Set Exception'), style: GoogleFonts.montserrat()),
             content: Text(
-              'Do you want to mark ${DateFormat('EEEE, MMMM d, yyyy').format(result)} as unavailable?',
+              '${L10n.getTranslatedText(context, 'Do you want to mark')} ${DateFormat('EEEE, MMMM d, yyyy').format(result)} ${L10n.getTranslatedText(context, 'as unavailable')}?',
               style: GoogleFonts.montserrat(),
             ),
             actions: [
               TextButton(
-                child: Text('Cancel', style: GoogleFonts.montserrat()),
+                child: Text(L10n.getTranslatedText(context, 'Cancel'), style: GoogleFonts.montserrat()),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               TextButton(
                 child: Text(
-                  'Mark as Unavailable',
+                  L10n.getTranslatedText(context, 'Mark as Unavailable'),
                   style: GoogleFonts.montserrat(color: Colors.red[700]),
                 ),
                 onPressed: () async {
@@ -1032,13 +1033,13 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Successfully marked ${DateFormat('MMM d, yyyy').format(date)} as unavailable',
+            '${L10n.getTranslatedText(context, 'Successfully marked')} ${DateFormat('MMM d, yyyy').format(date)} ${L10n.getTranslatedText(context, 'as unavailable')}',
           ),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating exception: ${e.toString()}')),
+        SnackBar(content: Text('${L10n.getTranslatedText(context, 'Error creating exception')}: ${e.toString()}')),
       );
     }
   }
@@ -1057,13 +1058,13 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Exception for ${DateFormat('MMM d, yyyy').format(date)} removed',
+            '${L10n.getTranslatedText(context, 'Exception for')} ${DateFormat('MMM d, yyyy').format(date)} ${L10n.getTranslatedText(context, 'removed')}',
           ),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting exception: ${e.toString()}')),
+        SnackBar(content: Text('${L10n.getTranslatedText(context, 'Error deleting exception')}: ${e.toString()}')),
       );
     }
   }
@@ -1077,7 +1078,7 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
       backgroundColor: const Color(0xFFFDF6F0),
       appBar: AppBar(
         title: Text(
-          'Days Off & Exceptions',
+          L10n.getTranslatedText(context, 'Days Off & Exceptions'),
           style: GoogleFonts.aclonica(color: Colors.black54),
         ),
         backgroundColor: Colors.transparent,
@@ -1106,7 +1107,7 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
                         horizontal: screenWidth * 0.02,
                       ),
                       child: Text(
-                        'Mark specific days when you are unavailable',
+                        L10n.getTranslatedText(context, 'Mark specific days when you are unavailable'),
                         style: GoogleFonts.montserrat(
                           fontSize: screenWidth * 0.04,
                           color: Colors.black54,
@@ -1118,7 +1119,7 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
                           _exceptions.isEmpty
                               ? Center(
                                 child: Text(
-                                  'No exceptions set',
+                                  L10n.getTranslatedText(context, 'No exceptions set'),
                                   style: GoogleFonts.montserrat(
                                     fontSize: screenWidth * 0.045,
                                     color: Colors.grey,
@@ -1182,7 +1183,7 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
           ),
         ),
         subtitle: Text(
-          exception.isAvailable ? 'Available (Custom)' : 'Unavailable',
+          exception.isAvailable ? L10n.getTranslatedText(context, 'Available (Custom)') : L10n.getTranslatedText(context, 'Unavailable'),
           style: GoogleFonts.montserrat(
             fontSize: width * 0.03,
             color:
@@ -1205,19 +1206,19 @@ class _TherapistExceptionsScreenState extends State<TherapistExceptionsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Remove Exception', style: GoogleFonts.montserrat()),
+            title: Text(L10n.getTranslatedText(context, 'Remove Exception'), style: GoogleFonts.montserrat()),
             content: Text(
-              'Are you sure you want to remove the exception for ${DateFormat('EEEE, MMMM d, yyyy').format(exception.date)}?',
+              '${L10n.getTranslatedText(context, 'Are you sure you want to remove the exception for')} ${DateFormat('EEEE, MMMM d, yyyy').format(exception.date)}?',
               style: GoogleFonts.montserrat(),
             ),
             actions: [
               TextButton(
-                child: Text('Cancel', style: GoogleFonts.montserrat()),
+                child: Text(L10n.getTranslatedText(context, 'Cancel'), style: GoogleFonts.montserrat()),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               TextButton(
                 child: Text(
-                  'Remove',
+                  L10n.getTranslatedText(context, 'Remove'),
                   style: GoogleFonts.montserrat(color: Colors.red[700]),
                 ),
                 onPressed: () {

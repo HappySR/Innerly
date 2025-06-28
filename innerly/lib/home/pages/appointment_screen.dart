@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -48,11 +49,12 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       if (user == null) return;
 
       // Get user's booking count
-      final response = await _supabase
-          .from('users')
-          .select('number_of_bookings')
-          .eq('id', user.id)
-          .single();
+      final response =
+          await _supabase
+              .from('users')
+              .select('number_of_bookings')
+              .eq('id', user.id)
+              .single();
 
       if (mounted) {
         setState(() {
@@ -86,10 +88,12 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           .eq('therapist_id', widget.therapist['id'])
           .eq('is_available', false);
 
-      final offDays = exceptionsResponse.map<String>((exception) {
-        return DateFormat('yyyy-MM-dd')
-            .format(DateTime.parse(exception['exception_date']).toLocal());
-      }).toList();
+      final offDays =
+          exceptionsResponse.map<String>((exception) {
+            return DateFormat(
+              'yyyy-MM-dd',
+            ).format(DateTime.parse(exception['exception_date']).toLocal());
+          }).toList();
 
       debugPrint('Found ${offDays.length} off days: $offDays'); // Debug log
 
@@ -100,7 +104,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           .eq('therapist_id', widget.therapist['id'])
           .inFilter('status', ['pending', 'confirmed']);
 
-      debugPrint('Found ${appointmentsResponse.length} existing appointments'); // Debug log
+      debugPrint(
+        'Found ${appointmentsResponse.length} existing appointments',
+      ); // Debug log
 
       // Create a map of existing appointments by date
       final existingAppointments = <String, List<Map<String, dynamic>>>{};
@@ -115,29 +121,31 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         existingAppointments[dateStr]!.add({
           'id': appointment['id'],
           'start_time': date,
-          'end_time': appointment['end_time'] != null
-              ? DateTime.parse(appointment['end_time']).toLocal()
-              : date.add(const Duration(hours: 1)),
+          'end_time':
+              appointment['end_time'] != null
+                  ? DateTime.parse(appointment['end_time']).toLocal()
+                  : date.add(const Duration(hours: 1)),
           'user_id': appointment['user_id'],
           'availability_id': appointment['availability_id'],
         });
       }
 
       // 4. Process availability slots
-      final availabilitySlots = response.map<Map<String, dynamic>>((slot) {
-        // Parse dates from UTC to local
-        final start = DateTime.parse(slot['scheduled_at']).toLocal();
-        final end = DateTime.parse(slot['end_time']).toLocal();
+      final availabilitySlots =
+          response.map<Map<String, dynamic>>((slot) {
+            // Parse dates from UTC to local
+            final start = DateTime.parse(slot['scheduled_at']).toLocal();
+            final end = DateTime.parse(slot['end_time']).toLocal();
 
-        return {
-          'id': slot['id'],
-          'start_time': start,
-          'end_time': end,
-          'target_weekday': slot['target_weekday'],
-          'is_recurring': slot['is_recurring'] ?? true,
-          'max_patients': slot['max_patients'] ?? 1,
-        };
-      }).toList();
+            return {
+              'id': slot['id'],
+              'start_time': start,
+              'end_time': end,
+              'target_weekday': slot['target_weekday'],
+              'is_recurring': slot['is_recurring'] ?? true,
+              'max_patients': slot['max_patients'] ?? 1,
+            };
+          }).toList();
 
       setState(() {
         _availabilitySlots = availabilitySlots;
@@ -147,7 +155,6 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       });
 
       debugPrint('Processed ${_availabilitySlots.length} slots for UI');
-
     } catch (e) {
       debugPrint('Error loading slots: $e');
       setState(() => _isLoading = false);
@@ -165,7 +172,11 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     }
 
     // Check if date is in the past (before today)
-    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final today = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
     if (date.isBefore(today)) {
       debugPrint('Date $dateStr is in the past');
       return [];
@@ -189,8 +200,14 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       // For recurring slots, check if the weekday matches
       if (isRecurring) {
         // Check if weekday matches and original slot start date is not in the future
-        final slotStartDate = DateTime(slotStart.year, slotStart.month, slotStart.day);
-        debugPrint('Checking recurring slot: target weekday=$targetWeekday, selected weekday=$selectedWeekday');
+        final slotStartDate = DateTime(
+          slotStart.year,
+          slotStart.month,
+          slotStart.day,
+        );
+        debugPrint(
+          'Checking recurring slot: target weekday=$targetWeekday, selected weekday=$selectedWeekday',
+        );
 
         if (selectedWeekday == targetWeekday && !slotStartDate.isAfter(date)) {
           availableSlots.add(slot);
@@ -200,7 +217,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       // For non-recurring slots, check if the date matches exactly
       else {
         final slotDateStr = DateFormat('yyyy-MM-dd').format(slotStart);
-        debugPrint('Checking non-recurring slot: slotDate=$slotDateStr, selected=$dateStr');
+        debugPrint(
+          'Checking non-recurring slot: slotDate=$slotDateStr, selected=$dateStr',
+        );
 
         if (slotDateStr == dateStr) {
           availableSlots.add(slot);
@@ -212,72 +231,91 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     debugPrint('Found ${availableSlots.length} potential slots for $dateStr');
 
     // Now adjust the times for the specific date and filter out unavailable slots
-    final result = availableSlots.map((slot) {
-      final slotStart = slot['start_time'] as DateTime;
-      final slotEnd = slot['end_time'] as DateTime;
-      final maxPatients = slot['max_patients'] as int;
+    final result =
+        availableSlots
+            .map((slot) {
+              final slotStart = slot['start_time'] as DateTime;
+              final slotEnd = slot['end_time'] as DateTime;
+              final maxPatients = slot['max_patients'] as int;
 
-      // Adjust start and end times for the selected date
-      final adjustedStart = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        slotStart.hour,
-        slotStart.minute,
-      );
+              // Adjust start and end times for the selected date
+              final adjustedStart = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                slotStart.hour,
+                slotStart.minute,
+              );
 
-      var adjustedEnd = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        slotEnd.hour,
-        slotEnd.minute,
-      );
+              var adjustedEnd = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                slotEnd.hour,
+                slotEnd.minute,
+              );
 
-      // Handle slots that cross midnight
-      if (slotEnd.hour < slotStart.hour ||
-          (slotEnd.hour == slotStart.hour && slotEnd.minute < slotStart.minute)) {
-        adjustedEnd = adjustedEnd.add(const Duration(days: 1));
-      }
+              // Handle slots that cross midnight
+              if (slotEnd.hour < slotStart.hour ||
+                  (slotEnd.hour == slotStart.hour &&
+                      slotEnd.minute < slotStart.minute)) {
+                adjustedEnd = adjustedEnd.add(const Duration(days: 1));
+              }
 
-      // Skip slots that have already passed for today
-      if (date.year == now.year && date.month == now.month && date.day == now.day) {
-        if (adjustedStart.isBefore(now)) {
-          debugPrint('Slot ${DateFormat('HH:mm').format(adjustedStart)} - ${DateFormat('HH:mm').format(adjustedEnd)} has already passed');
-          return null;
-        }
-      }
+              // Skip slots that have already passed for today
+              if (date.year == now.year &&
+                  date.month == now.month &&
+                  date.day == now.day) {
+                if (adjustedStart.isBefore(now)) {
+                  debugPrint(
+                    'Slot ${DateFormat('HH:mm').format(adjustedStart)} - ${DateFormat('HH:mm').format(adjustedEnd)} has already passed',
+                  );
+                  return null;
+                }
+              }
 
-      // For recurring slots, we need to check the specific date's bookings
-      // Get the availability ID for booking matching
-      final availabilityId = slot['id'];
+              // For recurring slots, we need to check the specific date's bookings
+              // Get the availability ID for booking matching
+              final availabilityId = slot['id'];
 
-      // Count how many appointments are already booked for this slot
-      final bookedCount = _getBookedCountForSlot(dateStr, availabilityId, adjustedStart, adjustedEnd);
+              // Count how many appointments are already booked for this slot
+              final bookedCount = _getBookedCountForSlot(
+                dateStr,
+                availabilityId,
+                adjustedStart,
+                adjustedEnd,
+              );
 
-      // Check if the slot is fully booked
-      if (bookedCount >= maxPatients) {
-        debugPrint('Slot ${DateFormat('HH:mm').format(adjustedStart)} is fully booked ($bookedCount/$maxPatients)');
-        return null;
-      }
+              // Check if the slot is fully booked
+              if (bookedCount >= maxPatients) {
+                debugPrint(
+                  'Slot ${DateFormat('HH:mm').format(adjustedStart)} is fully booked ($bookedCount/$maxPatients)',
+                );
+                return null;
+              }
 
-      return {
-        ...slot,
-        'start_time': adjustedStart,
-        'end_time': adjustedEnd,
-        'booked_count': bookedCount,
-        'adjusted_date': dateStr, // Store the adjusted date for booking
-      };
-    })
-        .where((slot) => slot != null)
-        .toList()
-        .cast<Map<String, dynamic>>();
+              return {
+                ...slot,
+                'start_time': adjustedStart,
+                'end_time': adjustedEnd,
+                'booked_count': bookedCount,
+                'adjusted_date': dateStr, // Store the adjusted date for booking
+              };
+            })
+            .where((slot) => slot != null)
+            .toList()
+            .cast<Map<String, dynamic>>();
 
     debugPrint('Returning ${result.length} valid slots after filtering');
     return result;
   }
 
-  int _getBookedCountForSlot(String dateStr, dynamic availabilityId, DateTime start, DateTime end) {
+  int _getBookedCountForSlot(
+    String dateStr,
+    dynamic availabilityId,
+    DateTime start,
+    DateTime end,
+  ) {
     if (availabilityId == null || !_existingAppointments.containsKey(dateStr)) {
       return 0;
     }
@@ -338,7 +376,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     if (_userBookingsToday >= _maxBookingsPerDay) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You have reached the maximum limit of 3 bookings for today'),
+          content: Text(
+            'You have reached the maximum limit of 3 bookings for today',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -361,14 +401,17 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     try {
       final slotStart = _selectedSlot!['start_time'] as DateTime;
       final slotEnd = _selectedSlot!['end_time'] as DateTime;
-      final success = await Provider.of<AppointmentService>(context, listen: false)
-          .bookAppointment(
+      final success = await Provider.of<AppointmentService>(
+        context,
+        listen: false,
+      ).bookAppointment(
         therapistId: widget.therapist['id'],
         appointmentTime: slotStart,
         endTime: slotEnd,
         notes: _notesController.text,
         availabilityId: _selectedSlot!['id'],
-        appointmentDate: dateStr, // Pass the actual date string for this instance
+        appointmentDate:
+            dateStr, // Pass the actual date string for this instance
       );
 
       setState(() => _isSubmitting = false);
@@ -380,44 +423,57 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
 
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: Text(
-              'Success!',
-              style: GoogleFonts.aclonica(color: const Color(0xFF6FA57C)),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Appointment booked successfully',
-                  style: GoogleFonts.montserrat(),
+          builder:
+              (context) => AlertDialog(
+                title: Text(
+                  L10n.getTranslatedText(context, 'Success!'),
+                  style: GoogleFonts.aclonica(color: const Color(0xFF6FA57C)),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'You have used ${_userBookingsToday} of $_maxBookingsPerDay bookings today',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      L10n.getTranslatedText(
+                        context,
+                        'Appointment booked successfully',
+                      ),
+                      style: GoogleFonts.montserrat(),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      L10n.getTranslatedText(
+                            context,
+                            'You have used _used_ of _max_ bookings today',
+                          )
+                          .replaceAll('_used_', _userBookingsToday.toString())
+                          .replaceAll('_max_', _maxBookingsPerDay.toString()),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      L10n.getTranslatedText(context, 'OK'),
+                      style: GoogleFonts.montserrat(
+                        color: const Color(0xFF6FA57C),
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'OK',
-                  style: GoogleFonts.montserrat(color: const Color(0xFF6FA57C)),
-                ),
+                ],
               ),
-            ],
-          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Slot no longer available'),
+          SnackBar(
+            content: Text(
+              L10n.getTranslatedText(context, 'Slot no longer available'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -440,7 +496,10 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       backgroundColor: const Color(0xFFFDF6F0),
       appBar: AppBar(
         title: Text(
-          'Book with ${widget.therapist['name']}',
+          L10n.getTranslatedText(
+            context,
+            'Book with _name_',
+          ).replaceAll('_name_', widget.therapist['name'] ?? ''),
           style: GoogleFonts.montserrat(),
         ),
         backgroundColor: const Color(0xFFFDF6F0),
@@ -450,110 +509,150 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF6FA57C)))
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              // Booking limit indicator
-              if (_userBookingsToday > 0)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Card(
-                    color: _userBookingsToday >= _maxBookingsPerDay
-                        ? const Color(0xFFFFEBEE) // Light red background if at limit
-                        : const Color(0xFFE8F5E9), // Light green background
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _userBookingsToday >= _maxBookingsPerDay
-                                ? Icons.warning_amber_rounded
-                                : Icons.info_outline,
-                            color: _userBookingsToday >= _maxBookingsPerDay
-                                ? Colors.red[700]
-                                : const Color(0xFF6FA57C),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _userBookingsToday >= _maxBookingsPerDay
-                                  ? 'You have reached your daily booking limit (3)'
-                                  : 'You have used $_userBookingsToday of $_maxBookingsPerDay bookings today',
-                              style: GoogleFonts.montserrat(
-                                color: _userBookingsToday >= _maxBookingsPerDay
-                                    ? Colors.red[700]
-                                    : Colors.black87,
+      body:
+          _isLoading
+              ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF6FA57C)),
+              )
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: ListView(
+                    children: [
+                      // Booking limit indicator
+                      if (_userBookingsToday > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Card(
+                            color:
+                                _userBookingsToday >= _maxBookingsPerDay
+                                    ? const Color(
+                                      0xFFFFEBEE,
+                                    ) // Light red background if at limit
+                                    : const Color(
+                                      0xFFE8F5E9,
+                                    ), // Light green background
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _userBookingsToday >= _maxBookingsPerDay
+                                        ? Icons.warning_amber_rounded
+                                        : Icons.info_outline,
+                                    color:
+                                        _userBookingsToday >= _maxBookingsPerDay
+                                            ? Colors.red[700]
+                                            : const Color(0xFF6FA57C),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      _userBookingsToday >= _maxBookingsPerDay
+                                          ? L10n.getTranslatedText(
+                                            context,
+                                            'You have reached your daily booking limit (3)',
+                                          )
+                                          : L10n.getTranslatedText(
+                                                context,
+                                                'You have used _used_ of _total_ bookings today',
+                                              )
+                                              .replaceAll(
+                                                '_used_',
+                                                _userBookingsToday.toString(),
+                                              )
+                                              .replaceAll(
+                                                '_total_',
+                                                _maxBookingsPerDay.toString(),
+                                              ),
+                                      style: GoogleFonts.montserrat(
+                                        color:
+                                            _userBookingsToday >=
+                                                    _maxBookingsPerDay
+                                                ? Colors.red[700]
+                                                : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
+                        ),
+                      _buildDatePicker(),
+                      if (_selectedDate != null) _buildTimeSlots(),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _notesController,
+                        decoration: InputDecoration(
+                          labelText: L10n.getTranslatedText(
+                            context,
+                            'Additional Notes',
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          labelStyle: GoogleFonts.montserrat(),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF6FA57C),
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        style: GoogleFonts.montserrat(),
+                        maxLines: 3,
                       ),
-                    ),
-                  ),
-                ),
-              _buildDatePicker(),
-              if (_selectedDate != null) _buildTimeSlots(),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _notesController,
-                decoration: InputDecoration(
-                  labelText: 'Additional Notes',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  labelStyle: GoogleFonts.montserrat(),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                        color: Color(0xFF6FA57C), width: 2),
-                  ),
-                ),
-                style: GoogleFonts.montserrat(),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: (_isSubmitting || _userBookingsToday >= _maxBookingsPerDay)
-                    ? null
-                    : _submitAppointment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6FA57C),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  disabledBackgroundColor: Colors.grey,
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                    : Text(
-                  _userBookingsToday >= _maxBookingsPerDay
-                      ? 'Daily Limit Reached'
-                      : 'Book Appointment',
-                  style: GoogleFonts.aclonica(
-                    color: Colors.white,
-                    fontSize: 16,
+                      const SizedBox(height: 30),
+                      ElevatedButton(
+                        onPressed:
+                            (_isSubmitting ||
+                                    _userBookingsToday >= _maxBookingsPerDay)
+                                ? null
+                                : _submitAppointment,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6FA57C),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          disabledBackgroundColor: Colors.grey,
+                        ),
+                        child:
+                            _isSubmitting
+                                ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : Text(
+                                  _userBookingsToday >= _maxBookingsPerDay
+                                      ? L10n.getTranslatedText(
+                                        context,
+                                        'Daily Limit Reached',
+                                      )
+                                      : L10n.getTranslatedText(
+                                        context,
+                                        'Book Appointment',
+                                      ),
+                                  style: GoogleFonts.aclonica(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -564,8 +663,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       child: ListTile(
         title: Text(
           _selectedDate == null
-              ? 'Select Date'
-              : 'Selected Date: ${DateFormat.yMMMd().format(_selectedDate!)}',
+              ? L10n.getTranslatedText(context, 'Select Date')
+              : '${L10n.getTranslatedText(context, 'Selected Date')}: ${DateFormat.yMMMd().format(_selectedDate!)}',
           style: GoogleFonts.montserrat(),
         ),
         trailing: const Icon(Icons.calendar_today, color: Color(0xFF4A707A)),
@@ -575,15 +674,16 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             initialDate: DateTime.now(),
             firstDate: DateTime.now(),
             lastDate: DateTime.now().add(const Duration(days: 365)),
-            builder: (context, child) => Theme(
-              data: ThemeData.light().copyWith(
-                colorScheme: const ColorScheme.light(
-                  primary: Color(0xFF6FA57C),
+            builder:
+                (context, child) => Theme(
+                  data: ThemeData.light().copyWith(
+                    colorScheme: const ColorScheme.light(
+                      primary: Color(0xFF6FA57C),
+                    ),
+                    dialogBackgroundColor: const Color(0xFFFDF6F0),
+                  ),
+                  child: child!,
                 ),
-                dialogBackgroundColor: const Color(0xFFFDF6F0),
-              ),
-              child: child!,
-            ),
             selectableDayPredicate: (DateTime day) {
               final dateStr = DateFormat('yyyy-MM-dd').format(day);
               return !_offDays.contains(dateStr);
@@ -609,7 +709,9 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           elevation: 2,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -622,7 +724,10 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'No available slots for this day',
+                  L10n.getTranslatedText(
+                    context,
+                    'No available slots for this day',
+                  ),
                   style: GoogleFonts.montserrat(
                     color: Colors.grey,
                     fontStyle: FontStyle.italic,
@@ -642,7 +747,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
         Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 10),
           child: Text(
-            'Available Time Slots:',
+            L10n.getTranslatedText(context, 'Available Time Slots:'),
             style: GoogleFonts.montserrat(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -659,7 +764,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             final end = slot['end_time'] as DateTime;
             final formattedStart = DateFormat('h:mm a').format(start);
             final formattedEnd = DateFormat('h:mm a').format(end);
-            final isSelected = _selectedSlot?['id'] == slot['id'] &&
+            final isSelected =
+                _selectedSlot?['id'] == slot['id'] &&
                 _selectedSlot?['adjusted_date'] == slot['adjusted_date'];
             final maxPatients = slot['max_patients'] as int;
             final available = maxPatients - (slot['booked_count'] as int);
@@ -670,19 +776,27 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(
-                  color: isSelected ? const Color(0xFF6FA57C) : Colors.transparent,
+                  color:
+                      isSelected ? const Color(0xFF6FA57C) : Colors.transparent,
                   width: 2,
                 ),
               ),
               color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
               child: InkWell(
-                onTap: () => setState(() => _selectedSlot = isSelected ? null : slot),
+                onTap:
+                    () => setState(
+                      () => _selectedSlot = isSelected ? null : slot,
+                    ),
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.access_time, color: Color(0xFF4A707A), size: 20),
+                      const Icon(
+                        Icons.access_time,
+                        color: Color(0xFF4A707A),
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -691,12 +805,26 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                             '$formattedStart - $formattedEnd',
                             style: GoogleFonts.montserrat(
                               fontSize: 16,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                             ),
                           ),
                           if (maxPatients > 1)
                             Text(
-                              '$available of $maxPatients spots available',
+                              L10n.getTranslatedText(
+                                    context,
+                                    '_available_ of _total_ spots available',
+                                  )
+                                  .replaceAll(
+                                    '_available_',
+                                    available.toString(),
+                                  )
+                                  .replaceAll(
+                                    '_total_',
+                                    maxPatients.toString(),
+                                  ),
                               style: GoogleFonts.montserrat(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -709,7 +837,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                           padding: const EdgeInsets.only(left: 10),
                           child: Chip(
                             label: Text(
-                              'Weekly',
+                              L10n.getTranslatedText(context, 'Weekly'),
                               style: GoogleFonts.montserrat(
                                 fontSize: 12,
                                 color: Colors.white,
@@ -721,7 +849,10 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                         ),
                       const Spacer(),
                       if (isSelected)
-                        const Icon(Icons.check_circle, color: Color(0xFF6FA57C)),
+                        const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF6FA57C),
+                        ),
                     ],
                   ),
                 ),

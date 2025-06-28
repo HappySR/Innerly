@@ -65,8 +65,8 @@ class _EditTherapistProfileViewState extends State<EditTherapistProfileView> {
                     onPressed: () {
                       // Handle change photo
                     },
-                    child: const Text(
-                      'Change Photo',
+                    child: Text(
+                      L10n.getTranslatedText(context, 'Change Photo'),
                       style: TextStyle(color: Colors.black,
                           fontSize: 18),
                     ),
@@ -75,19 +75,19 @@ class _EditTherapistProfileViewState extends State<EditTherapistProfileView> {
               ),
             ),
             const SizedBox(height: 30),
-            buildLabel('Bio'),
+            buildLabel(L10n.getTranslatedText(context, 'Bio')),
             buildTextField(
-              '“A safe space seeker, finding\npeace in little moments.”',
+              L10n.getTranslatedText(context, '“A safe space seeker, finding\npeace in little moments.”'),
               maxLines: 2,
             ),
             const SizedBox(height: 20),
-            buildLabel('Age'),
+            buildLabel(L10n.getTranslatedText(context, 'Age')),
             buildAgeTextField(),
             const SizedBox(height: 20),
-            buildLabel('Languages'),
+            buildLabel(L10n.getTranslatedText(context, 'Languages')),
             buildMultiSelectLanguages(),
             const SizedBox(height: 20),
-            buildLabel('Experience'),
+            buildLabel(L10n.getTranslatedText(context, 'Experience')),
             buildExperienceDropdown(),
             const SizedBox(height: 40),
           ],
@@ -108,8 +108,8 @@ class _EditTherapistProfileViewState extends State<EditTherapistProfileView> {
             onPressed: () {
               // Handle Save Changes
             },
-            child: const Text(
-              'Save Changes',
+            child: Text(
+              L10n.getTranslatedText(context, 'Save Changes'),
               style: TextStyle(fontSize: 18, color: Colors.white),
             ),
           ),
@@ -163,7 +163,7 @@ class _EditTherapistProfileViewState extends State<EditTherapistProfileView> {
         ),
       ],
       decoration: InputDecoration(
-        hintText: 'Enter your age',
+        hintText: L10n.getTranslatedText(context, 'Enter your age'),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -235,7 +235,7 @@ class _EditTherapistProfileViewState extends State<EditTherapistProfileView> {
             decoration: const InputDecoration(
               border: InputBorder.none,
             ),
-            hint: const Text('Languages you know'),
+            hint: Text(L10n.getTranslatedText(context, 'Languages you know')),
             items: _languages.map((language) {
               return DropdownMenuItem(
                 value: language,
@@ -280,15 +280,15 @@ class _EditTherapistProfileViewState extends State<EditTherapistProfileView> {
         isExpanded: true,
         icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
         dropdownColor: Colors.white,
-        hint: const Text(
-          'Select years of experience',
+        hint: Text(
+          L10n.getTranslatedText(context, 'Select years of experience'),
           style: TextStyle(fontSize: 16),
         ),
         value: _selectedExperience,
         items: _experienceYears.map((year) {
           return DropdownMenuItem(
             value: year,
-            child: Text('$year years'),
+            child: Text('$year ${L10n.getTranslatedText(context, 'years')}'),
           );
         }).toList(),
         onChanged: (value) {

@@ -63,7 +63,7 @@ class L10n {
     Locale('es', ''),
     Locale('fr', ''),
     Locale('zh', ''),
-    Locale('de', ''),
+    Locale('de', '')
   ];
 
   /// Get the supported locale, defaulting to English if not found

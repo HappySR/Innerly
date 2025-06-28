@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:Innerly/localization/i10n.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -640,7 +641,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     const Icon(Icons.broken_image, size: 40, color: Colors.grey),
                     const SizedBox(height: 8),
                     Text(
-                      'Failed to load image',
+                      L10n.getTranslatedText(context, 'Failed to load image'),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 14,
@@ -776,7 +777,7 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             icon: const Icon(Icons.attach_file),
             onPressed: _showAttachmentOptions,
-            tooltip: 'Attach file',
+            tooltip: L10n.getTranslatedText(context, 'Attach file'),
           ),
         ],
       ),
@@ -791,8 +792,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 }
 
                 if (chatService.messages.isEmpty) {
-                  return const Center(
-                    child: Text('No messages yet'),
+                  return  Center(
+                    child: Text(L10n.getTranslatedText(context, 'No messages yet')),
                   );
                 }
 
@@ -822,13 +823,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     if (_isRecording) await _stopRecording();
                     else await _startRecording();
                   },
-                  tooltip: _isRecording ? 'Stop recording' : 'Record audio',
+                  tooltip: _isRecording ? L10n.getTranslatedText(context, 'Stop recording') : L10n.getTranslatedText(context, 'Record audio'),
                 ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Type your message...',
+                      hintText: L10n.getTranslatedText(context, 'Type your message...'),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide(
@@ -870,7 +871,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   )
                       : const Icon(Icons.send),
                   onPressed: _isSending ? null : _sendMessage,
-                  tooltip: 'Send message',
+                  tooltip: L10n.getTranslatedText(context, 'Send message'),
                 ),
               ],
             ),
@@ -961,7 +962,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               const CircularProgressIndicator(color: Colors.white),
               const SizedBox(height: 10),
               Text(
-                'Loading video...',
+                L10n.getTranslatedText(context, 'Loading video...'),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 14,

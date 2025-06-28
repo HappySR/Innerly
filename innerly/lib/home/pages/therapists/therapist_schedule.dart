@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -26,20 +27,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Timer? _statusCheckTimer;
 
   List<Map<String, dynamic>> get upcomingAppointments {
-    final upcoming = _appointments
-        .where((appt) => appt['status'] == 'confirmed')
-        .toList();
-    upcoming.sort((a, b) => DateTime.parse(a['scheduled_at'])
-        .compareTo(DateTime.parse(b['scheduled_at'])));
+    final upcoming =
+        _appointments.where((appt) => appt['status'] == 'confirmed').toList();
+    upcoming.sort(
+      (a, b) => DateTime.parse(
+        a['scheduled_at'],
+      ).compareTo(DateTime.parse(b['scheduled_at'])),
+    );
     return upcoming;
   }
 
   List<Map<String, dynamic>> get pastAppointments {
-    final past = _appointments
-        .where((appt) => appt['status'] == 'completed')
-        .toList();
-    past.sort((a, b) => DateTime.parse(b['scheduled_at'])
-        .compareTo(DateTime.parse(a['scheduled_at'])));
+    final past =
+        _appointments.where((appt) => appt['status'] == 'completed').toList();
+    past.sort(
+      (a, b) => DateTime.parse(
+        b['scheduled_at'],
+      ).compareTo(DateTime.parse(a['scheduled_at'])),
+    );
     return past;
   }
 
@@ -81,22 +86,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         return;
       }
 
-      final userIds = appointments
-          .map<String>((a) => a['user_id'] as String)
-          .toList();
+      final userIds =
+          appointments.map<String>((a) => a['user_id'] as String).toList();
 
-      final users = await _supabase.rpc(
-          'get_therapist_clients',
-          params: {'user_ids': userIds}
-      ).select();
+      final users =
+          await _supabase
+              .rpc('get_therapist_clients', params: {'user_ids': userIds})
+              .select();
 
-      final combined = appointments.map((appointment) {
-        final user = users.firstWhere(
+      final combined =
+          appointments.map((appointment) {
+            final user = users.firstWhere(
               (u) => u['id'] == appointment['user_id'],
-          orElse: () => {},
-        );
-        return {...appointment, 'client': user};
-      }).toList();
+              orElse: () => {},
+            );
+            return {...appointment, 'client': user};
+          }).toList();
 
       setState(() {
         _appointments = List<Map<String, dynamic>>.from(combined);
@@ -121,8 +126,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       if (appointment['status'] == 'confirmed') {
         // Calculate end time based on scheduled_at and duration
         final int durationMinutes = appointment['duration'] ?? 60;
-        final DateTime startTime = DateTime.parse(appointment['scheduled_at']).toLocal();
-        final DateTime endTime = startTime.add(Duration(minutes: durationMinutes));
+        final DateTime startTime =
+            DateTime.parse(appointment['scheduled_at']).toLocal();
+        final DateTime endTime = startTime.add(
+          Duration(minutes: durationMinutes),
+        );
 
         // If end time has passed, mark for completion
         if (now.isAfter(endTime)) {
@@ -141,13 +149,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     if (appointmentsNeedingMeetLink.isNotEmpty) {
       try {
         await Future.wait(
-            appointmentsNeedingMeetLink.map((appointment) async {
-              final meetLink = _generateJitsiMeetLink(appointment);
-              await _supabase
-                  .from('appointments')
-                  .update({'meet_link': meetLink})
-                  .eq('id', appointment['id']);
-            })
+          appointmentsNeedingMeetLink.map((appointment) async {
+            final meetLink = _generateJitsiMeetLink(appointment);
+            await _supabase
+                .from('appointments')
+                .update({'meet_link': meetLink})
+                .eq('id', appointment['id']);
+          }),
         );
       } catch (e) {
         print('Meet link generation error: $e');
@@ -158,12 +166,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     if (appointmentsNeedingUpdate.isNotEmpty) {
       try {
         await Future.wait(
-            appointmentsNeedingUpdate.map((id) =>
-                _supabase
-                    .from('appointments')
-                    .update({'status': 'completed'})
-                    .eq('id', id)
-            )
+          appointmentsNeedingUpdate.map(
+            (id) => _supabase
+                .from('appointments')
+                .update({'status': 'completed'})
+                .eq('id', id),
+          ),
         );
 
         // Refresh appointments after updating
@@ -178,9 +186,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     // Create a unique room name using appointment ID and a random suffix for added security
     final appointmentId = appointment['id'].toString();
     final random = Random();
-    final randomSuffix = List.generate(6, (_) =>
-    'abcdefghijklmnopqrstuvwxyz0123456789'[random.nextInt(36)]
-    ).join();
+    final randomSuffix =
+        List.generate(
+          6,
+          (_) => 'abcdefghijklmnopqrstuvwxyz0123456789'[random.nextInt(36)],
+        ).join();
 
     final roomName = 'innerly-${appointmentId}-${randomSuffix}';
 
@@ -222,7 +232,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            "TODAY'S SCHEDULE",
+            L10n.getTranslatedText(context, "TODAY'S SCHEDULE"),
             style: GoogleFonts.aboreto(
               fontSize: titleFontSize,
               fontWeight: FontWeight.w600,
@@ -241,9 +251,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     SizedBox(height: screenHeight * 0.03),
                     Padding(
                       padding: EdgeInsets.symmetric(
-                          horizontal: max(screenWidth * 0.02, 8.0)),
+                        horizontal: max(screenWidth * 0.02, 8.0),
+                      ),
                       child: Text(
-                        "Appointments",
+                        L10n.getTranslatedText(context, 'Appointments'),
                         style: GoogleFonts.montserrat(
                           fontSize: subtitleFontSize,
                           fontWeight: FontWeight.w600,
@@ -261,7 +272,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     tabs: [
                       Tab(
                         child: Text(
-                          'Upcoming',
+                          L10n.getTranslatedText(context, 'Upcoming'),
                           style: GoogleFonts.montserrat(
                             fontSize: normalFontSize,
                             fontWeight: FontWeight.w500,
@@ -270,7 +281,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ),
                       Tab(
                         child: Text(
-                          'Past',
+                          L10n.getTranslatedText(context, 'Past'),
                           style: GoogleFonts.montserrat(
                             fontSize: normalFontSize,
                             fontWeight: FontWeight.w500,
@@ -314,53 +325,61 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Widget _buildAppointmentsList(
-      List<Map<String, dynamic>> appointments,
-      double screenWidth,
-      double screenHeight,
-      double titleFontSize,
-      double normalFontSize,
-      double smallFontSize, {
-        required bool showMeetButton, // Moved this inside the curly braces
-      }) {
+    List<Map<String, dynamic>> appointments,
+    double screenWidth,
+    double screenHeight,
+    double titleFontSize,
+    double normalFontSize,
+    double smallFontSize, {
+    required bool showMeetButton, // Moved this inside the curly braces
+  }) {
     final padding = min(max(screenWidth * 0.04, 10.0), 20.0);
 
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
         : appointments.isEmpty
         ? Center(
-      child: Padding(
-        padding: EdgeInsets.all(padding),
-        child: Text(
-          'No appointments found',
-          style: GoogleFonts.abyssinicaSil(
-            fontSize: normalFontSize,
-            color: Colors.grey,
+          child: Padding(
+            padding: EdgeInsets.all(padding),
+            child: Text(
+              L10n.getTranslatedText(context, 'No appointments found'),
+              style: GoogleFonts.abyssinicaSil(
+                fontSize: normalFontSize,
+                color: Colors.grey,
+              ),
+            ),
           ),
-        ),
-      ),
-    )
+        )
         : ListView.builder(
-      padding: EdgeInsets.symmetric(
-          horizontal: padding, vertical: screenHeight * 0.02),
-      itemCount: appointments.length,
-      itemBuilder: (context, index) => _appointmentCard(
-        appointment: appointments[index],
-        screenWidth: screenWidth,
-        screenHeight: screenHeight,
-        titleFontSize: titleFontSize,
-        normalFontSize: normalFontSize,
-        smallFontSize: smallFontSize,
-        showMeetButton: showMeetButton,
-      ),
-    );
+          padding: EdgeInsets.symmetric(
+            horizontal: padding,
+            vertical: screenHeight * 0.02,
+          ),
+          itemCount: appointments.length,
+          itemBuilder:
+              (context, index) => _appointmentCard(
+                appointment: appointments[index],
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                titleFontSize: titleFontSize,
+                normalFontSize: normalFontSize,
+                smallFontSize: smallFontSize,
+                showMeetButton: showMeetButton,
+              ),
+        );
   }
 
-  Widget _calendar(double screenWidth, double normalFontSize, double smallFontSize) {
+  Widget _calendar(
+    double screenWidth,
+    double normalFontSize,
+    double smallFontSize,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Card(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(min(screenWidth * 0.04, 16.0))),
+            borderRadius: BorderRadius.circular(min(screenWidth * 0.04, 16.0)),
+          ),
           elevation: 3,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(min(screenWidth * 0.04, 16.0)),
@@ -376,8 +395,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 lastDay: DateTime(2030),
                 calendarFormat: CalendarFormat.month,
                 startingDayOfWeek: StartingDayOfWeek.monday,
-                selectedDayPredicate: (day) =>
-                _selectedDay != null && isSameDay(_selectedDay!, day),
+                selectedDayPredicate:
+                    (day) =>
+                        _selectedDay != null && isSameDay(_selectedDay!, day),
                 onDaySelected: (selectedDay, focusedDay) {
                   setState(() {
                     _selectedDay = selectedDay;
@@ -394,9 +414,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     shape: BoxShape.circle,
                   ),
                   cellPadding: EdgeInsets.all(min(screenWidth * 0.015, 6.0)),
-                  defaultTextStyle: TextStyle(
-                    fontSize: smallFontSize,
-                  ),
+                  defaultTextStyle: TextStyle(fontSize: smallFontSize),
                   todayTextStyle: TextStyle(
                     fontSize: smallFontSize,
                     fontWeight: FontWeight.bold,
@@ -461,8 +479,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     // Calculate time to appointment start
     final Duration timeToStart = scheduledAt.difference(now);
-    final bool isWithin10Min = timeToStart.inMinutes <= 10 && timeToStart.isNegative == false;
-    final bool hasStarted = timeToStart.isNegative && appointment['status'] == 'confirmed';
+    final bool isWithin10Min =
+        timeToStart.inMinutes <= 10 && timeToStart.isNegative == false;
+    final bool hasStarted =
+        timeToStart.isNegative && appointment['status'] == 'confirmed';
 
     // Calculate estimated end time for display
     final int durationMinutes = appointment['duration'] ?? 60;
@@ -527,9 +547,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     Row(
                       children: [
                         Icon(
-                            Icons.circle,
-                            size: min(screenWidth * 0.03, 12.0),
-                            color: appointment['status'] == 'completed' ? Colors.grey : Colors.green
+                          Icons.circle,
+                          size: min(screenWidth * 0.03, 12.0),
+                          color:
+                              appointment['status'] == 'completed'
+                                  ? Colors.grey
+                                  : Colors.green,
                         ),
                         SizedBox(width: horizontalPadding / 3),
                         Text(
@@ -576,11 +599,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          receiverId: clientId,
-                          receiverName: meta['full_name']?.toString() ?? 'Client',
-                          isTherapist: true,
-                        ),
+                        builder:
+                            (context) => ChatScreen(
+                              receiverId: clientId,
+                              receiverName:
+                                  meta['full_name']?.toString() ?? 'Client',
+                              isTherapist: true,
+                            ),
                       ),
                     );
                   },
@@ -598,13 +623,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(
-                      color: Color(0xFFCED4DA),
-                      width: 1,
+                    side: const BorderSide(color: Color(0xFFCED4DA), width: 1),
+                    padding: EdgeInsets.symmetric(
+                      vertical: min(screenWidth * 0.03, 12.0),
                     ),
-                    padding: EdgeInsets.symmetric(vertical: min(screenWidth * 0.03, 12.0)),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(min(screenWidth * 0.025, 10.0)),
+                      borderRadius: BorderRadius.circular(
+                        min(screenWidth * 0.025, 10.0),
+                      ),
                     ),
                   ),
                 ),
@@ -615,38 +641,51 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 SizedBox(width: horizontalPadding),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
-                        ? () => _launchMeetLink(appointment['meet_link'])
-                        : null,
+                    onPressed:
+                        (isWithin10Min || hasStarted) &&
+                                appointment['meet_link'] != null
+                            ? () => _launchMeetLink(appointment['meet_link'])
+                            : null,
                     icon: Icon(
                       Icons.videocam,
                       size: min(screenWidth * 0.05, 20.0),
-                      color: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
-                          ? Colors.black
-                          : Colors.grey,
+                      color:
+                          (isWithin10Min || hasStarted) &&
+                                  appointment['meet_link'] != null
+                              ? Colors.black
+                              : Colors.grey,
                     ),
                     label: Text(
-                      (isWithin10Min || hasStarted) && appointment['meet_link'] != null
+                      (isWithin10Min || hasStarted) &&
+                              appointment['meet_link'] != null
                           ? 'Join Meet'
                           : 'Meet (${timeToStart.inMinutes > 10 ? "${timeToStart.inMinutes} mins" : "soon"})',
                       style: TextStyle(
-                        color: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
-                            ? Colors.black
-                            : Colors.grey,
+                        color:
+                            (isWithin10Min || hasStarted) &&
+                                    appointment['meet_link'] != null
+                                ? Colors.black
+                                : Colors.grey,
                         fontWeight: FontWeight.w500,
                         fontSize: smallFontSize,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: (isWithin10Min || hasStarted) && appointment['meet_link'] != null
-                            ? const Color(0xFF6FA57C)
-                            : const Color(0xFFCED4DA),
+                        color:
+                            (isWithin10Min || hasStarted) &&
+                                    appointment['meet_link'] != null
+                                ? const Color(0xFF6FA57C)
+                                : const Color(0xFFCED4DA),
                         width: 1,
                       ),
-                      padding: EdgeInsets.symmetric(vertical: min(screenWidth * 0.03, 12.0)),
+                      padding: EdgeInsets.symmetric(
+                        vertical: min(screenWidth * 0.03, 12.0),
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(min(screenWidth * 0.025, 10.0)),
+                        borderRadius: BorderRadius.circular(
+                          min(screenWidth * 0.025, 10.0),
+                        ),
                       ),
                     ),
                   ),
@@ -684,10 +723,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           SizedBox(width: horizontalPadding / 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -697,10 +733,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String _getOrdinal(int day) {
     if (day >= 11 && day <= 13) return 'th';
     switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
     }
   }
 }
@@ -711,11 +751,12 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   _StickyTabBarDelegate({required this.child});
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: const Color(0xFFFDF6F0),
-      child: child,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: const Color(0xFFFDF6F0), child: child);
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Innerly/home/pages/therapists/started/signup_view.dart';
@@ -22,7 +23,7 @@ class WelcomePage extends StatelessWidget {
                 children: [
                   // Title
                   Text(
-                    '"Innerly: A Safe Space"',
+                    L10n.getTranslatedText(context,'"Innerly: A Safe Space"' ),
                     style: GoogleFonts.lora(
                       fontSize: width * 0.06,
                       color: Colors.green[800],
@@ -34,7 +35,7 @@ class WelcomePage extends StatelessWidget {
 
                   // Subtitle
                   Text(
-                    "Support, connection, and healing. Whether you're guiding or seeking.",
+                    L10n.getTranslatedText(context, 'Support, connection, and healing. Whether you\'re guiding or seeking.'),
                     style: GoogleFonts.poppins(
                       fontSize: width * 0.04,
                       color: Colors.grey[800],
@@ -54,7 +55,7 @@ class WelcomePage extends StatelessWidget {
                     Expanded(
                       child: OptionCard(
                         imagePath: 'assets/images/therapist_profile_image.png',
-                        text: 'Are You a therapist?',
+                        text: L10n.getTranslatedText(context, 'Are You a therapist?'),
                         onTap: () {
                           Navigator.push(
                             context,
@@ -69,7 +70,7 @@ class WelcomePage extends StatelessWidget {
                     Expanded(
                       child: OptionCard(
                         imagePath: 'assets/images/anonymous.png',
-                        text: 'Continue Anonymously....',
+                        text: L10n.getTranslatedText(context, 'Continue Anonymously....'),
                         onTap: () {
                           Navigator.push(
                             context,
@@ -94,14 +95,14 @@ class WelcomePage extends StatelessWidget {
                 },
                 child: RichText(
                   text: TextSpan(
-                    text: 'Are you an admin? ',
+                    text: L10n.getTranslatedText(context, 'Are you an admin?'),
                     style: GoogleFonts.lora(
                       color: Colors.black87,
                       fontSize: 16,
                     ),
                     children: [
                       TextSpan(
-                        text: 'Click here',
+                        text: L10n.getTranslatedText(context, 'Click here'),
                         style: GoogleFonts.lora(
                           color: Colors.green[700],
                           fontWeight: FontWeight.bold,

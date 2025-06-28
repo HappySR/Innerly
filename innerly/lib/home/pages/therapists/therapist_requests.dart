@@ -1,5 +1,6 @@
 import 'package:Innerly/home/pages/therapists/therapist_appointment.dart';
 import 'package:Innerly/home/pages/therapists/therapist_schedule.dart';
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -140,8 +141,8 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                 MaterialPageRoute(builder: (_) => const TherapistsAppointmentScreen()),
               ),
               icon: const Icon(Icons.schedule, color: Color(0xFF6FA57C)),
-              label: const Text(
-                'Your Schedule',
+              label: Text(
+                L10n.getTranslatedText(context, 'Your Schedule'),
                 style: TextStyle(color: Color(0xFF6FA57C)),
               ),
             )
@@ -176,7 +177,7 @@ class _PatientsRequestsState extends State<PatientsRequests> {
         ),
         SizedBox(height: screenSize.height * 0.02),
         Text(
-          'Take a deep breath',
+          L10n.getTranslatedText(context, 'Take a deep breath'),
           style: GoogleFonts.aclonica(
             fontSize: screenSize.width * 0.06,
             fontWeight: FontWeight.w500,
@@ -185,8 +186,14 @@ class _PatientsRequestsState extends State<PatientsRequests> {
         SizedBox(height: screenSize.height * 0.01),
         Text(
           widget.status == 'pending'
-              ? '"You have ${_appointments.length} new requests from users."'
-              : '"You have ${_appointments.length} approved appointments."',
+              ? L10n.getTranslatedText(
+            context,
+            'You have _count_ new requests from users',
+          ).replaceAll('_count_', _appointments.length.toString())
+              : L10n.getTranslatedText(
+            context,
+            'You have _count_ approved appointments',
+          ).replaceAll('_count_', _appointments.length.toString()),
           style: GoogleFonts.abyssinicaSil(
             fontSize: screenSize.width * 0.04,
             color: Colors.grey,
@@ -213,7 +220,7 @@ class _PatientsRequestsState extends State<PatientsRequests> {
                 ),
               ),
               child: Text(
-                'Appointments',
+                L10n.getTranslatedText(context, 'Appointments'),
                 style: GoogleFonts.aclonica(
                   fontSize: screenSize.width * 0.05,
                   color: Colors.white,
@@ -230,7 +237,7 @@ class _PatientsRequestsState extends State<PatientsRequests> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.status == 'pending' ? 'Pending Requests' : 'Approved Appointments',
+          widget.status == 'pending' ? L10n.getTranslatedText(context, 'Pending Requests') : L10n.getTranslatedText(context, 'Approved Appointments'),
           style: GoogleFonts.montserrat(
             fontSize: screenSize.width * 0.045,
             fontWeight: FontWeight.w500,
@@ -243,7 +250,7 @@ class _PatientsRequestsState extends State<PatientsRequests> {
             ? Padding(
           padding: EdgeInsets.all(screenSize.width * 0.04),
           child: Text(
-            widget.status == 'pending' ? 'No pending requests' : 'No approved appointments',
+            widget.status == 'pending' ? L10n.getTranslatedText(context, 'No pending requests') : L10n.getTranslatedText(context, 'No approved appointments'),
             style: GoogleFonts.abyssinicaSil(
               fontSize: screenSize.width * 0.04,
               color: Colors.grey,
@@ -343,7 +350,7 @@ class _SessionCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                if (status == 'pending') _buildActionButtons(),
+                if (status == 'pending') _buildActionButtons(context),
               ],
             ),
           ),
@@ -352,7 +359,7 @@ class _SessionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(top: screenSize.height * 0.015),
       child: Row(
@@ -361,7 +368,7 @@ class _SessionCard extends StatelessWidget {
             child: OutlinedButton(
               onPressed: () => onUpdateStatus(appointment['id'].toString(), 'confirmed'),
               style: _buttonStyle(color: const Color(0xFF4CAF50)),
-              child: Text('Accept', style: _buttonTextStyle(color: const Color(0xFF4CAF50))),
+              child: Text(L10n.getTranslatedText(context, 'Accept'), style: _buttonTextStyle(color: const Color(0xFF4CAF50))),
             ),
           ),
           SizedBox(width: screenSize.width * 0.04),
@@ -369,7 +376,7 @@ class _SessionCard extends StatelessWidget {
             child: OutlinedButton(
               onPressed: () => onUpdateStatus(appointment['id'].toString(), 'rejected'),
               style: _buttonStyle(color: const Color(0xFFE53935)),
-              child: Text('Decline', style: _buttonTextStyle(color: const Color(0xFFE53935))),
+              child: Text(L10n.getTranslatedText(context, 'Decline'), style: _buttonTextStyle(color: const Color(0xFFE53935))),
             ),
           ),
         ],

@@ -335,18 +335,18 @@ class TherapistDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Extract all therapist details
-    final name = therapist['name']?.toString() ?? 'Anonymous Therapist';
-    final specialization = therapist['specialization']?.toString() ?? 'Mental Health Professional';
-    final bio = therapist['bio']?.toString() ?? 'No biography provided';
+    final name = therapist['name']?.toString() ?? L10n.getTranslatedText(context, 'Anonymous Therapist');
+    final specialization = therapist['specialization']?.toString() ?? L10n.getTranslatedText(context, 'Mental Health Professional');
+    final bio = therapist['bio']?.toString() ?? L10n.getTranslatedText(context, 'No biography provided');
     final hourlyRate = therapist['hourly_rate'] is num
         ? (therapist['hourly_rate'] as num).toDouble()
         : null;
-    final experience = therapist['experience']?.toString() ?? 'Not specified';
+    final experience = therapist['experience']?.toString() ?? L10n.getTranslatedText(context, 'Not specified');
     final isOnline = therapist['is_online'] == true;
     final lastActive = therapist['last_active'] != null
         ? DateTime.parse(therapist['last_active'].toString())
         : null;
-    final status = therapist['document_status']?.toString().toUpperCase() ?? 'PENDING';
+    final status = therapist['document_status']?.toString().toUpperCase() ?? L10n.getTranslatedText(context, 'PENDING');
 
     return Scaffold(
       appBar: AppBar(
@@ -474,7 +474,7 @@ class TherapistDetailScreen extends StatelessWidget {
                 children: [
                   FilledButton.icon(
                     icon: const Icon(Icons.chat, size: 20),
-                    label: const Text('Message Now'),
+                    label: Text(L10n.getTranslatedText(context, 'Message Now')),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(200, 48),
                       backgroundColor: InnerlyTheme.secondary, // ✅ Custom background color
@@ -487,7 +487,7 @@ class TherapistDetailScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.calendar_today, size: 20),
-                    label: const Text('Schedule Session'),
+                    label: Text(L10n.getTranslatedText(context, 'Schedule Session')),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(200, 48),
                       side: BorderSide(color: InnerlyTheme.secondary), // ✅ Border color

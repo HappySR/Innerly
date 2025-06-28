@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:flutter/material.dart';
 
 class HomeTherapist extends StatelessWidget {
@@ -30,9 +31,9 @@ class HomeTherapist extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: const TextField(
+              child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search',
+                  hintText: L10n.getTranslatedText(context, 'Search'),
                   border: InputBorder.none,
                   icon: Icon(Icons.search),
                 ),
@@ -43,19 +44,19 @@ class HomeTherapist extends StatelessWidget {
             // Therapist profile and welcome
             Center(
               child: Column(
-                children: const [
+                children: [
                   CircleAvatar(
                     radius: 45,
                     backgroundImage: AssetImage('assets/doctor_avatar.png'),
                   ),
                   SizedBox(height: 10),
                   Text(
-                    'Hello, Dr. Julia',
+                    '${L10n.getTranslatedText(context, 'Hello')}, Dr. Julia',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 5),
                   Text(
-                    '"You have 3 active clients today."\nLet\'s make a difference!',
+                    L10n.getTranslatedText(context, '"You have 3 active clients today."\nLet\'s make a difference!'),
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, color: Colors.black87),
                   ),
@@ -68,7 +69,7 @@ class HomeTherapist extends StatelessWidget {
             _buildTherapistButton(
               context,
               icon: Icons.people,
-              text: 'Patients',
+              text: L10n.getTranslatedText(context, 'Patients'),
               color: Colors.lightBlueAccent,
               onPressed: () {
                 // Navigate to patient list screen
@@ -77,7 +78,7 @@ class HomeTherapist extends StatelessWidget {
             _buildTherapistButton(
               context,
               icon: Icons.pending_actions,
-              text: 'View Requests',
+              text: L10n.getTranslatedText(context, 'View Requests'),
               color: Colors.orangeAccent,
               onPressed: () {
                 // Navigate to requests screen
@@ -86,7 +87,7 @@ class HomeTherapist extends StatelessWidget {
             _buildTherapistButton(
               context,
               icon: Icons.chat_bubble_outline,
-              text: 'Go to Chats',
+              text: L10n.getTranslatedText(context, 'Go to Chats'),
               color: Colors.lightGreen,
               onPressed: () {
                 // Navigate to chat screen
@@ -95,7 +96,7 @@ class HomeTherapist extends StatelessWidget {
             _buildTherapistButton(
               context,
               icon: Icons.calendar_today,
-              text: 'Today\'s Schedule',
+              text: L10n.getTranslatedText(context, 'Today\'s Schedule'),
               color: Colors.pinkAccent,
               onPressed: () {
                 // Navigate to schedule screen
