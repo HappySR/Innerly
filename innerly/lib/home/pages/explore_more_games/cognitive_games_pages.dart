@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,7 +16,7 @@ class GamesHub extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: InnerlyTheme.appBackground,
-        title: Text('Therapeutic Games', style: GoogleFonts.lora(
+        title: Text(L10n.getTranslatedText(context, 'Therapeutic Games'), style: GoogleFonts.lora(
             fontSize: 22
         )),
       ),
@@ -30,28 +31,28 @@ class GamesHub extends StatelessWidget {
           children: [
             buildGameCard(
               context,
-              'Breathing\nExercise',
+              L10n.getTranslatedText(context, 'Breathing\nExercise'),
               Icons.self_improvement,
               Colors.blue,
               const BreathingGameScreen(),
             ),
             buildGameCard(
               context,
-              'Stress Relief',
+              L10n.getTranslatedText(context, 'Stress Relief'),
               Icons.sports_esports,
               Colors.green,
               const WebGameScreen(gameUrl: 'https://poki.com/embed/...'),
             ),
             buildGameCard(
               context,
-              'Cognitive\nTraining',
+              L10n.getTranslatedText(context, 'Cognitive\nTraining'),
               Icons.grid_4x4,
               Colors.orange,
               const SudokuScreen(),
             ),
             buildGameCard(
               context,
-              'Memory Boost',
+              L10n.getTranslatedText(context, 'Memory Boost'),
               Icons.memory,
               Colors.purple,
               const MemoryGameScreen(),

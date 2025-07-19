@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:Innerly/localization/i10n.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -58,7 +59,7 @@ class _MeditationPageState extends State<MeditationPage> {
     setState(() {
       _meditationTracks = [
         {
-          'title': 'Morning Calm',
+          'title': L10n.getTranslatedText(context, 'Morning Calm'),
           'remoteUrl': _buildCloudinaryUrl(
               cloudName: cloudName,
               version: 'v1746185897', // Add this from Cloudinary
@@ -66,11 +67,11 @@ class _MeditationPageState extends State<MeditationPage> {
           ),
           'localPath': '',
           'duration': '10 min',
-          'description': 'Gentle guidance for starting your day',
+          'description': L10n.getTranslatedText(context, 'Gentle guidance for starting your day'),
           'isDownloaded': false,
         },
         {
-          'title': 'Deep Relaxation',
+          'title': L10n.getTranslatedText(context, 'Deep Relaxation'),
           'remoteUrl': _buildCloudinaryUrl(
               cloudName: cloudName,
               version: 'v1746185930', // Add this from Cloudinary
@@ -78,7 +79,7 @@ class _MeditationPageState extends State<MeditationPage> {
           ),
           'localPath': '',
           'duration': '20 min',
-          'description': 'Release tension and find peace',
+          'description': L10n.getTranslatedText(context, 'Release tension and find peace'),
           'isDownloaded': false,
         },
       ];
@@ -177,13 +178,13 @@ class _MeditationPageState extends State<MeditationPage> {
         if (sdkInt >= 33) { // Android 13+
           final status = await Permission.audio.request();
           if (!status.isGranted) {
-            _showErrorSnackbar('Audio access required for downloads');
+            _showErrorSnackbar(L10n.getTranslatedText(context, 'Audio access required for downloads'));
             return false;
           }
         } else { // Android <13
           final status = await Permission.storage.request();
           if (!status.isGranted) {
-            _showErrorSnackbar('Storage permission required for downloads');
+            _showErrorSnackbar(L10n.getTranslatedText(context, 'Storage permission required for downloads'));
             return false;
           }
         }
@@ -342,7 +343,7 @@ class _MeditationPageState extends State<MeditationPage> {
                             children: [
                               Flexible(
                                 child: Text(
-                                  'Peaceful Mind',
+                                  L10n.getTranslatedText(context, 'Peaceful Mind'),
                                   style: GoogleFonts.aboreto(
                                     fontSize: isSmallScreen ? 20 : 24,
                                     color: Colors.white,
@@ -404,8 +405,7 @@ class _MeditationPageState extends State<MeditationPage> {
                               children: [
                                 Text(
                                   _meditationTracks.isEmpty
-                                      ? 'Loading...'
-                                      : _meditationTracks[_selectedTrackIndex]['title'],
+                                      ? L10n.getTranslatedText(context, 'Loading...')                                      : _meditationTracks[_selectedTrackIndex]['title'],
                                   style: GoogleFonts.amita(
                                     fontSize: isSmallScreen ? 20 : 24,
                                     color: Colors.white,
@@ -616,7 +616,7 @@ class _MeditationPageState extends State<MeditationPage> {
                               children: [
                                 SizedBox(height: isSmallScreen ? 10 : 20),
                                 Text(
-                                  'Duration: ${_selectedDuration == -1 ? 'Infinite' : '$_selectedDuration min'}',
+                                  '${L10n.getTranslatedText(context, 'Duration')}: ${_selectedDuration == -1 ? L10n.getTranslatedText(context, 'Infinite') : '$_selectedDuration min'}',
                                   style: GoogleFonts.abel(
                                     fontSize: isSmallScreen ? 12 : 14,
                                     color: Colors.white70,
@@ -629,7 +629,7 @@ class _MeditationPageState extends State<MeditationPage> {
                                     min: 5,
                                     max: 65,
                                     divisions: 12,
-                                    label: _selectedDuration == -1 ? 'Infinite' : '$_selectedDuration min',
+                                    label: _selectedDuration == -1 ? L10n.getTranslatedText(context, 'Infinite') : '$_selectedDuration min',
                                     activeColor: Colors.tealAccent,
                                     inactiveColor: Colors.white24,
                                     onChanged: (value) {

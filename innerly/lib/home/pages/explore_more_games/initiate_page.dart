@@ -1,3 +1,4 @@
+import 'package:Innerly/localization/i10n.dart';
 import 'package:Innerly/widget/innerly_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,7 +22,7 @@ class InitiatePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Immediate Support', style: GoogleFonts.lora(
+        title: Text(L10n.getTranslatedText(context, 'Immediate Support'), style: GoogleFonts.lora(
           fontSize: 22
         )),
         elevation: 0,
@@ -43,9 +44,9 @@ class InitiatePage extends StatelessWidget {
               children: [
                 _buildEmergencyCard(
                   context,
-                  'Emergency Hotline',
-                  '24/7 Suicide & Crisis Lifeline',
-                  'Call 988',
+                  L10n.getTranslatedText(context, 'Emergency Hotline'),
+                  L10n.getTranslatedText(context, '24/7 Suicide & Crisis Lifeline'),
+                  L10n.getTranslatedText(context, 'Call 988'),
                   Icons.emergency,
                   Colors.red,
                   'tel:988',
@@ -53,9 +54,9 @@ class InitiatePage extends StatelessWidget {
                 SizedBox(height: isSmallScreen ? 16 : 20),
                 _buildEmergencyCard(
                   context,
-                  'Crisis Text Line',
-                  'Text HOME to 741741',
-                  'Text Now',
+                  L10n.getTranslatedText(context, 'Crisis Text Line'),
+                  L10n.getTranslatedText(context, 'Text HOME to 741741'),
+                  L10n.getTranslatedText(context, 'Text Now'),
                   Icons.sms,
                   Colors.green,
                   'sms:741741?body=HOME',
@@ -63,9 +64,9 @@ class InitiatePage extends StatelessWidget {
                 SizedBox(height: isSmallScreen ? 16 : 20),
                 _buildEmergencyCard(
                   context,
-                  'Therapist Connect',
-                  'Schedule Urgent Session',
-                  'Find Help',
+                  L10n.getTranslatedText(context, 'Therapist Connect'),
+                  L10n.getTranslatedText(context, 'Schedule Urgent Session'),
+                  L10n.getTranslatedText(context, 'Find Help'),
                   Icons.people_alt,
                   Colors.blue,
                   'https://www.psychologytoday.com/us/therapists',
@@ -73,16 +74,16 @@ class InitiatePage extends StatelessWidget {
                 SizedBox(height: isSmallScreen ? 16 : 20),
                 _buildEmergencyCard(
                   context,
-                  'Safety Planning',
-                  'Create Personal Safety Plan',
-                  'Learn More',
+                  L10n.getTranslatedText(context, 'Safety Planning'),
+                  L10n.getTranslatedText(context, 'Create Personal Safety Plan'),
+                  L10n.getTranslatedText(context, 'Learn More'),
                   Icons.security,
                   Colors.purple,
                   'https://suicidepreventionlifeline.org/wp-content/uploads/2016/08/Brown_StanleySafetyPlanTemplate.pdf',
                 ),
                 SizedBox(height: isSmallScreen ? 24 : 30),
                 Text(
-                  'Additional Resources:',
+                  L10n.getTranslatedText(context, 'Additional Resources:'),
                   style: GoogleFonts.lora(
                     fontSize: isSmallScreen ? 18 : 22,
                     color: Colors.black87,
@@ -95,28 +96,28 @@ class InitiatePage extends StatelessWidget {
                   children: [
                     _buildResourceChip(
                       context,
-                      'Self-Help Guides',
+                      L10n.getTranslatedText(context, 'Self-Help Guides'),
                       Icons.article,
                       const Color(0xFF6C9A8B),
                       'https://www.mhanational.org/self-help-tools',
                     ),
                     _buildResourceChip(
                       context,
-                      'Breathing Exercises',
+                      L10n.getTranslatedText(context, 'Breathing Exercises'),
                       Icons.self_improvement,
                       Colors.orange,
                       'https://www.health.harvard.edu/mind-and-mood/relaxation-techniques-breath-control-helps-quell-errant-stress-response',
                     ),
                     _buildResourceChip(
                       context,
-                      'Support Groups',
+                      L10n.getTranslatedText(context, 'Support Groups'),
                       Icons.group,
                       Colors.purple,
                       'https://www.nami.org/Support-Education/Support-Groups',
                     ),
                     _buildResourceChip(
                       context,
-                      'Meditation',
+                      L10n.getTranslatedText(context, 'Meditation'),
                       Icons.health_and_safety,
                       Colors.blue,
                       'https://www.headspace.com/',
@@ -247,7 +248,7 @@ class InitiatePage extends StatelessWidget {
         const Divider(),
         SizedBox(height: isSmallScreen ? 12 : 16),
         Text(
-          'You are not alone. Help is available.',
+          L10n.getTranslatedText(context, 'You are not alone. Help is available.'),
           style: GoogleFonts.lora(
             fontSize: isSmallScreen ? 16 : 18,
             color: Colors.black87,
@@ -256,7 +257,7 @@ class InitiatePage extends StatelessWidget {
         ),
         SizedBox(height: isSmallScreen ? 8 : 12),
         Text(
-          'Reach out anytime - your mental health matters.',
+          L10n.getTranslatedText(context, 'Reach out anytime - your mental health matters.'),
           style: TextStyle(
             fontSize: isSmallScreen ? 12 : 14,
             color: Colors.grey[600],

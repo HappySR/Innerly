@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:Innerly/localization/i10n.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -59,7 +60,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
     setState(() {
       _moodPlaylists = [
         {
-          'name': 'Calm',
+          'name': L10n.getTranslatedText(context, 'Calm'),
           'emoji': '😌',
           'color': const Color(0xFF6C9A8B),
           'remoteUrl': _buildCloudinaryUrl(
@@ -68,10 +69,10 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
               publicId: 'calm_oqh5n7'),
           'localPath': '',
           'isDownloaded': false,
-          'description': 'Soothing melodies to help you relax',
+          'description': L10n.getTranslatedText(context, 'Soothing melodies to help you relax'),
         },
         {
-          'name': 'Happy',
+          'name': L10n.getTranslatedText(context, 'Happy'),
           'emoji': '😊',
           'color': const Color(0xFFEDD4B2),
           'remoteUrl': _buildCloudinaryUrl(
@@ -80,10 +81,10 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
               publicId: 'happy_fbtfxf'),
           'localPath': '',
           'isDownloaded': false,
-          'description': 'Uplifting tunes to brighten your day',
+          'description': L10n.getTranslatedText(context, 'Uplifting tunes to brighten your day'),
         },
         {
-          'name': 'Focus',
+          'name': L10n.getTranslatedText(context, 'Focus'),
           'emoji': '🎯',
           'color': const Color(0xFF8A9EA7),
           'remoteUrl': _buildCloudinaryUrl(
@@ -92,10 +93,10 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
               publicId: 'focus_c2s9yb'),
           'localPath': '',
           'isDownloaded': false,
-          'description': 'Ambient sounds for concentration',
+          'description': L10n.getTranslatedText(context, 'Ambient sounds for concentration'),
         },
         {
-          'name': 'Energize',
+          'name': L10n.getTranslatedText(context, 'Energize'),
           'emoji': '⚡',
           'color': const Color(0xFFE8998D),
           'remoteUrl': _buildCloudinaryUrl(
@@ -104,7 +105,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
               publicId: 'energize_ybs0kz'),
           'localPath': '',
           'isDownloaded': false,
-          'description': 'Dynamic rhythms to boost your energy',
+          'description': L10n.getTranslatedText(context, 'Dynamic rhythms to boost your energy'),
         },
       ];
     });
@@ -181,7 +182,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
         mood['isDownloaded'] = true;
       });
 
-      _showSuccessSnackbar('${mood['name']} track downloaded successfully');
+      _showSuccessSnackbar('${mood['name']} ${L10n.getTranslatedText(context, 'track downloaded successfully')}');
     } catch (e) {
       _showErrorSnackbar('Download failed: ${e.toString()}');
     } finally {
@@ -201,13 +202,13 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
         if (sdkInt >= 33) {
           final status = await Permission.audio.request();
           if (!status.isGranted) {
-            _showErrorSnackbar('Audio access required for downloads');
+            _showErrorSnackbar(L10n.getTranslatedText(context, 'Audio access required for downloads'));
             return false;
           }
         } else {
           final status = await Permission.storage.request();
           if (!status.isGranted) {
-            _showErrorSnackbar('Storage permission required for downloads');
+            _showErrorSnackbar(L10n.getTranslatedText(context, 'Storage permission required for downloads'));
             return false;
           }
         }
@@ -371,7 +372,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
               const Icon(Icons.music_note, color: Colors.tealAccent),
               const SizedBox(width: 10),
               Text(
-                'Mood Therapy',
+                L10n.getTranslatedText(context, 'Mood Therapy'),
                 style: GoogleFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -397,7 +398,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'About Mood Therapy',
+                          L10n.getTranslatedText(context, 'About Mood Therapy'),
                           style: GoogleFonts.poppins(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -406,7 +407,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Enhance your mood with carefully curated sound tracks. Download tracks for offline listening or stream them directly.',
+                          L10n.getTranslatedText(context, 'Enhance your mood with carefully curated sound tracks. Download tracks for offline listening or stream them directly.'),
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             color: Colors.white70,
@@ -425,7 +426,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
                             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                           ),
                           child: Text(
-                            'Close',
+                            L10n.getTranslatedText(context, 'Close'),
                             style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
                           ),
                         ),
@@ -456,7 +457,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
                 Padding(
                   padding: EdgeInsets.fromLTRB(24, isSmallScreen ? 8 : 16, 24, 8),
                   child: Text(
-                    'Select a mood to enhance your wellbeing',
+                    L10n.getTranslatedText(context, 'Select a mood to enhance your wellbeing'),
                     style: GoogleFonts.poppins(
                       fontSize: isSmallScreen ? 14 : 16,
                       color: Colors.white70,
@@ -757,7 +758,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
                   size: 24,
                 ),
                 onPressed: _toggleLoop,
-                tooltip: 'Repeat',
+                tooltip: L10n.getTranslatedText(context, 'Repeat'),
               ),
 
               Material(
@@ -801,7 +802,7 @@ class _MusicPageState extends State<MusicPage> with SingleTickerProviderStateMix
                 color: Colors.white70,
                 iconSize: 24,
                 onPressed: _resetPlayer,
-                tooltip: 'Stop',
+                tooltip: L10n.getTranslatedText(context, 'Stop'),
               ),
             ],
           ),
